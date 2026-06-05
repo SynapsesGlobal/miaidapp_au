@@ -1,0 +1,14 @@
+include: package:pedantic/analysis_options.yaml
+
+analyzer:
+  exclude:
+    - lib/generated/**
+    - lib/data/network/api/*
+    - lib/component/custom_segmented_control.dart
+
+  language:
+    strict-inference: true
+
+  strong-mode:
+    implicit-casts: true
+    implicit-dynamic: true

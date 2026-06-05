@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="40px" height="40px" viewBox="0 0 40 40" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>/SVG/ic_mappin_pharmacy_selected</title>
+    <defs>
+        <rect id="path-1" x="0" y="0" width="34" height="34" rx="9"></rect>
+        <filter x="-20.6%" y="-14.7%" width="141.2%" height="141.2%" filterUnits="objectBoundingBox" id="filter-2">
+            <feOffset dx="0" dy="2" in="SourceAlpha" result="shadowOffsetOuter1"></feOffset>
+            <feGaussianBlur stdDeviation="2" in="shadowOffsetOuter1" result="shadowBlurOuter1"></feGaussianBlur>
+            <feComposite in="shadowBlurOuter1" in2="SourceAlpha" operator="out" result="shadowBlurOuter1"></feComposite>
+            <feColorMatrix values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.202305507 0" type="matrix" in="shadowBlurOuter1"></feColorMatrix>
+        </filter>
+    </defs>
+    <g id="ic_mappin_pharmacy_selected" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Rectangle" transform="translate(3.000000, 3.000000)">
+            <use fill="black" fill-opacity="1" filter="url(#filter-2)" xlink:href="#path-1"></use>
+            <rect stroke="#0CBCC5" stroke-width="0.5" stroke-linejoin="square" fill="#FFFFFF" fill-rule="evenodd" x="0.25" y="0.25" width="33.5" height="33.5" rx="9"></rect>
+        </g>
+        <path d="M22.5104062,28 L17.4895938,28 C17.2307188,28 17.0208438,27.790125 17.0208438,27.53125 L17.0208438,22.9791562 L12.46875,22.9791562 C12.209875,22.9791562 12,22.7692812 12,22.5104062 L12,17.4895938 C12,17.2307188 12.209875,17.0208438 12.46875,17.0208438 L17.0208438,17.0208438 L17.0208438,12.46875 C17.0208438,12.209875 17.2307188,12 17.4895938,12 L22.5104062,12 C22.7692812,12 22.9791562,12.209875 22.9791562,12.46875 L22.9791562,17.0208438 L27.53125,17.0208438 C27.790125,17.0208438 28,17.2307188 28,17.4895938 L28,22.5104062 C28,22.7692812 27.790125,22.9791562 27.53125,22.9791562 L22.9791562,22.9791562 L22.9791562,27.53125 C22.9791562,27.790125 22.7692812,28 22.5104062,28 Z" id="Path" fill="#0CBCC5" fill-rule="nonzero"></path>
+    </g>
+</svg>

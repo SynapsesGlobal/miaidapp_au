@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="30px" height="30px" viewBox="0 0 30 30" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>/SVG/ic_profile_uploadpicture</title>
+    <defs>
+        <circle id="path-1" cx="15" cy="15" r="15"></circle>
+        <filter x="-38.3%" y="-31.7%" width="176.7%" height="176.7%" filterUnits="objectBoundingBox" id="filter-2">
+            <feOffset dx="0" dy="2" in="SourceAlpha" result="shadowOffsetOuter1"></feOffset>
+            <feGaussianBlur stdDeviation="3.5" in="shadowOffsetOuter1" result="shadowBlurOuter1"></feGaussianBlur>
+            <feComposite in="shadowBlurOuter1" in2="SourceAlpha" operator="out" result="shadowBlurOuter1"></feComposite>
+            <feColorMatrix values="0 0 0 0 0.0473557732   0 0 0 0 0.738705283   0 0 0 0 0.774456522  0 0 0 0.285948427 0" type="matrix" in="shadowBlurOuter1"></feColorMatrix>
+        </filter>
+    </defs>
+    <g id="ic_profile_uploadpicture" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Oval">
+            <use fill="black" fill-opacity="1" filter="url(#filter-2)" xlink:href="#path-1"></use>
+            <circle stroke="#FFFFFF" stroke-width="1" stroke-linejoin="square" fill="#0CBCC5" fill-rule="evenodd" cx="15" cy="15" r="14.5"></circle>
+        </g>
+        <g id="iconfinder_20-blue_camera-photo-gallery_4488790" transform="translate(8.000000, 10.000000)" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.8">
+            <path d="M13.44,8.12 L13.44,2.478 C13.44,1.96 13.02,1.54 12.502,1.54 L10.052,1.54 C9.814,1.54 9.604,1.386 9.52,1.176 L9.24,0.364 C9.156,0.14 8.946,0 8.708,0 L4.732,0 C4.494,0 4.284,0.154 4.2,0.364 L3.92,1.176 C3.836,1.4 3.626,1.54 3.388,1.54 L0.938,1.54 C0.42,1.54 0,1.96 0,2.478 L0,9.422 C0,9.94 0.42,10.36 0.938,10.36 L11.48,10.36" id="Path"></path>
+            <path d="M6.72,7.94275593 C7.87979797,7.94275593 8.82,7.0025539 8.82,5.84275593 C8.82,4.68295795 7.87979797,3.74275593 6.72,3.74275593 C5.56020203,3.74275593 4.62,4.68295795 4.62,5.84275593 C4.62,7.0025539 5.56020203,7.94275593 6.72,7.94275593 Z" id="Oval"></path>
+        </g>
+    </g>
+</svg>

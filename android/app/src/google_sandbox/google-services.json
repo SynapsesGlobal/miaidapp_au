@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "556738280205",
+    "project_id": "miaid-dev",
+    "storage_bucket": "miaid-dev.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:556738280205:android:68fa42d93cd427ac244e44",
+        "android_client_info": {
+          "package_name": "com.em.bright.miaid"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "556738280205-6qvftcca0hhkc8tlaktgtndtk2j22bqn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAsPJIsUFAsL5ZRxSoG85leDvRLXolJP8E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "556738280205-6qvftcca0hhkc8tlaktgtndtk2j22bqn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
