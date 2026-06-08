@@ -137,4 +137,3 @@ android:exported="false"
 tools:replace="android:exported" />
 
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
-
