@@ -64,8 +64,19 @@ class _TravelCarePackagesState extends State<TravelCarePackages> {
   @override
   void initState() {
     _getActiveSubscriptions();
+    _checkSquarePayment();
     widget.services.store.fetchAvailableSubscriptions();
     super.initState();
+  }
+
+  /// open_square_payment 已合并进 /api/v1/profile，统一从该接口读取。
+  Future<void> _checkSquarePayment() async {
+    final enabled = await PaymentBackend.fetchOpenSquarePayment();
+    if (mounted) {
+      setState(() {
+        open_square_payment = enabled;
+      });
+    }
   }
 
   List subscriptions = [];
@@ -99,7 +110,6 @@ class _TravelCarePackagesState extends State<TravelCarePackages> {
         setState(() {
           subscriptions = responseData['subscriptions'];
           remainCount = int.parse(responseData['consultationCount'].toString());
-          open_square_payment = responseData['open_square_payment'];
           loaded = true;
         });
       } else {

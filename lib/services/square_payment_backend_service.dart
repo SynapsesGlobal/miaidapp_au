@@ -77,11 +77,41 @@ import '../dialogs/square_payment.dart';
 import '../generated/l10n.dart';
 import '../store/home/home_screen_store.dart';
 import '../utils/configure_dependencies.dart';
+import '../utils/json_utils.dart';
 import 'square_payment_queue.dart';
 import 'square_payment_service.dart';
 
 class PaymentBackend {
   PaymentBackend._();
+
+  // ────────────────────────────────────────────────────────────────────────
+  // 是否开启 Square 支付
+  // ────────────────────────────────────────────────────────────────────────
+
+  /// 从 `/api/v1/profile` 读取 `open_square_payment`，判断当前用户是否开启
+  /// Square 支付入口。取代原来分散在各页面的 `/api/v1/square/check_enabled`
+  /// 与 `active/packages` 响应里的内联读取。
+  ///
+  /// `open_square_payment` 不在生成的 model 中，故直接解析原始 JSON（递归查找，
+  /// 兼容字段所在层级）。请求失败 / 字段缺失时按 false 处理（默认不开启）。
+  static Future<bool> fetchOpenSquarePayment() async {
+    final api = getIt<ApiProvider>();
+    try {
+      final url = Uri.parse('${api.baseUrl}/api/v1/profile');
+      final response = await http.get(url, headers: {
+        'Content-Type': 'application/json',
+        'x-user-id': api.userProvider.user!.id.toString(),
+        'x-access-token': api.userProvider.user!.accessToken!,
+        'x-api-key': api.apiKey,
+      });
+      if (response.statusCode != 200) return false;
+      final decoded = jsonDecode(response.body);
+      return findBoolDeep(decoded, 'open_square_payment') ?? false;
+    } catch (e) {
+      debugPrint('[SquarePay] fetchOpenSquarePayment error: $e');
+      return false;
+    }
+  }
 
   // ────────────────────────────────────────────────────────────────────────
   // 对账（确认订单状态）

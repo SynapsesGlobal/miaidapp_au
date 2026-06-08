@@ -42,7 +42,16 @@ abstract class _HomeScreenStore with Store {
 
   @action
   Future<void> fetchCountryCode() async {
-    countryCode = await getCountryCode();
+    try {
+      // 真机正常路径：定位成功直接使用获取到的国家代码
+      countryCode = await getCountryCode();
+    } catch (e) {
+      // 定位失败（如模拟器未设置模拟定位 / 权限被拒）时回退到上次缓存的国家代码，
+      // 避免 countryCode 保持 null 导致首页国家显示为空。真机定位正常时不会进入此分支。
+      debugPrint('fetchCountryCode failed, fallback to cached countryCode: $e');
+      final sharedPreferences = await SharedPreferences.getInstance();
+      countryCode = sharedPreferences.getString('countryCode');
+    }
     emergencyNumber = await fetchEmergencyNumber(countryCode);
   }
 

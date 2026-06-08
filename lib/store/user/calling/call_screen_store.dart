@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:core';
 
 import 'package:agora_rtc_engine/rtc_engine.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:injectable/injectable.dart';
+import 'package:intl/intl.dart';
 import 'package:miaid/api_utils/api_parser.dart';
 import 'package:miaid/api_utils/api_provider.dart';
 import 'package:miaid/api_utils/user_provider.dart';
@@ -16,6 +18,7 @@ import 'package:miaid/main.dart';
 import 'package:miaid/store/home/home_screen_store.dart';
 import 'package:miaid/store/user/calling/ongoing_call_store.dart';
 import 'package:miaid/store/user/chat/chat_screen_store.dart';
+import 'package:miaid/utils/json_utils.dart';
 import 'package:mobx/mobx.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
@@ -112,7 +115,6 @@ abstract class _CallScreenStore with Store {
   }) async {
     // TODO comment/uncomment the lines above to test calls with hardcoded countries e.g. AU
     var position = await determinePosition(desiredAccuracy: LocationAccuracy.medium);
-    // var position = Position(longitude: 1.0, latitude: 1.0, timestamp: null, accuracy: 1.0, altitude: 1.0, heading: 1.0, speed: 1.0, speedAccuracy: 1.0);
     var sharedPreferences = await SharedPreferences.getInstance();
     var videoSource = sharedPreferences.getString('video-call-source');
     var chatbotId = sharedPreferences.getString('chatbot-id') ?? '';
@@ -134,11 +136,69 @@ abstract class _CallScreenStore with Store {
       agoraToken: call.channelToken,
       userId: call.userCallId,
     );
+  }
 
-    developer.log(
-        'CREATE CALL 6 - call.userCallId: ${call.userCallId} - user.user!.id: ${user.user!.id}');
+  // ===== 面诊语言（用于后端按语言匹配医生）=====
+  // 说明：App 以"每设备一个常驻登录账号"运行，账号里的 languages 不代表当前正在
+  // 使用设备的人。发起医生面诊前让当前用户选择本次希望医生使用的语言，写回账号
+  // languages，后端据此匹配对应语言的医生。这与界面显示语言是两个概念。
 
-    developer.log('Joining Channel [2] start new call: joined');
+  /// 当前账号已设置的面诊语言（用于弹框默认预选）。
+  Language? get currentConsultationLanguage => user.user?.customer?.language;
+
+  /// 拉取后端可选语言列表（与资料页同源）。
+  Future<List<Language>> fetchConsultationLanguages() async {
+    final response = await api.apiClient.languagesGetLanguagesList();
+    return await ApiSuccessParser.payloadOrThrowWithMessage<List<Language>>(response);
+  }
+
+  /// 读取 profile 接口返回的 `need_select_language` 字段：
+  /// 仅当后端返回 true 时才需要在发起面诊前弹出语言选择框；false 则直接拨打。
+  ///
+  /// 该字段未包含在生成的 model 中，故直接解析原始 JSON（递归查找，兼容字段所在层级）。
+  /// 解析失败/缺失时按 false 处理（不弹框，不阻断拨打）。
+  Future<bool> needSelectConsultationLanguage() async {
+    final response = await api.apiClient.profileGetMyProfile();
+    if (!response.isSuccessful) return false;
+    try {
+      final decoded = jsonDecode(response.bodyString);
+      return findBoolDeep(decoded, 'need_select_language') ?? false;
+    } catch (e) {
+      debugPrint('parse need_select_language failed: $e');
+      return false;
+    }
+  }
+
+  /// 仅更新账号的偏好语言；其余资料字段从当前 user/customer 原样回填，避免被覆盖。
+  Future<void> updateConsultationLanguage(Language lang) async {
+    final u = user.user!;
+    final c = u.customer!;
+    final response = await api.apiClient.profilePutUpdateCustomerProfile(
+      first_name: u.firstName,
+      last_name: u.lastName,
+      email: u.email,
+      phone: u.phone,
+      dob: c.dob != null ? DateFormat('y-MM-d').format(DateTime.parse(c.dob!)) : null,
+      language_id: lang.id,
+      language_ids: [if (lang.id != null) lang.id!],
+      gender_id: c.gender?.id,
+      doctor_preference: c.doctorPreference,
+      travel_agency_name: c.travelAgencyName,
+      medicare_number: c.medicareNumber,
+      customer_type_id: c.customerType?.id,
+      next_of_kin_name: c.nextOfKinName,
+      next_of_kin_email: c.nextOfKinEmail,
+      next_of_kin_mobile: c.nextOfKinMobile,
+      regular_doctor_name: c.regularDoctorName,
+      regular_doctor_email: c.regularDoctorEmail,
+      subscribe_email: c.subscribeEmail,
+    );
+    // 确认更新成功（失败会抛出，由调用方处理）。
+    await ApiSuccessParser.payloadOrThrowWithMessage<User>(response);
+    // 刷新内存中的 user，使随后创建通话时使用最新语言。
+    final profileResp = await api.apiClient.profileGetMyProfile();
+    final payload = await ApiSuccessParser.payloadOrThrowWithMessage<User>(profileResp);
+    user.onUserUpdated(payload);
   }
 
   @action

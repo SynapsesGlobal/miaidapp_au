@@ -3,6 +3,8 @@
   "apiError": "작업을 완료할 수 없습니다. 서버 오류 ({statusCode}):\n{message}",
   "signIn": "로그인",
   "cancel": "취소",
+  "consultationLanguageTitle": "진료 언어",
+  "consultationLanguageMessage": "이번 화상 진료에서 의사가 사용했으면 하는 언어를 선택하세요. 이는 앱 표시 언어와 다릅니다.",
   "resetPassMessage": "죄송합니다. 제공된 사용자 이름과/또는 비밀번호에 대한 계정을 찾을 수 없습니다. 비밀번호를 재설정하거나 새 계정을 만들 수 있습니다.",
   "resetPass": "비밀번호 재설정",
   "orcreate": "또는 새 계정을 만드세요",

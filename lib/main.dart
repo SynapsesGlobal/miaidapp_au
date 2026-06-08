@@ -48,7 +48,6 @@ GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await configureDependencies(prod.name);
-  await dotenv.load(fileName: '.env');
   await initFirebase();
 
   /// square payment: 先挂队列监听器，再 init —— 顺序保证冷启动 URI
@@ -62,6 +61,11 @@ void main() async {
 }
 
 Future<void> runAppFromEnvironment() async {
+  // 在所有入口（main / main_prod / main_dev / main_sandbox）共同调用的这里加载 .env，
+  // 确保任何入口启动时 dotenv 都已初始化（否则访问 dotenv.env 会抛 NotInitializedError，
+  // 例如地图页的 MAPBOX_ACCESS_TOKEN）。
+  await dotenv.load(fileName: '.env');
+
   SystemChrome.setSystemUIOverlayStyle(
     SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,

@@ -127,12 +127,20 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _fetchEmergencyNumber() async {
-    final position = await determinePosition(desiredAccuracy: LocationAccuracy.medium);
-    final countryCode = await getCountryCodeFromLocation(position);
-    final emergencyCode = EmergencyNumbers.getNumber(countryCode!);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('current_emergency_number', emergencyCode);
-    setState(() => emergency_number = emergencyCode);
+    try {
+      // 真机正常路径：定位成功 -> 解析国家 -> 更新急救号码
+      final position = await determinePosition(desiredAccuracy: LocationAccuracy.medium);
+      final countryCode = await getCountryCodeFromLocation(position);
+      if (countryCode == null) return;
+      final emergencyCode = EmergencyNumbers.getNumber(countryCode);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('current_emergency_number', emergencyCode);
+      if (mounted) setState(() => emergency_number = emergencyCode);
+    } catch (e) {
+      // 定位失败（如模拟器未设置模拟定位）时保留已从缓存加载的急救号码，不中断页面。
+      // 真机定位正常时不会进入此分支。
+      debugPrint('fetchEmergencyNumber failed: $e');
+    }
   }
 
   void  _fetchRemainingConsultations() async {
@@ -305,7 +313,7 @@ class _HomeScreenState extends State<HomeScreen>
                       },
                       child: Text('English', style: GoogleFonts.rubik(
                         color: AppColors.k0cbcc5,
-                        fontSize: 24,
+                        fontSize: 20,
                       ),),
                     ),
                     CupertinoActionSheetAction(
@@ -318,7 +326,7 @@ class _HomeScreenState extends State<HomeScreen>
                       },
                       child: Text('简体中文', style: GoogleFonts.rubik(
                         color: AppColors.k0cbcc5,
-                        fontSize: 24,
+                        fontSize: 20,
                       ),),
                     ),
                     CupertinoActionSheetAction(
@@ -331,7 +339,7 @@ class _HomeScreenState extends State<HomeScreen>
                       },
                       child: Text('繁体中文', style: GoogleFonts.rubik(
                         color: AppColors.k0cbcc5,
-                        fontSize: 24,
+                        fontSize: 20,
                       ),),
                     ),
                     CupertinoActionSheetAction(
@@ -344,7 +352,7 @@ class _HomeScreenState extends State<HomeScreen>
                       },
                       child: Text('한국인', style: GoogleFonts.rubik(
                         color: AppColors.k0cbcc5,
-                        fontSize: 24,
+                        fontSize: 20,
                       ),),
                     ),
                     CupertinoActionSheetAction(
@@ -357,7 +365,7 @@ class _HomeScreenState extends State<HomeScreen>
                       },
                       child: Text('Indonesia', style: GoogleFonts.rubik(
                         color: AppColors.k0cbcc5,
-                        fontSize: 24,
+                        fontSize: 20,
                       ),),
                     ),
                     CupertinoActionSheetAction(
@@ -370,7 +378,7 @@ class _HomeScreenState extends State<HomeScreen>
                       },
                       child: Text('Ελληνικά', style: GoogleFonts.rubik(
                         color: AppColors.k0cbcc5,
-                        fontSize: 24,
+                        fontSize: 20,
                       ),),
                     )
                   ],

@@ -1,11 +1,15 @@
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:miaid/api_utils/http_exception.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
+import 'package:miaid/generated_api_code/api_client.swagger.dart';
+import 'package:miaid/utils/language_native_name.dart';
 import 'package:miaid/payment/additional_services.dart';
 import 'package:miaid/store/home/active_subscription_store.dart';
 import 'package:miaid/store/user/calling/call_screen_store.dart';
@@ -48,6 +52,10 @@ Future<void> navigateToCallScreen(
       videoConsultationsAlert(context);
       return;
     }
+
+    // 发起医生面诊前，确认本次希望医生使用的语言（写回账号后用于后端医生匹配）。
+    final languageConfirmed = await _confirmConsultationLanguage(context);
+    if (!languageConfirmed) return;
   }
 
   // if (Platform.isAndroid) {
@@ -79,6 +87,84 @@ Future<void> navigateToCallScreen(
   await Navigator.push(context, MaterialPageRoute<void>(
     builder: (context) => callScreen,
   ),);
+}
+
+/// 发起医生面诊前，让当前用户选择/确认本次希望医生使用的语言。
+///
+/// 选择后写回当前账号的偏好语言（后端据此匹配对应语言的医生）。
+/// 返回 true 表示已确认并写回，可继续发起通话；返回 false（取消或失败）则中止。
+///
+/// 注意：这与右上角"界面显示语言"是两个不同概念，文案/标题已明确区分。
+Future<bool> _confirmConsultationLanguage(BuildContext context) async {
+  final store = getIt<CallScreenStore>();
+
+  // 先读取 profile 的 need_select_language：仅当后端要求时才弹框，否则直接拨打。
+  var languages = <Language>[];
+  try {
+    await EasyLoading.show(
+      status: S.of(context).loading,
+      maskType: EasyLoadingMaskType.black,
+    );
+    final needSelect = await store.needSelectConsultationLanguage();
+
+    if (!needSelect) {
+      // 后端不要求选择语言，直接继续发起通话。
+      await EasyLoading.dismiss();
+      return true;
+    }
+    languages = await store.fetchConsultationLanguages();
+  } catch (e) {
+    await EasyLoading.dismiss();
+    return false;
+  }
+  await EasyLoading.dismiss();
+  if (languages.isEmpty) return false;
+
+  final current = store.currentConsultationLanguage;
+
+  final selected = await showCupertinoModalPopup<Language>(
+    context: context,
+    builder: (popupContext) => CupertinoActionSheet(
+      title: Text(
+        S.of(context).consultationLanguageTitle,
+        style: GoogleFonts.rubik(fontSize: 15, color: AppColors.k8f8e94),
+      ),
+      message: Text(
+        S.of(context).consultationLanguageMessage,
+        style: GoogleFonts.rubik(fontSize: 13, color: AppColors.k8f8e94),
+      ),
+      actions: languages.map((lang) => CupertinoActionSheetAction(
+        isDefaultAction: current?.id != null && current?.id == lang.id,
+        onPressed: () => Navigator.pop(popupContext, lang),
+        child: Text(
+          nativeLanguageName(lang.language),
+          style: GoogleFonts.rubik(fontSize: 20, color: AppColors.k0cbcc5),
+        ),
+      )).toList(),
+      cancelButton: CupertinoActionSheetAction(
+        onPressed: () => Navigator.pop(popupContext),
+        child: Text(
+          S.of(context).cancel,
+          style: GoogleFonts.rubik(fontSize: 20, color: AppColors.k0cbcc5),
+        ),
+      ),
+    ),
+  );
+
+  if (selected == null) return false;
+
+  try {
+    await EasyLoading.show(
+      status: S.of(context).loading,
+      maskType: EasyLoadingMaskType.black,
+    );
+    await store.updateConsultationLanguage(selected);
+  } catch (e) {
+    await EasyLoading.dismiss();
+    return false;
+  }
+  await EasyLoading.dismiss();
+  return true;
 }
 
 void videoConsultationsAlert(BuildContext context) {

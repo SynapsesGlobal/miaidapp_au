@@ -3,6 +3,8 @@
   "apiError": "Unable to complete action. Server error ({statusCode}):\n{message}",
   "signIn": "Sign In",
   "cancel": "Cancel",
+  "consultationLanguageTitle": "Consultation Language",
+  "consultationLanguageMessage": "Choose the language you'd like the doctor to speak during this video consultation. This is different from the app display language.",
   "resetPassMessage": "Sorry, We couldn't find an account with given username and/or password. We can help you to",
   "resetPass": "Reset Password",
   "orcreate": " or create a ",

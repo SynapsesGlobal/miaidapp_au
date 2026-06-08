@@ -3,6 +3,8 @@
   "apiError": "無法完成操作。伺服器錯誤 ({statusCode})：\n{message}",
   "signIn": "登入",
   "cancel": "取消",
+  "consultationLanguageTitle": "面診語言",
+  "consultationLanguageMessage": "請選擇本次視訊面診時希望醫生使用的語言。這與App顯示語言不同。",
   "resetPassMessage": "抱歉，我們無法找到給定用戶名和/或密碼的帳戶。您可以幫助重置密碼或建立一個新的帳戶",
   "resetPass": "重置密碼",
   "orcreate": "或建立一個",

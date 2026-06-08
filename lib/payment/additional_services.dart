@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
@@ -22,9 +21,6 @@ import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:miaid/view/user/home/home_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-import '../api_utils/api_provider.dart';
-import 'package:http/http.dart' as http;
 
 class AdditionalServicesParams {
   const AdditionalServicesParams(this.key);
@@ -64,27 +60,12 @@ class _AdditionalServicesState extends State<AdditionalServices> {
   }
 
   Future<void> _checkCurrentUserCanUseSquarePayment() async {
-    final api = getIt<ApiProvider>();
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'x-user-id': api.userProvider.user!.id.toString(),
-      'x-api-key': api.apiKey,
-      'x-access-token': api.userProvider.user!.accessToken.toString()
-    };
-
-    try {
-      final url = Uri.parse(api.baseUrl+'/api/v1/square/check_enabled?userId='+api.userProvider.user!.id.toString());
-      final response = await http.get(url, headers: headers,);
-
-      await EasyLoading.dismiss();
-      var responseData = jsonDecode(response.body);
-      if (response.statusCode == 200) {
-        setState(() {
-          open_square_payment = responseData['open_square_payment'];
-        });
-      }
-    } catch (e) {
-      print(e.toString());
+    // open_square_payment 已合并进 /api/v1/profile，统一从该接口读取。
+    final enabled = await PaymentBackend.fetchOpenSquarePayment();
+    if (mounted) {
+      setState(() {
+        open_square_payment = enabled;
+      });
     }
   }
 
