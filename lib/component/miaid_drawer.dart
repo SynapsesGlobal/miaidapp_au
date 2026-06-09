@@ -196,7 +196,7 @@ class MiAidDrawer extends StatelessWidget {
                   ));
                 },
               ),
-              /*_drawerItem(
+              _drawerItem(
                 context,
                 'assets/images/ic_sidebar_corporatecare2.png',
                 S.of(context).marketing,
@@ -206,7 +206,7 @@ class MiAidDrawer extends StatelessWidget {
                     builder: (context) => MarketingCategory(),
                   ));
                 },
-              ),*/
+              ),
               /*_drawerItem(
                 context,
                 'assets/images/ic_sidebar_travelcare.png',

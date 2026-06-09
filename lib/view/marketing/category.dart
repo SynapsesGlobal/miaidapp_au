@@ -129,9 +129,15 @@ class _MarketingCategoryState extends State<MarketingCategory> {
         itemCount: categories.length,
         itemBuilder: (context, index) => InkWell(
           onTap: (){
-            Navigator.push(context, MaterialPageRoute<void>(
-              builder: (context) => CategoryAirline(),
-            ),);
+            if (categories[index]['mainCate'].toString().toUpperCase() == 'AIRLINE') {
+              Navigator.push(context, MaterialPageRoute<void>(
+                builder: (context) => CategoryAirline(),
+              ),);
+            } else {
+              Navigator.push(context, MaterialPageRoute<void>(
+                builder: (context) => Companies(categoryId: categories[index]['mainCateId'], category: categories[index]['mainCate']),
+              ),);
+            }
             /*if (categories[index]['company'] != null) {
               Navigator.push(context, MaterialPageRoute<void>(
                 builder: (context) => CompanyProducts(company: categories[index]['company']),
