@@ -388,6 +388,7 @@ void individualUserSubscriptionAlert(BuildContext context) {
     actions: [okButton],
   );
 
+
   showDialog(
     barrierColor: Colors.black38,
     context: context,
