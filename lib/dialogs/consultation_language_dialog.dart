@@ -103,18 +103,6 @@ class ConsultationLanguageDialog {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const SizedBox(height: 24),
-                    // 顶部圆形图标徽标
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: AppColors.keefeff,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.translate,
-                          color: AppColors.k0cbcc5, size: 28),
-                    ),
-                    const SizedBox(height: 16),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Text(
