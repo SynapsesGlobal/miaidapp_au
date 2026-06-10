@@ -18,6 +18,7 @@ import 'package:miaid/services/analytics_service.dart';
 import 'package:miaid/services/facebook_service.dart';
 import 'package:miaid/services/square_payment_backend_service.dart';
 import 'package:miaid/services/square_payment_service.dart';
+import 'package:miaid/store/app/app_settings.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/calling/call_history/call_history.dart';
 import 'package:miaid/view/user/home/home_screen.dart';
@@ -114,12 +115,14 @@ Future<void> runAppFromEnvironment() async {
     }
   }
 
-  var pref = await SharedPreferences.getInstance();
-  var languageCode = pref.getString('languageCode') ?? 'en';
-  var locale = Locale(languageCode);
+  final localeSettings = getIt<AppSettings>();
 
   runApp(
-    MaterialApp(
+    // 监听 AppSettings.localeListenable：切换语言时整体重建 MaterialApp，
+    // 让所有 S.of(context) 文案实时刷新，无需重启 App。
+    ValueListenableBuilder<Locale>(
+      valueListenable: localeSettings.localeListenable,
+      builder: (context, locale, _) => MaterialApp(
       theme: ThemeData(
         appBarTheme: AppBarTheme(
           systemOverlayStyle: SystemUiOverlayStyle.light,
@@ -158,6 +161,7 @@ Future<void> runAppFromEnvironment() async {
       },
       debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey,
+      ),
     ),
   );
   await SystemChrome.setPreferredOrientations([

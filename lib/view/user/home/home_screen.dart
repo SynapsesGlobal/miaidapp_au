@@ -18,6 +18,7 @@ import 'package:miaid/component/miaid_card.dart';
 import 'package:miaid/component/miaid_drawer.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/config/app_colors.dart';
+import 'package:miaid/dialogs/consultation_language_dialog.dart';
 import 'package:miaid/country/emergency_numbers.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/notifications/notifications_handler.dart';
@@ -215,6 +216,8 @@ class _HomeScreenState extends State<HomeScreen>
   void afterFirstLayout(BuildContext context) {
     _checkAppVersion();
     _checkAndShowIncomingCalls();
+    // 情况1：打开 App 时弹出语言选择框（仅冷启动后第一个首页生效，抽屉重建首页不弹）。
+    ConsultationLanguageDialog.showOnHomeEntry(context, isColdLaunch: true);
   }
 
   @override
@@ -222,7 +225,8 @@ class _HomeScreenState extends State<HomeScreen>
     if (state == AppLifecycleState.resumed) {
       _checkAndShowIncomingCalls();
       _checkAppVersion();
-      // _checkAndShowIncomingCalls();
+      // 情况2：App 从后台恢复回到首页时弹出。页面内导航返回首页不会触发此回调，故不会重复弹。
+      ConsultationLanguageDialog.showOnHomeEntry(context, isColdLaunch: false);
     } else if (state == AppLifecycleState.inactive) {
       Eraser.clearAllAppNotifications();
       FlutterAppBadger.removeBadge();

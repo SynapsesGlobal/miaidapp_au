@@ -1,6 +1,7 @@
 import 'dart:core';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,9 +11,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AppSettings {
   static const String _kLang = 'languageCode';
 
-  AppSettings(this.sharedPreferences);
+  AppSettings(this.sharedPreferences)
+      : localeListenable = ValueNotifier(
+          Locale(sharedPreferences.getString(_kLang) ?? 'en'),
+        );
 
   final SharedPreferences sharedPreferences;
+
+  /// 当前界面 locale 的可监听源：顶层 MaterialApp 监听它，locale 一变就整体重建，
+  /// 让 Localizations 以新 locale 重新加载，从而所有 `S.of(context)` 文案实时刷新
+  /// （不再需要重启 App）。
+  final ValueNotifier<Locale> localeListenable;
 
   @factoryMethod
   static Future<AppSettings> create(SharedPreferences sharedPreferences) async {
@@ -28,6 +37,8 @@ class AppSettings {
   Future<void> setLocale(Locale locale) async {
     await sharedPreferences.setString(_kLang, locale.languageCode);
     await S.load(locale);
+    // 通知顶层 MaterialApp 重建，刷新全部界面文案。
+    localeListenable.value = locale;
   }
 
   Locale get locale => Locale(sharedPreferences.getString(_kLang) ?? 'en');

@@ -138,15 +138,6 @@ class _MarketingCategoryState extends State<MarketingCategory> {
                 builder: (context) => Companies(categoryId: categories[index]['mainCateId'], category: categories[index]['mainCate']),
               ),);
             }
-            /*if (categories[index]['company'] != null) {
-              Navigator.push(context, MaterialPageRoute<void>(
-                builder: (context) => CompanyProducts(company: categories[index]['company']),
-              ),);
-            } else {
-              Navigator.push(context, MaterialPageRoute<void>(
-                builder: (context) => Companies(categoryId: categories[index]['mainCateId'], category: categories[index]['mainCate']),
-              ),);
-            }*/
           },
           child: Container(
             padding: EdgeInsets.all(10),
