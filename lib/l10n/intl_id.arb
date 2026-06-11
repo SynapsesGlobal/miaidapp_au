@@ -1,5 +1,5 @@
 {
-  "@@locale": "ido",
+  "@@locale": "id",
   "apiError": "Tidak dapat menyelesaikan operasi. Kesalahan server ({statusCode}):\n{message}",
   "signIn": "Login",
   "cancel": "Batal",

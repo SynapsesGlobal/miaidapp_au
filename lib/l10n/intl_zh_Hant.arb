@@ -1,5 +1,5 @@
 {
-  "@@locale": "zh_hans",
+  "@@locale": "zh_Hant",
   "apiError": "無法完成操作。伺服器錯誤 ({statusCode})：\n{message}",
   "signIn": "登入",
   "cancel": "取消",

@@ -10,6 +10,7 @@ import 'package:injectable/injectable.dart';
 import 'package:intl/intl.dart';
 import 'package:miaid/api_utils/api_parser.dart';
 import 'package:miaid/api_utils/api_provider.dart';
+import 'package:miaid/store/app/app_settings.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
@@ -137,9 +138,9 @@ class _SignInState extends State<SignIn> {
                       ),
                     ),
                     CupertinoActionSheetAction(
-                      isDefaultAction: Intl.getCurrentLocale() == 'zh_hans' ? true : false,
+                      isDefaultAction: Intl.getCurrentLocale() == 'zh_Hant' ? true : false,
                       onPressed: () async {
-                        await store.setLocale(Locale('zh_hans'));
+                        await store.setLocale(AppSettings.localeFromCode('zh_Hant'));
                         Navigator.pop(context);
                         setState(() {});
                       },
@@ -152,9 +153,9 @@ class _SignInState extends State<SignIn> {
                       ),
                     ),
                     CupertinoActionSheetAction(
-                      isDefaultAction: Intl.getCurrentLocale() == 'kor' ? true : false,
+                      isDefaultAction: Intl.getCurrentLocale() == 'ko' ? true : false,
                       onPressed: () async {
-                        await store.setLocale(Locale('kor'));
+                        await store.setLocale(Locale('ko'));
                         Navigator.pop(context);
                         setState(() {});
                       },
@@ -164,9 +165,9 @@ class _SignInState extends State<SignIn> {
                       ),),
                     ),
                     CupertinoActionSheetAction(
-                      isDefaultAction: Intl.getCurrentLocale() == 'ido' ? true : false,
+                      isDefaultAction: Intl.getCurrentLocale() == 'id' ? true : false,
                       onPressed: () async {
-                        await store.setLocale(Locale('ido'));
+                        await store.setLocale(Locale('id'));
                         Navigator.pop(context);
                         setState(() {});
                       },
@@ -223,7 +224,7 @@ class _SignInState extends State<SignIn> {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0,),
                   child: Observer(
                     builder: (context) => Text(
-                      store.locale.languageCode == 'zh' ? '简' : (store.locale.languageCode == 'zh_hans' ? '繁' : (store.locale.languageCode ?? 'en')).toUpperCase(),
+                      store.locale.languageCode == 'zh' ? '简' : (store.locale.languageCode == 'zh_Hant' ? '繁' : (store.locale.languageCode ?? 'en')).toUpperCase(),
                       style: GoogleFonts.rubik(
                         color: AppColors.k0cbcc5,
                         fontSize: 15,

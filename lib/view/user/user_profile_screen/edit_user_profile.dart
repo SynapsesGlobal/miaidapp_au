@@ -90,7 +90,7 @@ class _EditUserProfileState extends State<EditUserProfile> {
     var dob = DateTime.tryParse(user!.customer!.dob!);
     var sharedPreferences = await SharedPreferences.getInstance();
     var language = sharedPreferences.getString('languageCode') ?? 'zh';
-    dobController.text = language == 'zh' || language == 'zh_hans' ? DateFormat('yyyy年MM月d日').format(dob!) : DateFormat('d MMM yyyy').format(dob!);
+    dobController.text = language == 'zh' || language == 'zh_Hant' ? DateFormat('yyyy年MM月d日').format(dob!) : DateFormat('d MMM yyyy').format(dob!);
 
     genderController.text = user.customer?.gender?.name ?? '';
     travelAgencyNameController.text = user.customer?.travelAgencyName ?? '';

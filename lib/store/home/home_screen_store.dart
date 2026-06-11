@@ -37,7 +37,7 @@ abstract class _HomeScreenStore with Store {
   EmergencyNumber? emergencyNumber;
 
   Future<void> initState() async {
-    await setLanguageCode(appSettings.locale.languageCode);
+    await setLanguageCode(AppSettings.codeFromLocale(appSettings.locale));
   }
 
   @action
@@ -59,7 +59,7 @@ abstract class _HomeScreenStore with Store {
   Future<void> setLanguageCode(String languageCode) async {
     this.languageCode = languageCode;
 
-    await appSettings.setLocale(Locale(languageCode));
+    await appSettings.setLocale(AppSettings.localeFromCode(languageCode));
   }
 
   Future<EmergencyNumber?> fetchEmergencyNumber(String? countryCode) async {

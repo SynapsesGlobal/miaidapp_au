@@ -1,5 +1,5 @@
 {
-  "@@locale": "kor",
+  "@@locale": "ko",
   "apiError": "작업을 완료할 수 없습니다. 서버 오류 ({statusCode}):\n{message}",
   "signIn": "로그인",
   "cancel": "취소",

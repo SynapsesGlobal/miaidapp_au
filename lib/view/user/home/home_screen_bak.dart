@@ -320,10 +320,10 @@ class _HomeScreenState extends State<HomeScreen>
                       ),),
                     ),
                     CupertinoActionSheetAction(
-                      isDefaultAction: Intl.getCurrentLocale() == 'zh_hans' ? true : false,
+                      isDefaultAction: Intl.getCurrentLocale() == 'zh_Hant' ? true : false,
                       onPressed: () async {
                         Localizations.override(context: context, locale: Locale('zh'));
-                        await store.setLanguageCode('zh_hans');
+                        await store.setLanguageCode('zh_Hant');
                         Navigator.pop(context);
                         setState(() {});
                       },
@@ -333,10 +333,10 @@ class _HomeScreenState extends State<HomeScreen>
                       ),),
                     ),
                     CupertinoActionSheetAction(
-                      isDefaultAction: Intl.getCurrentLocale() == 'kor' ? true : false,
+                      isDefaultAction: Intl.getCurrentLocale() == 'ko' ? true : false,
                       onPressed: () async {
-                        Localizations.override(context: context, locale: Locale('kor'));
-                        await store.setLanguageCode('kor');
+                        Localizations.override(context: context, locale: Locale('ko'));
+                        await store.setLanguageCode('ko');
                         Navigator.pop(context);
                         setState(() {});
                       },
@@ -346,10 +346,10 @@ class _HomeScreenState extends State<HomeScreen>
                       ),),
                     ),
                     CupertinoActionSheetAction(
-                      isDefaultAction: Intl.getCurrentLocale() == 'ido' ? true : false,
+                      isDefaultAction: Intl.getCurrentLocale() == 'id' ? true : false,
                       onPressed: () async {
-                        Localizations.override(context: context, locale: Locale('ido'));
-                        await store.setLanguageCode('ido');
+                        Localizations.override(context: context, locale: Locale('id'));
+                        await store.setLanguageCode('id');
                         Navigator.pop(context);
                         setState(() {});
                       },
@@ -400,7 +400,7 @@ class _HomeScreenState extends State<HomeScreen>
                 child: Center(child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0,),
                   child: Observer(builder: (context) => Text(
-                    store.languageCode == 'zh' ? '简' : (store.languageCode == 'zh_hans' ? '繁' : (store.languageCode ?? 'en')).toUpperCase(),
+                    store.languageCode == 'zh' ? '简' : (store.languageCode == 'zh_Hant' ? '繁' : (store.languageCode ?? 'en')).toUpperCase(),
                     style: GoogleFonts.rubik(
                       color: AppColors.k0cbcc5,
                       fontSize: 15,

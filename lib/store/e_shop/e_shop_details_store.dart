@@ -133,9 +133,9 @@ abstract class _EShopDetailsStore with Store {
         var allCategory = 'All Categories';
         if (language == 'zh') {
           allCategory = '所有类别';
-        } else if (language == 'ido') {
+        } else if (language == 'id') {
           allCategory = 'Semua Kategori';
-        } else if (language == 'kor') {
+        } else if (language == 'ko') {
           allCategory = '모든 카테고리';
         } else {}
 

@@ -73,7 +73,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     var dob = DateTime.tryParse(user!.customer!.dob!);
     var sharedPreferences = await SharedPreferences.getInstance();
     var language = sharedPreferences.getString('languageCode') ?? 'zh';
-    dobController.text = language == 'zh' || language == 'zh_hans' ? DateFormat('yyyy年MM月d日').format(dob!) : DateFormat('d MMM yyyy').format(dob!);
+    dobController.text = language == 'zh' || language == 'zh_Hant' ? DateFormat('yyyy年MM月d日').format(dob!) : DateFormat('d MMM yyyy').format(dob!);
 
     languageController.text = user.customer!.languages!.map((e) => e.language!).join(', ');
     genderController.text = user.customer!.gender!.name! == 'Female' ? S.of(context).female : user.customer!.gender!.name! == 'Male'

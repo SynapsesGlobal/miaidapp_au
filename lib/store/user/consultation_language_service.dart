@@ -8,6 +8,7 @@ import 'package:miaid/api_utils/user_provider.dart';
 import 'package:miaid/generated_api_code/api_client.swagger.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/utils/json_utils.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// 面诊语言（用于后端按语言匹配医生）的数据操作。
 ///
@@ -21,9 +22,9 @@ class ConsultationLanguageService {
   static ApiProvider get _api => getIt<ApiProvider>();
   static UserProvider get _user => getIt<UserProvider>();
 
-  // 可选语言列表的进程内缓存。后端语言列表基本不变，缓存后再次弹框/使用直接复用，
-  // 不再重复打接口。注意：各资料页用的是自己 store 里的列表，并不会预先填充这里，
-  // 所以本会话首次仍需拉一次。
+  // 可选语言列表的两级缓存：进程内 + SharedPreferences（跨重启）。
+  // 后端语言列表基本不变，缓存后再次弹框/使用直接复用，不再重复打接口。
+  static const String _kLanguagesCacheKey = 'consultation_languages_cache';
   static List<Language>? _cachedLanguages;
 
   /// 当前账号已设置的面诊语言（用于弹框默认预选）。
@@ -31,17 +32,67 @@ class ConsultationLanguageService {
 
   /// 拉取后端可选语言列表（与资料页同源）。
   ///
-  /// 默认走进程内缓存：本会话已拉过就直接返回，不再请求接口；传 [forceRefresh] 可强制刷新。
+  /// 缓存优先级：进程内内存 -> SharedPreferences -> 接口。命中任一级即返回，不再请求接口；
+  /// 传 [forceRefresh] 可跳过缓存强制刷新（并回写两级缓存）。
   static Future<List<Language>> fetchLanguages({bool forceRefresh = false}) async {
-    final cached = _cachedLanguages;
-    if (!forceRefresh && cached != null) return cached;
+    // 1. 进程内内存缓存。
+    final mem = _cachedLanguages;
+    if (!forceRefresh && mem != null) return mem;
 
+    final prefs = await SharedPreferences.getInstance();
+
+    // 2. 持久化缓存（跨重启）。
+    if (!forceRefresh) {
+      final cached = _readCache(prefs);
+      if (cached != null && cached.isNotEmpty) {
+        _cachedLanguages = cached;
+        return cached;
+      }
+    }
+
+    // 3. 拉接口，回写内存 + 持久化缓存。
     final response = await _api.apiClient.languagesGetLanguagesList();
     final list = await ApiSuccessParser.payloadOrThrowWithMessage<List<Language>>(
       response,
     );
     _cachedLanguages = list;
+    await _writeCache(prefs, list);
     return list;
+  }
+
+  /// 清空语言列表缓存（如需在后端语言变更后强制下次重新拉取，可调用）。
+  static Future<void> clearLanguagesCache() async {
+    _cachedLanguages = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kLanguagesCacheKey);
+  }
+
+  static List<Language>? _readCache(SharedPreferences prefs) {
+    final raw = prefs.getString(_kLanguagesCacheKey);
+    if (raw == null) return null;
+    try {
+      final decoded = jsonDecode(raw) as List<dynamic>;
+      return decoded
+          .map((e) => Language.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint('read cached languages failed: $e');
+      return null;
+    }
+  }
+
+  static Future<void> _writeCache(
+    SharedPreferences prefs,
+    List<Language> list,
+  ) async {
+    try {
+      await prefs.setString(
+        _kLanguagesCacheKey,
+        jsonEncode(list.map((e) => e.toJson()).toList()),
+      );
+    } catch (e) {
+      debugPrint('write cached languages failed: $e');
+    }
   }
 
   /// 读取 profile 接口返回的 `need_select_language` 字段：

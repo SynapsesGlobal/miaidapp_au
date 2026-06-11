@@ -60,7 +60,7 @@ class ChatBotViewModel extends ChangeNotifier {
 
   void _initLocale() {
     _currentLang = Intl.getCurrentLocale();
-    _lang = (_currentLang == 'zh' || _currentLang == 'zh_hans') ? 'zh-cn' : 'en-en';
+    _lang = (_currentLang == 'zh' || _currentLang == 'zh_Hant') ? 'zh-cn' : 'en-en';
   }
 
   // ─── Public API ────────────────────────────────────────────
@@ -276,7 +276,7 @@ class ChatBotViewModel extends ChangeNotifier {
       determinePosition(desiredAccuracy: LocationAccuracy.medium);
 
   String _resolveCountryName(String? countryCode) {
-    final lang = (_currentLang == 'zh' || _currentLang == 'zh_hans') ? 'zh' : 'en';
+    final lang = (_currentLang == 'zh' || _currentLang == 'zh_Hant') ? 'zh' : 'en';
     if (countryCode != null &&
         Countries.AllCountryNames.containsKey(countryCode) &&
         Countries.AllCountryNames[countryCode]!.containsKey(lang)) {
@@ -288,10 +288,10 @@ class ChatBotViewModel extends ChangeNotifier {
   String _formatLocalTime() {
     const langCodeMap = {
       'zh': 'zh-CN',
-      'zh_hans': 'zh_TW',
+      'zh_Hant': 'zh_TW',
       'en': 'en_US',
-      'kor': 'ko_KR',
-      'ido': 'id_ID',
+      'ko': 'ko_KR',
+      'id': 'id_ID',
     };
     final langCode = langCodeMap[_currentLang] ?? 'en_US';
     return DateFormat('yyyy-MM-dd HH:mm:ss', langCode).format(DateTime.now());

@@ -59,15 +59,50 @@ class ConsultationLanguageDialog {
     if (selected == null) return;
 
     try {
-      var selectedLang = 'en';
-      if (selected.language == 'Chinese') {selectedLang = 'zh';}
-      if (selected.language == '한국인') {selectedLang = 'kor';}
-      if (selected.language == 'Indonesia') {selectedLang = 'ido';}
-      if (selected.language == 'Ελληνικά') {selectedLang = 'el';}
+      // 把所选语言映射到 App 界面 locale（与首页右上角语言切换器一致）。
+      // 注意：后端 Language.language 返回的是英文名（如 "Korean"），之前用母语写法
+      // （'한국인' 等）比较永远不命中，导致除中/英外的语言都不切换界面。这里同时兼容
+      // 英文名与母语写法。
+      final selectedLang = _appLocaleCode(selected.language);
       await getIt<HomeScreenStore>().setLanguageCode(selectedLang);
       await ConsultationLanguageService.update(selected);
     } catch (e) {
       return;
+    }
+  }
+
+  /// 把后端语言名（英文名或母语写法）映射为 App 支持的界面 locale code。
+  /// 支持：en / zh(简体) / zh_Hant(繁体) / ko / id / el；未识别回退英文。
+  static String _appLocaleCode(String? language) {
+    switch ((language ?? '').trim().toLowerCase()) {
+      case 'english':
+        return 'en';
+      case 'chinese':
+      case 'mandarin':
+      case 'simplified chinese':
+      case '中文':
+      case '简体中文':
+        return 'zh';
+      case 'traditional chinese':
+      case 'cantonese':
+      case '繁体中文':
+      case '繁體中文':
+      case '廣東話':
+      case '广东话':
+        return 'zh_Hant';
+      case 'korean':
+      case '한국어':
+      case '한국인':
+        return 'ko';
+      case 'indonesian':
+      case 'indonesia':
+      case 'bahasa indonesia':
+        return 'id';
+      case 'greek':
+      case 'ελληνικά':
+        return 'el';
+      default:
+        return 'en';
     }
   }
 
