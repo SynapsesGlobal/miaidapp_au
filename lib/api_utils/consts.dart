@@ -12,4 +12,6 @@ class Consts {
   static String QrCodeToken='AhKTMk9D9ydtUgGqRRE8lBRbanVqX10zMAtv';
   static String CheckInQrcode='checkin';
   static String RedemptionQrcode='redemption';
+
+  static String MiSpaceAirLine='SERKO_SERVICE';
 }

@@ -129,7 +129,8 @@ class _MarketingCategoryState extends State<MarketingCategory> {
         itemCount: categories.length,
         itemBuilder: (context, index) => InkWell(
           onTap: (){
-            if (categories[index]['mainCate'].toString().toUpperCase() == 'AIRLINE') {
+            var slug = categories[index]['slug'].toString().toUpperCase();
+            if (slug == Consts.MiSpaceAirLine.toString().toUpperCase()) {
               Navigator.push(context, MaterialPageRoute<void>(
                 builder: (context) => CategoryAirline(),
               ),);
