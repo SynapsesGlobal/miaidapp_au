@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:injectable/injectable.dart';
@@ -60,16 +59,15 @@ class EShopPaymentBottomSheet extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(top: 20, bottom: 15),
           child: Container(
-            child: Text(S.of(context).chooseAPayment,
-                style: GoogleFonts.rubik(
-                  color: AppColors.k010101,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w500,
-                )),
+            child: Text(S.of(context).chooseAPayment, style: GoogleFonts.rubik(
+              color: AppColors.k010101,
+              fontSize: 17,
+              fontWeight: FontWeight.w500,
+            )),
           ),
         ),
         Divider(
-          color: AppColors.k010101,
+          color: Colors.black12,
           height: 0,
         ),
         /*Padding(
@@ -104,11 +102,10 @@ class EShopPaymentBottomSheet extends StatelessWidget {
               leading: Image(
                 image: AssetImage('assets/images/ic_payment_card.png'),
               ),
-              title: Text(S.of(context).creditOrDebit,
-                  style: GoogleFonts.rubik(
-                    color: AppColors.k010101,
-                    fontSize: 14,
-                  )),
+              title: Text(S.of(context).creditOrDebit, style: GoogleFonts.rubik(
+                color: AppColors.k010101,
+                fontSize: 14,
+              )),
               // contentPadding: EdgeInsets.zero,
               dense: true,
               onTap: onTap,
@@ -116,7 +113,7 @@ class EShopPaymentBottomSheet extends StatelessWidget {
           ),
         ),
         Divider(
-          color: AppColors.k010101,
+          color: Colors.black12,
           height: 0,
         ),
       ],

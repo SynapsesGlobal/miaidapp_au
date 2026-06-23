@@ -76,27 +76,23 @@ class _AboutMiAidState extends State<AboutMiAid> {
         child: Observer(
           builder:(context)=> Padding(
             padding: const EdgeInsets.only(left: 20, right: 20, top: 20),
-            child: store.isLoading
-                ? Center(child: progressIndicator())
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Html(
-                        data: store.pages.isNotEmpty
-                            ? '''${store.pages[0].value}'''
-                            : 'About MiAid',
-                        style: {
-                          'p': Style(
-                            fontSize: FontSize.medium,
-                            color: AppColors.k010101,
-                          ),
-                        },
-                      ),
-                      SizedBox(
-                        height: 17,
-                      ),
-                    ],
-                  ),
+            child: store.isLoading ? Center(child: progressIndicator()) : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Html(
+                  data: store.pages.isNotEmpty ? '''${store.pages[0].value}''' : 'About MiAid',
+                  style: {
+                    'p': Style(
+                      fontSize: FontSize.medium,
+                      color: AppColors.k010101,
+                    ),
+                  },
+                ),
+                SizedBox(
+                  height: 17,
+                ),
+              ],
+            ),
           ),
         ),
       ),
