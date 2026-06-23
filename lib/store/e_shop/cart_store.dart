@@ -5,6 +5,7 @@ import 'dart:ffi';
 import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:gallery_saver/files.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:injectable/injectable.dart';
@@ -278,6 +279,10 @@ abstract class _CartEShopStore with Store {
   Future<void> createOrder(ApiProvider apiProvider) async {
     try {
       isLoading = true;
+      await EasyLoading.show(
+        status: S.of(navigatorKey.currentContext!).loading,
+        maskType: EasyLoadingMaskType.black,
+      );
       //developer.log('prescriptionImage: ${prescriptionPath}');
 
       //developer.log('pharmacy Id: ${cartItems.first.keys.first.pharmacyId}');
@@ -318,6 +323,7 @@ abstract class _CartEShopStore with Store {
       );
 
       isLoading = false;
+      await EasyLoading.dismiss();
       // if (prescriptionPath != null) {
       //   prescriptionPath = null;
       // }

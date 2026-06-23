@@ -12,7 +12,6 @@ import 'package:miaid/api_utils/api_provider.dart';
 import 'package:miaid/api_utils/http_exception.dart';
 import 'package:miaid/component/miaid_card.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
-import 'package:miaid/component/progress_indicator.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/generated_api_code/api_client.swagger.dart';
@@ -24,15 +23,9 @@ import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/drawer/terms_and_cond.dart';
 import 'package:miaid/widget/image_widget.dart';
 import 'package:mobx/mobx.dart';
-// import 'package:flutter_mapbox_autocomplete/flutter_mapbox_autocomplete.dart';
 import 'package:flutter_mapbox_autocomplete/flutter_mapbox_autocomplete.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart' as pick;
-import 'dart:developer' as developer;
-
-import 'package:miaid/component/miaid_drawer.dart';
-
-import '../../../api_utils/consts.dart';
 
 class CartEShopParams {
   const CartEShopParams(this.key);
@@ -74,10 +67,7 @@ class _CartEShopState extends State<CartEShop> {
     cartStore = widget.services.store;
     deliveryAvailableResponse = null;
 
-    showNearCloseAlert = cartStore.cartItems.isNotEmpty
-        ? isNearCloseTime(
-            cartStore.cartItems.first.keys.first.pharmacy!.openingHours!)
-        : false;
+    showNearCloseAlert = cartStore.cartItems.isNotEmpty ? isNearCloseTime(cartStore.cartItems.first.keys.first.pharmacy!.openingHours!) : false;
 
     //developer.log('cart screen: ${cartStore.cartItems.length}');
     _disposers = [
@@ -90,7 +80,8 @@ class _CartEShopState extends State<CartEShop> {
             isDismissible: true,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(16), topRight: Radius.circular(16)),
+                topLeft: Radius.circular(16), topRight: Radius.circular(16)
+              ),
             ),
             builder: (BuildContext context) => getIt<EShopPaymentBottomSheet>(
               param1: EShopPaymentBottomSheetParams(
@@ -109,10 +100,7 @@ class _CartEShopState extends State<CartEShop> {
     ];
 
     if (cartStore.cartItems.isNotEmpty) {
-      widget.services.api.apiClient
-          .settingsCheckIsDeliveryAvailableForPharmacy(
-              pharmacy: cartStore.cartItems.first.keys.first.pharmacy!.id!)
-          .then((value) {
+      widget.services.api.apiClient.settingsCheckIsDeliveryAvailableForPharmacy(pharmacy: cartStore.cartItems.first.keys.first.pharmacy!.id!).then((value) {
         setState(() {
           deliveryAvailableResponse = value.body!;
         });
@@ -165,41 +153,38 @@ class _CartEShopState extends State<CartEShop> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.kf4f4f4,
       appBar: AppBar(
         actions: [
           Observer(
             builder: (context) {
-              return cartStore.cartItems.isEmpty
-                  ? SizedBox.shrink()
-                  : !cartStore.inRemoveMode
-                      ? TextButton(
-                          onPressed: () {
-                            cartStore.changeRemoveMode(true);
-                          },
-                          child: Text(
-                            S.of(context).remove,
-                            style: GoogleFonts.rubik(
-                              color: AppColors.kfa0020,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: -0.41,
-                            ),
-                          ),
-                        )
-                      : TextButton(
-                          onPressed: () {
-                            cartStore.changeRemoveMode(false);
-                          },
-                          child: Text(
-                            S.of(context).done,
-                            style: GoogleFonts.rubik(
-                              color: AppColors.k0cbcc5,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: -0.41,
-                            ),
-                          ),
-                        );
+              return cartStore.cartItems.isEmpty ? SizedBox.shrink() : !cartStore.inRemoveMode ? TextButton(
+                onPressed: () {
+                  cartStore.changeRemoveMode(true);
+                },
+                child: Text(
+                  S.of(context).remove,
+                  style: GoogleFonts.rubik(
+                    color: AppColors.kfa0020,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.41,
+                  ),
+                ),
+              ) : TextButton(
+                onPressed: () {
+                  cartStore.changeRemoveMode(false);
+                },
+                child: Text(
+                  S.of(context).done,
+                  style: GoogleFonts.rubik(
+                    color: AppColors.k0cbcc5,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.41,
+                  ),
+                ),
+              );
             },
           )
         ],
@@ -225,204 +210,208 @@ class _CartEShopState extends State<CartEShop> {
       body: SingleChildScrollView(
         child: Observer(
           builder: (context) {
+            if (cartStore.cartItems.isEmpty) {
+              return _emptyCart();
+            }
             return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      cartStore.cartItems.isEmpty
-                          ? _emptyCart()
-                          : Container(
-                              child: ListView.builder(
-                                physics: NeverScrollableScrollPhysics(),
-                                shrinkWrap: true,
-                                itemCount: cartStore.cartItems.length,
-                                itemBuilder: (BuildContext context, index) =>
-                                    _listItem(index, context),
-                              ),
-                            ),
-                      SizedBox(height: 20),
-                      cartStore.cartItems.isEmpty
-                          ? const SizedBox()
-                          : _deliveryOptionAndOrderSummary(context)
-                    ],
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                  child: ListView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
+                    itemCount: cartStore.cartItems.length,
+                    itemBuilder: (BuildContext context, index) =>
+                        _listItem(index, context),
                   ),
                 ),
-                cartStore.cartItems.isEmpty
-                    ? const SizedBox()
-                    : Divider(
-                        color: AppColors.k010101,
-                        height: 0,
-                      ),
-                cartStore.cartItems.isEmpty
-                    ? const SizedBox()
-                    : _orderTotalAndCheckout(context)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: _deliveryOptionAndOrderSummary(context),
+                ),
               ],
             );
           },
         ),
       ),
+      bottomNavigationBar: Observer(
+        builder: (context) => cartStore.cartItems.isEmpty ? const SizedBox.shrink() : _orderTotalAndCheckout(context),
+      ),
     );
   }
 
   Widget _emptyCart() {
-    return Container(
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.7,
       child: Center(
-        child: Text(
-          S.of(context).cartEmpty,
-          style: GoogleFonts.rubik(
-            color: AppColors.kfa0020,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.shopping_cart_outlined,
+              size: 72,
+              color: AppColors.kb1b1b1,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              S.of(context).cartEmpty,
+              style: GoogleFonts.rubik(
+                color: AppColors.k808080,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget _orderTotalAndCheckout(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Observer(
-            builder: (context) {
-              return Row(
-                children: [
-                  Text(
-                    S.of(context).orderTotal,
-                    style: GoogleFonts.rubik(
-                      color: AppColors.k010101,
-                      fontSize: 12,
-                    ),
-                  ),
-                  Text(
-                    '  ${cartStore.currency} ${((cartStore.deliveryOption == 2 && deliveryAvailableResponse?.status == true ? cartStore.deliveryFee : 0) + cartStore.subTotal).toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 17,
-                    ),
-                  ),
-                ],
-              );
-            },
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.k000000.withOpacity(0.06),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
           ),
-          cartStore.isLoading
-              ? Container()
-              : TextButton(
-                  style: ButtonStyle(
-                    backgroundColor:
-                        MaterialStateProperty.all(AppColors.k0cbcc5),
-                    shape: MaterialStateProperty.all(
-                      RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(9),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Observer(
+                builder: (context) => Row(
+                  children: [
+                    Text(
+                      S.of(context).orderTotal,
+                      style: GoogleFonts.rubik(
+                        color: AppColors.k010101,
+                        fontSize: 12,
                       ),
                     ),
+                    Text(
+                      '  ${cartStore.currency} ${((cartStore.deliveryOption == 2 && deliveryAvailableResponse?.status == true ? cartStore.deliveryFee : 0) + cartStore.subTotal).toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 17,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                style: ButtonStyle(
+                  backgroundColor: MaterialStateProperty.all(AppColors.k0cbcc5),
+                  shape: MaterialStateProperty.all(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(9),
+                    ),
                   ),
-                  onPressed: () async {
-                    //check if contain prescription
+                ),
+                onPressed: () async {
+                  //check if contain prescription
 
-                    var containPrescription = false;
-                    for (var item in cartStore.cartItems) {
-                      if (item.keys.first.isPrescriptionItem == true) {
-                        containPrescription = true;
-                        break;
-                      }
+                  var containPrescription = false;
+                  for (var item in cartStore.cartItems) {
+                    if (item.keys.first.isPrescriptionItem == true) {
+                      containPrescription = true;
+                      break;
                     }
+                  }
 
-                    if (cartStore.deliveryOption != 0 &&
-                        cartStore.termsAndConditions &&
-                        cartStore.cartItems.isNotEmpty &&
-                        (containPrescription == true
-                            ? cartStore.prescriptionPath != null
-                            : true)) {
-                      var pharmacy =
-                          cartStore.cartItems.first.keys.first.pharmacy;
+                  if (cartStore.deliveryOption != 0 &&
+                      cartStore.termsAndConditions &&
+                      cartStore.cartItems.isNotEmpty &&
+                      (containPrescription == true ? cartStore.prescriptionPath != null : true)) {
+                    var pharmacy = cartStore.cartItems.first.keys.first.pharmacy;
 
-                      if (cartStore.deliveryOption == 2) {
-                        if (pharmacy!.isOpen! == 1) {
-                          if (cartStore.formKey.currentState?.validate() ??
-                              false) {
-                            await cartStore.createOrder(widget.services.api);
-                          }
-                        } else {
-                          // show alert
-                          shopWarnAlert(context, cartStore,
-                              S.of(context).shopNotOpenAlert);
+                    if (cartStore.deliveryOption == 2) {
+                      if (pharmacy!.isOpen! == 1) {
+                        if (cartStore.formKey.currentState?.validate() ?? false) {
+                          await cartStore.createOrder(widget.services.api);
                         }
                       } else {
-                        if (pharmacy!.isOpen! == 1) {
-                          if (showNearCloseAlert) {
-                            // show close open alert
-                            shopWarnAlert(
-                              context,
-                              cartStore,
-                              S.of(context).shopNearCloseAlert,
-                            );
-
-                            return;
-                          }
-
-                          await cartStore.createOrder(widget.services.api);
-                        } else {
-                          // show alert
+                        // show alert
+                        shopWarnAlert(context, cartStore, S.of(context).shopNotOpenAlert);
+                      }
+                    } else {
+                      if (pharmacy!.isOpen! == 1) {
+                        if (showNearCloseAlert) {
+                          // show close open alert
                           shopWarnAlert(
                             context,
                             cartStore,
-                            S.of(context).shopNotOpenAlert,
+                            S.of(context).shopNearCloseAlert,
                           );
+
+                          return;
                         }
+
+                        await cartStore.createOrder(widget.services.api);
+                      } else {
+                        // show alert
+                        shopWarnAlert(
+                          context,
+                          cartStore,
+                          S.of(context).shopNotOpenAlert,
+                        );
                       }
-                    } else if (cartStore.cartItems.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(S.of(context).cartIsEmpty),
-                        ),
-                      );
-                    } else if (cartStore.deliveryOption == 0) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(S.of(context).selectDeliveryOption),
-                        ),
-                      );
-                    } else if (!cartStore.termsAndConditions) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content:
-                              Text(S.of(context).agreeToTermsAndConditions),
-                        ),
-                      );
-                    } else if (containPrescription == true &&
-                        cartStore.prescriptionPath == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(S.of(context).uploadPrescription),
-                        ),
-                      );
                     }
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.only(
-                      left: 16,
-                      right: 16,
-                      top: 8,
-                      bottom: 8,
-                    ),
-                    child: Text(
-                      S.of(context).checkout,
-                      style: GoogleFonts.rubik(
-                        color: AppColors.kffffff,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                  } else if (cartStore.cartItems.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(S.of(context).cartIsEmpty),
                       ),
+                    );
+                  } else if (cartStore.deliveryOption == 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(S.of(context).selectDeliveryOption),
+                      ),
+                    );
+                  } else if (!cartStore.termsAndConditions) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(S.of(context).agreeToTermsAndConditions),
+                      ),
+                    );
+                  } else if (containPrescription == true && cartStore.prescriptionPath == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(S.of(context).uploadPrescription),
+                      ),
+                    );
+                  }
+                },
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    top: 8,
+                    bottom: 8,
+                  ),
+                  child: Text(
+                    S.of(context).checkout,
+                    style: GoogleFonts.rubik(
+                      color: AppColors.kffffff,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                )
-        ],
+                ),
+              )
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -436,10 +425,7 @@ class _CartEShopState extends State<CartEShop> {
     }
 
     for (var i = 1; i <= optionsNumnber; i++) {
-      if (i != 2 ||
-          (i == 2 &&
-              (deliveryAvailableResponse != null &&
-                  deliveryAvailableResponse?.status == true))) {
+      if (i != 2 || (i == 2 && (deliveryAvailableResponse != null && deliveryAvailableResponse?.status == true))) {
         radioList.add(radiobuttonContainer(
           child: ListTile(
             minVerticalPadding: 10.0,
@@ -457,13 +443,11 @@ class _CartEShopState extends State<CartEShop> {
               groupValue: cartStore.deliveryOption,
               activeColor: AppColors.k0cbcc5,
               toggleable: true,
-              onChanged: i == 2
-                  ? (int? value) {
-                      cartStore.changeDeliveryOption(value ?? 0);
-                    }
-                  : (int? value) {
-                      cartStore.changeDeliveryOption(value ?? 0);
-                    },
+              onChanged: i == 2 ? (int? value) {
+                cartStore.changeDeliveryOption(value ?? 0);
+              } : (int? value) {
+                cartStore.changeDeliveryOption(value ?? 0);
+              },
             ),
           ),
         ));
@@ -488,170 +472,111 @@ class _CartEShopState extends State<CartEShop> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          S.of(context).deliveryOption,
-          style: GoogleFonts.rubik(
-            color: AppColors.k010101,
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        SizedBox(
-          height: 20,
-        ),
+        _sectionTitle(S.of(context).deliveryOption),
+        const SizedBox(height: 16),
         radioList.first,
-        cartStore.deliveryOption == 1
-            ? collectInstructions()
-            : SizedBox.shrink(),
-        (deliveryAvailableResponse?.status == true)
-            ? radioList.last
-            : SizedBox.shrink(),
-        (cartStore.deliveryOption == 2 &&
-                deliveryAvailableResponse?.status == true)
-            ? delivery()
-            : SizedBox.shrink(),
-        if (containsPrescription)
-          Column(
+        cartStore.deliveryOption == 1 ? collectInstructions() : SizedBox.shrink(),
+        (deliveryAvailableResponse?.status == true) ? radioList.last : SizedBox.shrink(),
+        (cartStore.deliveryOption == 2 && deliveryAvailableResponse?.status == true) ? delivery() : SizedBox.shrink(),
+        if (containsPrescription) ...[
+          const SizedBox(height: 16),
+          _sectionCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _sectionTitle(S.of(context).addPrescription),
+                const SizedBox(height: 8),
+                Text(
+                  S.of(context).addPrescriptionDescription,
+                  style: GoogleFonts.rubik(
+                    color: AppColors.k5e5e5e,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                InkWell(
+                  onTap: askImageSource,
+                  child: Container(
+                    height: 92,
+                    width: 92,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.k0cbcc5),
+                      image: cartStore.prescriptionPath == null ? null : DecorationImage(
+                        image: CachedNetworkImageProvider(
+                            widget.services.api.baseUrl + '/storage/' + cartStore.prescriptionPath!),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    child: cartStore.prescriptionPath == null ? Icon(
+                      Icons.add_a_photo_outlined,
+                      color: AppColors.k0cbcc5,
+                      size: 32,
+                    ) : null,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
+        _sectionCard(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(
-                height: 20,
-              ),
-              Text(
-                S.of(context).addPrescription,
-                style: GoogleFonts.rubik(
-                  color: AppColors.k010101,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(
-                height: 8,
-              ),
-              Text(
-                S.of(context).addPrescriptionDescription,
-                style: GoogleFonts.rubik(
-                  color: AppColors.k010101,
-                  fontSize: 14,
-                ),
-              ),
-              SizedBox(
-                height: 8,
-              ),
-              Row(children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 10, left: 20),
-                  child: Container(
-                    decoration: BoxDecoration(
-                        shape: BoxShape.rectangle, color: Colors.white),
-                    child: Stack(
-                      children: [
-                        Container(
-                          height: 84,
-                          width: 84,
-                          margin: EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: AppColors.k0cbcc5),
-                            shape: BoxShape.rectangle,
-                            image: cartStore.prescriptionPath == null
-                                ? DecorationImage(
-                                    image: AssetImage(
-                                      'assets/images/ic_profile_uploadpicture.png',
-                                    ),
-                                    fit: BoxFit.cover,
-                                  )
-                                : DecorationImage(
-                                    image: CachedNetworkImageProvider(
-                                        widget.services.api.baseUrl +
-                                            "/storage/" +
-                                            cartStore.prescriptionPath!),
-                                    fit: BoxFit.cover,
-                                  ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 30,
-                          child: InkWell(
-                            onTap: askImageSource,
-                            child: Image(
-                              image: AssetImage(
-                                'assets/images/ic_profile_uploadpicture.png',
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+              _sectionTitle(S.of(context).orderSummary),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    S.of(context).subTotal,
+                    style: GoogleFonts.rubik(
+                      color: AppColors.k010101,
+                      fontSize: 13,
                     ),
                   ),
-                ),
-              ]),
+                  Text(
+                    '${cartStore.currency} ${cartStore.subTotal.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+              Observer(builder: (context) {
+                if (cartStore.deliveryOption == 2 && deliveryAvailableResponse?.status == true) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          S.of(context).deliveryFees,
+                          style: GoogleFonts.rubik(
+                            color: AppColors.k010101,
+                            fontSize: 13,
+                          ),
+                        ),
+                        Text(
+                          '${cartStore.currency} ${cartStore.deliveryFee.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        )
+                      ],
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              }),
             ],
           ),
-        SizedBox(
-          height: 20,
         ),
-        Text(
-          S.of(context).orderSummary,
-          style: GoogleFonts.rubik(
-            color: AppColors.k010101,
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        SizedBox(
-          height: 16,
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              S.of(context).subTotal,
-              style: GoogleFonts.rubik(
-                color: AppColors.k010101,
-                fontSize: 12,
-              ),
-            ),
-            Text(
-              '${cartStore.currency} ${cartStore.subTotal.toStringAsFixed(2)}',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(
-          height: 16,
-        ),
-        Observer(builder: (context) {
-          if (cartStore.deliveryOption == 2 &&
-              deliveryAvailableResponse?.status == true) {
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  S.of(context).deliveryFees,
-                  style: GoogleFonts.rubik(
-                    color: AppColors.k010101,
-                    fontSize: 12,
-                  ),
-                ),
-                Text(
-                  '${cartStore.currency} ${cartStore.deliveryFee.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                )
-              ],
-            );
-          }
-          return const SizedBox();
-        }),
-        SizedBox(
-          height: 20,
-        ),
+        const SizedBox(height: 16),
         Row(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
@@ -675,11 +600,10 @@ class _CartEShopState extends State<CartEShop> {
                 );
               },
             ),
-            Padding(
+            Expanded(
+              child: Padding(
                 padding: const EdgeInsets.only(left: 6),
-                child: Container(
-                  width: MediaQuery.of(context).size.width - 70,
-                  child: RichText(
+                child: RichText(
                     textAlign: TextAlign.left,
                     softWrap: true,
                     text: TextSpan(
@@ -696,8 +620,7 @@ class _CartEShopState extends State<CartEShop> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute<void>(
-                                  builder: (context) =>
-                                      getIt<TermsConditions>(),
+                                  builder: (context) => getIt<TermsConditions>(),
                                 ),
                               );
                             },
@@ -789,9 +712,7 @@ class _CartEShopState extends State<CartEShop> {
           maskType: EasyLoadingMaskType.clear,
         );
 
-        await cartStore.updatePrescriptionImage(
-            widget.services.api, pickedFile);
-
+        await cartStore.updatePrescriptionImage(widget.services.api, pickedFile);
         await HttpExceptionNotifyUser.showInfo(S.of(context).uploadSuccess);
 
         setState(() {});
@@ -806,7 +727,6 @@ class _CartEShopState extends State<CartEShop> {
 
   Widget _listItem(int index, BuildContext context) {
     var product = cartStore.cartItems[index].keys.first;
-
     return Column(
       children: [
         SizedBox(
@@ -819,13 +739,6 @@ class _CartEShopState extends State<CartEShop> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                // Text(
-                //   product.pharmacy!.name!.toString(),
-                //   style: GoogleFonts.rubik(
-                //     color: AppColors.k5e5e5e,
-                //     fontSize: 14,
-                //   ),
-                // ),
                 Padding(
                   padding: const EdgeInsets.only(
                     top: 8,
@@ -839,15 +752,11 @@ class _CartEShopState extends State<CartEShop> {
                         height: 70,
                         width: 70,
                         child: imageContainer(
-                          productPhotoUrl: product.productImages == null ||
-                                  product.productImages!.isEmpty
-                              ? Image.asset(
-                                  'assets/images/default_shop_image.png',
-                                  height: 160,
-                                  width: 160,
-                                )
-                              : ImageWidget(
-                                  imageUrl: product.productImages![0].image!),
+                          productPhotoUrl: product.productImages == null || product.productImages!.isEmpty ? Image.asset(
+                            'assets/images/default_shop_image.png',
+                            height: 160,
+                            width: 160,
+                          ) : ImageWidget(imageUrl: product.productImages![0].image!),
                         ),
                       ),
                       Expanded(
@@ -866,15 +775,15 @@ class _CartEShopState extends State<CartEShop> {
                                   bottom: 14,
                                 ),
                                 child: Text(product.name!,
-                                    style: GoogleFonts.rubik(
-                                      color: AppColors.k010101,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                    )),
+                                  style: GoogleFonts.rubik(
+                                    color: AppColors.k010101,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  )
+                                ),
                               ),
                               Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Container(
                                     decoration: BoxDecoration(
@@ -893,8 +802,7 @@ class _CartEShopState extends State<CartEShop> {
                                         children: [
                                           Text('${cartStore.currency} '),
                                           Text(
-                                            product.unitPrice!
-                                                .toStringAsFixed(2),
+                                            product.unitPrice!.toStringAsFixed(2),
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 18,
@@ -906,71 +814,49 @@ class _CartEShopState extends State<CartEShop> {
                                   ),
                                   Observer(
                                     builder: (context) {
-                                      return cartStore.inRemoveMode
-                                          ? InkWell(
-                                              onTap: () => showAlertDialog(
-                                                  context, product),
-                                              child: Image.asset(
-                                                  'assets/images/btn_medicine_removeitem.png'),
-                                            )
-                                          : Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.spaceEvenly,
-                                              children: [
-                                                InkWell(
-                                                  onTap: () {
-                                                    if (cartStore
-                                                            .cartItems[index]
-                                                            .values
-                                                            .first >
-                                                        1) {
-                                                      cartStore
-                                                          .decrementQuantity(
-                                                              product);
-                                                    }
-                                                  },
-                                                  child: buttonContainer(
-                                                    Image.asset(cartStore
-                                                                .cartItems[
-                                                                    index]
-                                                                .values
-                                                                .first <=
-                                                            1
-                                                        ? 'assets/images/btn_medicine_quantity_minus_disabled.png'
-                                                        : 'assets/images/btn_medicine_quantity_minus.png'),
-                                                  ),
-                                                ),
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                          left: 15, right: 15),
-                                                  child: Text(
-                                                    cartStore.cartItems[index]
-                                                        .values.first
-                                                        .toString(),
-                                                    style: TextStyle(
-                                                      color: Color(0xff010101),
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 14,
-                                                    ),
-                                                  ),
-                                                ),
-                                                InkWell(
-                                                  onTap: () {
-                                                    cartStore.addItem(
-                                                      product,
-                                                      curr: cartStore.currency,
-                                                    );
-                                                  },
-                                                  child: buttonContainer(
-                                                    Image.asset(
-                                                        'assets/images/btn_medicine_quantity_add.png'),
-                                                  ),
-                                                ),
-                                              ],
-                                            );
+                                      return cartStore.inRemoveMode ? InkWell(
+                                        onTap: () => showAlertDialog(context, product),
+                                        child: Image.asset('assets/images/btn_medicine_removeitem.png', width: 30,),
+                                      ) : Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                        children: [
+                                          InkWell(
+                                            onTap: () {
+                                              if (cartStore.cartItems[index].values.first > 1) {
+                                                cartStore.decrementQuantity(product);
+                                              }
+                                            },
+                                            child: buttonContainer(
+                                              Image.asset(cartStore.cartItems[index].values.first <= 1
+                                                  ? 'assets/images/btn_medicine_quantity_minus_disabled.png'
+                                                  : 'assets/images/btn_medicine_quantity_minus.png'),
+                                            ),
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.only(left: 15, right: 15),
+                                            child: Text(
+                                              cartStore.cartItems[index].values.first.toString(),
+                                              style: TextStyle(
+                                                color: Color(0xff010101),
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ),
+                                          InkWell(
+                                            onTap: () {
+                                              cartStore.addItem(
+                                                product,
+                                                curr: cartStore.currency,
+                                              );
+                                            },
+                                            child: buttonContainer(
+                                              Image.asset('assets/images/btn_medicine_quantity_add.png'),
+                                            ),
+                                          ),
+                                        ],
+                                      );
                                     },
                                   ),
                                 ],
@@ -997,11 +883,41 @@ class _CartEShopState extends State<CartEShop> {
     );
   }
 
+  Widget _sectionTitle(String title) {
+    return Text(
+      title,
+      style: GoogleFonts.rubik(
+        color: AppColors.k010101,
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+
+  Widget _sectionCard({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.k003f51.withOpacity(0.08),
+            offset: const Offset(0, 4),
+            blurRadius: 15,
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
   Widget delivery() {
     return Form(
       key: cartStore.formKey,
       child: Padding(
-        padding: const EdgeInsets.only(left: 20, right: 20),
+        padding: const EdgeInsets.only(top: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1013,11 +929,7 @@ class _CartEShopState extends State<CartEShop> {
                     S.of(context).deliveryAddress,
                     textAlign: TextAlign.left,
                     style: GoogleFonts.rubik(
-                      color: cartStore.deliveryAddressController.text
-                              .trim()
-                              .isNotEmpty
-                          ? AppColors.kb1b1b1
-                          : AppColors.k010101,
+                      color: cartStore.deliveryAddressController.text.trim().isNotEmpty ? AppColors.kb1b1b1 : AppColors.k010101,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -1074,8 +986,7 @@ class _CartEShopState extends State<CartEShop> {
                       children: [
                         TextButton(
                           style: ButtonStyle(
-                            backgroundColor:
-                                MaterialStateProperty.all(AppColors.k0cbcc5),
+                            backgroundColor: MaterialStateProperty.all(AppColors.k0cbcc5),
                             shape: MaterialStateProperty.all(
                               RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(9),
@@ -1083,10 +994,8 @@ class _CartEShopState extends State<CartEShop> {
                             ),
                           ),
                           onPressed: () async {
-                            var sharedPreferences =
-                                await SharedPreferences.getInstance();
-                            var countryCode =
-                                sharedPreferences.getString('countryCode');
+                            var sharedPreferences = await SharedPreferences.getInstance();
+                            var countryCode = sharedPreferences.getString('countryCode');
                             countryCode ??= 'AU';
                             await Navigator.push(
                               context,
@@ -1095,8 +1004,7 @@ class _CartEShopState extends State<CartEShop> {
                                   apiKey: dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '',
                                   hint: 'Select starting point',
                                   onSelect: (place) {
-                                    cartStore.deliveryAddressController.text =
-                                        place.placeName!;
+                                    cartStore.deliveryAddressController.text = place.placeName!;
                                   },
                                   limit: 10,
                                   country: countryCode,
@@ -1129,9 +1037,7 @@ class _CartEShopState extends State<CartEShop> {
                     S.of(context).name,
                     textAlign: TextAlign.left,
                     style: GoogleFonts.rubik(
-                      color: cartStore.nameController.text.trim().isNotEmpty
-                          ? AppColors.kb1b1b1
-                          : AppColors.k010101,
+                      color: cartStore.nameController.text.trim().isNotEmpty ? AppColors.kb1b1b1 : AppColors.k010101,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -1192,9 +1098,7 @@ class _CartEShopState extends State<CartEShop> {
                     S.of(context).email,
                     textAlign: TextAlign.left,
                     style: GoogleFonts.rubik(
-                      color: cartStore.emailController.text.trim().isNotEmpty
-                          ? AppColors.kb1b1b1
-                          : AppColors.k010101,
+                      color: cartStore.emailController.text.trim().isNotEmpty ? AppColors.kb1b1b1 : AppColors.k010101,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -1256,9 +1160,7 @@ class _CartEShopState extends State<CartEShop> {
                     S.of(context).phone,
                     textAlign: TextAlign.left,
                     style: GoogleFonts.rubik(
-                      color: cartStore.phoneController.text.trim().isNotEmpty
-                          ? AppColors.kb1b1b1
-                          : AppColors.k010101,
+                      color: cartStore.phoneController.text.trim().isNotEmpty ? AppColors.kb1b1b1 : AppColors.k010101,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -1327,40 +1229,34 @@ class _CartEShopState extends State<CartEShop> {
                           ),
                           showOnlyCountryWhenClosed: false,
                           padding: EdgeInsets.zero,
-                          builder: (country) {
-                            return Row(
-                              children: [
-                                Image.asset(
-                                  country!.flagUri!,
-                                  package: 'country_code_picker',
-                                  width: 32,
+                          builder: (country) => Row(
+                            children: [
+                              Image.asset(
+                                country!.flagUri!,
+                                package: 'country_code_picker',
+                                width: 32,
+                              ),
+                              SizedBox(
+                                width: 2,
+                              ),
+                              Text(
+                                country.dialCode!,
+                                style: GoogleFonts.rubik(
+                                  color: AppColors.kb1b1b1,
+                                  fontSize: 14,
                                 ),
-                                SizedBox(
-                                  width: 2,
-                                ),
-                                Text(
-                                  country.dialCode!,
-                                  style: GoogleFonts.rubik(
-                                    color: AppColors.kb1b1b1,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                // SizedBox(
-                                //   width: 6,
-                                // ),
-                                Image.asset(
-                                    'assets/images/ic_pharmacy_location_expand.png'),
-                                SizedBox(
-                                  width: 6,
-                                ),
-                                Container(
-                                  height: 35,
-                                  width: 1,
-                                  color: AppColors.kb1b1b1.withOpacity(0.1),
-                                )
-                              ],
-                            );
-                          },
+                              ),
+                              Image.asset('assets/images/ic_pharmacy_location_expand.png'),
+                              SizedBox(
+                                width: 6,
+                              ),
+                              Container(
+                                height: 35,
+                                width: 1,
+                                color: AppColors.kb1b1b1.withOpacity(0.1),
+                              )
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -1375,19 +1271,19 @@ class _CartEShopState extends State<CartEShop> {
   }
 
   OutlineInputBorder get kErrorFocusedOutlineInputBorder => OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(
-          color: AppColors.kff3b30,
-        ),
-      );
+    borderRadius: BorderRadius.circular(10),
+    borderSide: BorderSide(
+      color: AppColors.kff3b30,
+    ),
+  );
 
   OutlineInputBorder get kErrorOutlineInputBorder => OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(
-          color: AppColors.kff3b30,
-          width: 0.5,
-        ),
-      );
+    borderRadius: BorderRadius.circular(10),
+    borderSide: BorderSide(
+      color: AppColors.kff3b30,
+      width: 0.5,
+    ),
+  );
 
   void showAlertDialog(BuildContext context, Product product) {
     Widget okButton = Padding(
@@ -1481,10 +1377,11 @@ class _CartEShopState extends State<CartEShop> {
     );
 
     showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return alert;
-        });
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      }
+    );
   }
 
   Widget collectInstructions() {
@@ -1573,9 +1470,7 @@ class _CartEShopState extends State<CartEShop> {
                 await eShopStore.createOrder(widget.services.api);
               },
               child: Text(
-                (showNearCloseAlert
-                    ? (S.of(context).okay)
-                    : (S.of(context).yes)),
+                (showNearCloseAlert ? (S.of(context).okay) : (S.of(context).yes)),
                 style: GoogleFonts.rubik(
                   color: AppColors.kffffff,
                   fontSize: 14,
@@ -1611,8 +1506,7 @@ class _CartEShopState extends State<CartEShop> {
       title: Text(
         S.of(context).alert,
         textAlign: TextAlign.center,
-        style: GoogleFonts.rubik(
-            color: AppColors.k010101, fontWeight: FontWeight.w700),
+        style: GoogleFonts.rubik(color: AppColors.k010101, fontWeight: FontWeight.w700),
       ),
       content: Text(
         alertMessage,

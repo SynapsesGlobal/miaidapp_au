@@ -1,6 +1,7 @@
 import 'package:eraser/eraser.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app_badger/flutter_app_badger.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:injectable/injectable.dart';
@@ -49,9 +50,10 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen>
     with AfterLayoutMixin<NotificationScreen>, WidgetsBindingObserver {
+  bool _isLoading = true;
+
   @override
   void initState() {
-    widget.services.store.fetchNotificationList();
     WidgetsBinding.instance?.addObserver(this);
     super.initState();
   }
@@ -64,7 +66,45 @@ class _NotificationScreenState extends State<NotificationScreen>
 
   @override
   void afterFirstLayout(BuildContext context) {
+    _loadNotifications();
     _checkAndShowIncomingCalls();
+  }
+
+  Future<void> _loadNotifications() async {
+    await EasyLoading.show(
+      status: S.of(context).loading,
+      maskType: EasyLoadingMaskType.black,
+    );
+    try {
+      await widget.services.store.fetchNotificationList();
+      await EasyLoading.dismiss();
+    } catch (e) {
+      await EasyLoading.dismiss();
+      await EasyLoading.showError(e.toString());
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _refreshNotifications() async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      await widget.services.store.fetchNotificationList();
+    } catch (e) {
+      await EasyLoading.showError(e.toString());
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -81,6 +121,7 @@ class _NotificationScreenState extends State<NotificationScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.kf4f4f4,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -90,7 +131,7 @@ class _NotificationScreenState extends State<NotificationScreen>
           style: GoogleFonts.rubik(
             color: AppColors.k010101,
             fontSize: 15,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.bold,
           ),
         ),
         actions: [],
@@ -103,6 +144,14 @@ class _NotificationScreenState extends State<NotificationScreen>
               child: navBarIcon(iconAssetName: 'ic_nb_back.png'),
             );
           },
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(
+            height: 1,
+            thickness: 1,
+            color: AppColors.kf4f4f4,
+          ),
         ),
       ),
       drawer: getDrawer(widget.services.store.user),
@@ -117,108 +166,139 @@ class _NotificationScreenState extends State<NotificationScreen>
 
   Widget _listNotificationList(BuildContext context) {
     if (widget.services.store.notifications.isEmpty) {
-      return Center(
-        child: Text(S.of(context).noNotification),
+      return RefreshIndicator(
+        color: AppColors.k30bee6,
+        onRefresh: _refreshNotifications,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: _isLoading ? const [] : [
+            SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+            Icon(
+              Icons.notifications_none_rounded,
+              size: 64,
+              color: AppColors.kb1b1b1,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              S.of(context).noNotification,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.rubik(
+                fontSize: 14,
+                color: AppColors.k808080,
+              ),
+            ),
+          ],
+        ),
       );
     }
 
-    return ListView.builder(
-      itemCount: widget.services.store.notifications.length,
-      itemBuilder: (context, index) => _notificationListItem(
+    return RefreshIndicator(
+      color: AppColors.k30bee6,
+      onRefresh: _refreshNotifications,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        itemCount: widget.services.store.notifications.length,
+        itemBuilder: (context, index) => _notificationListItem(
           widget.services.store.notifications[index],
           context,
-          widget.services.store),
+          widget.services.store
+        ),
+      ),
     );
   }
 
   Widget _notificationListItem(MiaidNotification notification,
       BuildContext context, NotificationScreenStore store) {
-    return InkWell(
-      onTap: () async {
-        if (notification.isRead ?? false) {
-          return;
-        }
+    final isRead = notification.isRead ?? false;
 
-        await store.markNotificationAsRead(notification.id ?? 0);
-      },
-      child: Padding(
-        padding: EdgeInsets.only(top: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding:
-                  EdgeInsets.only(top: 10, bottom: 10, left: 20, right: 20),
-              decoration: BoxDecoration(
-                color: Color.fromRGBO(90, 177, 255, 0.1),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () async {
+            if (isRead) {
+              return;
+            }
+            await store.markNotificationAsRead(notification.id ?? 0);
+          },
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isRead ? AppColors.kffffff : AppColors.keefeff,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isRead ? AppColors.kf4f4f4 : AppColors.k30bee6.withOpacity(0.3),
               ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          notification.subject ?? '',
-                          style: GoogleFonts.rubik(
-                              fontSize: 12,
-                              fontWeight: notification.isRead ?? false
-                                  ? FontWeight.w400
-                                  : FontWeight.w600),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.k000000.withOpacity(0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (!isRead)
+                      Container(
+                        margin: const EdgeInsets.only(top: 5, right: 8),
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: AppColors.k30bee6,
+                          shape: BoxShape.circle,
                         ),
                       ),
-                    ],
-                  ),
-                  SizedBox(
-                    height: 4,
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        formatDate(DateTime.parse(notification.sentAt ?? '')
-                            .toLocal()),
+                    Expanded(
+                      child: Text(
+                        notification.subject ?? '',
                         style: GoogleFonts.rubik(
-                          fontSize: 10,
-                          fontWeight: notification.isRead ?? false
-                              ? FontWeight.w400
-                              : FontWeight.w500,
+                          color: AppColors.k010101,
+                          fontWeight: isRead ? FontWeight.bold : FontWeight.bold,
                         ),
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+                Divider(color: Colors.black12,),
+                Text(
+                  notification.content ?? '',
+                  style: GoogleFonts.rubik(
+                    fontSize: 14,
+                    height: 1.4,
+                    color: AppColors.k5e5e5e,
+                    fontWeight: isRead ? FontWeight.w300 : FontWeight.w400,
                   ),
-                ],
-              ),
-            ),
-            SizedBox(
-              height: 10,
-            ),
-            Container(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        notification.content ?? '',
-                        style: GoogleFonts.rubik(
-                          fontSize: 12,
-                          fontWeight: notification.isRead ?? false
-                              ? FontWeight.w300
-                              : FontWeight.w400,
-                        ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.access_time_rounded,
+                      size: 14,
+                      color: AppColors.k808080,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      formatDate(DateTime.parse(notification.sentAt ?? '').toLocal()),
+                      style: GoogleFonts.rubik(
+                        fontSize: 12,
+                        color: AppColors.k808080,
+                        fontWeight: FontWeight.w400,
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

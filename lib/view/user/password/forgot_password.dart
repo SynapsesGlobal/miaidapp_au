@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:injectable/injectable.dart';
 import 'package:miaid/api_utils/api_parser.dart';
@@ -126,9 +127,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                         S.of(context).email,
                         textAlign: TextAlign.left,
                         style: GoogleFonts.rubik(
-                          color: forgotEmailController.text.trim().isNotEmpty
-                              ? AppColors.kb1b1b1
-                              : AppColors.k010101,
+                          color: forgotEmailController.text.trim().isNotEmpty ? AppColors.kb1b1b1 : AppColors.k010101,
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
@@ -217,6 +216,11 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                           AutovalidateMode.onUserInteraction;
 
                       if (formKey.currentState?.validate() ?? false) {
+                        await EasyLoading.show(
+                          status: S.of(context).loading,
+                          maskType: EasyLoadingMaskType.black,
+                        );
+
                         // if widget.params.userType is null or equals to 'customer', then request to sub server
                         var apiClient = widget.params?.userType == null ||
                                 widget.params?.userType == 'customer'
@@ -228,13 +232,17 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                           email: forgotEmailController.text,
                         );
 
+                        await EasyLoading.dismiss();
+
+                        if (!mounted) return;
+
                         if (ApiSuccessParser.isSuccessfulWithPayload(
                             response)) {
                           showAlertDialog(context);
                         } else if (response.statusCode == 422) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              backgroundColor: AppColors.k0cbcc5,
+                              backgroundColor: AppColors.k010101,
                               content: Text(
                                 S.of(context).forgotPasswordCheckEmail,
                               ),
@@ -245,7 +253,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                               ApiErrorParser.message(response.error) ?? '';
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              backgroundColor: AppColors.k0cbcc5,
+                              backgroundColor: AppColors.k010101,
                               content: Text(
                                 S.of(context).forgotPasswordCheckError(
                                     response.statusCode, message),
