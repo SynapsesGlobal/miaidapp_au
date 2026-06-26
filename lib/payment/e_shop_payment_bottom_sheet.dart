@@ -70,30 +70,6 @@ class EShopPaymentBottomSheet extends StatelessWidget {
           color: Colors.black12,
           height: 0,
         ),
-        /*Padding(
-          padding: const EdgeInsets.only(top: 10, bottom: 10),
-          child: TapDebouncer(
-            onTap: () async => await _startPaypalPaymentProcess(context),
-            builder: (context, onTap) => ListTile(
-              leading: Image(
-                image: AssetImage('assets/images/ic_payment_paypal.png'),
-                alignment: Alignment.center,
-              ),
-              title: Text(S.of(context).paypal,
-                  style: GoogleFonts.rubik(
-                    color: AppColors.k010101,
-                    fontSize: 14,
-                  )),
-              // contentPadding: EdgeInsets.zero,
-              dense: true,
-              onTap: onTap,
-            ),
-          ),
-        ),
-        Divider(
-          color: AppColors.k010101,
-          height: 0,
-        ),*/
         Padding(
           padding: const EdgeInsets.only(top: 10, bottom: 10),
           child: TapDebouncer(
@@ -117,33 +93,6 @@ class EShopPaymentBottomSheet extends StatelessWidget {
           height: 0,
         ),
       ],
-    );
-  }
-
-  Future<void> _startPaypalPaymentProcess(BuildContext context) async {
-    final paymentResult = await services.store.createBraintreePayment(
-      "",
-      params!.order,
-    );
-    //   print(paymentResult);
-
-    int paymentId = paymentResult.paymentId ?? 0;
-
-    Widget paypal = getIt<PaymentPaypal>(
-      param1: PaymentPaypalParams(
-        customerId: services.store.api.userProvider.user!.id!,
-        paymentId: paymentId,
-        order: params!.order,
-        purchaseRequest: null,
-      ),
-    );
-
-    params?.cartStore?.closeCart();
-    await Navigator.pushReplacement(
-      context,
-      MaterialPageRoute<void>(
-        builder: (context) => paypal,
-      ),
     );
   }
 
