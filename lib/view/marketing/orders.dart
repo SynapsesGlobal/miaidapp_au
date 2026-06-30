@@ -116,7 +116,6 @@ class _OrdersState extends State<Orders> {
         await _getHistoryOrders();
       }
     } catch (e) {
-      print('程序报错：${e}');
       await HttpExceptionNotifyUser.showInfo(S.of(context).somethingWentWrong);
     }
   }
@@ -508,8 +507,34 @@ class _OrdersState extends State<Orders> {
   }
 
   Future<void> _deleteOrder(String orderId) async {
-    // TODO: 后端删除订单接口开发中，待接入后替换为真实请求
-    await HttpExceptionNotifyUser.showInfo(S.of(context).featureInDevelopment);
+    final headers = {
+      'Content-Type': 'application/json',
+      'x-api-key': Consts.marketingApiKey,
+    };
+
+    try {
+      final url = Uri.parse('${Consts.marketingApiHost}/order/delete');
+      final body = jsonEncode({
+        'orderId': orderId,
+      });
+
+      final response = await http.post(url, headers: headers, body: body);
+      if (response.statusCode == 200) {
+        // 删除成功后直接从本地列表移除，无需重新拉取
+        setState(() {
+          historyOrders.removeWhere((o) => o['orderId'].toString() == orderId);
+        });
+      } else {
+        await HttpExceptionNotifyUser.showInfo(
+          S.of(context).somethingWentWrong,
+        );
+      }
+    } catch (e) {
+      print(e);
+      await HttpExceptionNotifyUser.showInfo(
+        S.of(context).somethingWentWrong,
+      );
+    }
   }
 
   // 取消订单弹框
