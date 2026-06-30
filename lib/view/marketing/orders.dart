@@ -165,8 +165,11 @@ class _OrdersState extends State<Orders> {
         ),
       ),
 
-      // ★ 使用 ListView.builder + 分页 footer
-      body: ListView.builder(
+      // ★ 没有订单时展示空状态
+      body: (historyOrders.isEmpty && !isLoading)
+          ? _emptyOrders()
+          // ★ 使用 ListView.builder + 分页 footer
+          : ListView.builder(
         controller: _scrollController,
         padding: const EdgeInsets.all(16),
         itemCount: historyOrders.length + 1,
@@ -205,6 +208,33 @@ class _OrdersState extends State<Orders> {
     );
   }
 
+  Widget _emptyOrders() {
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.7,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.receipt_long_outlined,
+              size: 72,
+              color: AppColors.kb1b1b1,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              S.of(context).noPastPurchases,
+              style: GoogleFonts.rubik(
+                color: AppColors.k808080,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildOrderCard(dynamic order) {
     var company = order['company'];
     return Card(
@@ -219,21 +249,31 @@ class _OrdersState extends State<Orders> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                InkWell(
-                  onTap: ()=> Navigator.push(context, MaterialPageRoute(
-                    builder: (context) => CompanyProducts(company: company),
-                  )),
-                  child: Row(children: [
-                    ClipOval(child: CachedNetworkImage(
-                      height: 30,
-                      width: 30,
-                      fit: BoxFit.cover,
-                      imageUrl: company['image'],
-                    ),),
-                    const SizedBox(width: 5),
-                    Text(company['name'], style: GoogleFonts.rubik(color: AppColors.k0cbcc5))
-                  ],),
+                Expanded(
+                  child: InkWell(
+                    onTap: ()=> Navigator.push(context, MaterialPageRoute(
+                      builder: (context) => CompanyProducts(company: company),
+                    )),
+                    child: Row(children: [
+                      ClipOval(child: CachedNetworkImage(
+                        height: 30,
+                        width: 30,
+                        fit: BoxFit.cover,
+                        imageUrl: company['image'],
+                      ),),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          company['name'],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.rubik(color: AppColors.k0cbcc5),
+                        ),
+                      ),
+                    ],),
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Text(order['orderNbr'], style: GoogleFonts.rubik(fontSize: 14, color: Colors.black,)),
               ],
             ),

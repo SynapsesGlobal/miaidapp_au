@@ -30,6 +30,7 @@ class _WishesState extends State<Wishes> {
   Map<int, bool> selectedCompanies = {};
   Map<int, int> quantities = {};
   String no_data = '';
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -79,13 +80,16 @@ class _WishesState extends State<Wishes> {
           }
 
           no_data = responseData.isNotEmpty ? '' : 'No data available.';
+          isLoading = false;
         });
       } else {
         await EasyLoading.dismiss();
+        setState(() => isLoading = false);
         await HttpExceptionNotifyUser.showInfo(S.of(context).somethingWentWrong);
       }
     } catch (e) {
       await EasyLoading.dismiss();
+      setState(() => isLoading = false);
     }
   }
 
@@ -233,7 +237,7 @@ class _WishesState extends State<Wishes> {
           ),
         ),
       ),
-      body: wishes.isNotEmpty ? ListView.builder(
+      body: isLoading ? const SizedBox.shrink() : wishes.isNotEmpty ? ListView.builder(
         padding: EdgeInsets.all(10),
         itemCount: wishes.length,
         itemBuilder: (context, index) => Card(
@@ -259,7 +263,13 @@ class _WishesState extends State<Wishes> {
                       ),
                     ),
                     SizedBox(width: 5,),
-                    Text(wishes[index]['company']['name'], style: GoogleFonts.rubik(color: AppColors.k0cbcc5))
+                    Expanded(
+                      child: Text(
+                        wishes[index]['company']['name'],
+                        softWrap: true,
+                        style: GoogleFonts.rubik(color: AppColors.k0cbcc5),
+                      ),
+                    ),
                   ],),
                 ),
                 Divider(color: Colors.black12),
@@ -298,10 +308,34 @@ class _WishesState extends State<Wishes> {
             ),
           ),
         ),
-      ) : Center(child: Text(no_data, style: GoogleFonts.rubik(
-        color: Colors.grey,
-        fontSize: 14,
-      ),),),
+      ) : _emptyWishes(),
+    );
+  }
+
+  Widget _emptyWishes() {
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.7,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.star_border,
+              size: 72,
+              color: AppColors.kb1b1b1,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              S.of(context).noWishes,
+              style: GoogleFonts.rubik(
+                color: AppColors.k808080,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
