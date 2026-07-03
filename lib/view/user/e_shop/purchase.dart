@@ -1,9 +1,13 @@
+import 'dart:convert';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'package:injectable/injectable.dart';
 import 'package:intl/intl.dart';
 import 'package:miaid/api_utils/api_provider.dart';
+import 'package:miaid/api_utils/http_exception.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/component/progress_indicator.dart';
 import 'package:miaid/config/app_colors.dart';
@@ -13,7 +17,8 @@ import 'package:miaid/payment/e_shop_payment_bottom_sheet.dart';
 import 'package:miaid/store/app/app_settings.dart';
 import 'package:miaid/store/e_shop/purchases_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
-import 'package:miaid/view/user/e_shop/purchase_view_receipt.dart';
+import 'package:miaid/view/user/e_shop/purchase_detail.dart';
+import 'package:miaid/view/user/e_shop/refund_flow.dart';
 
 class PurchaseItemParams {
   const PurchaseItemParams(this.key);
@@ -45,12 +50,111 @@ class PurchaseItem extends StatefulWidget {
 }
 
 class _PurchaseItemState extends State<PurchaseItem> {
-  late final PurchasesStore purchasesStore = widget.services.store;
+  // 与后端 Order.order_status 保持一致
+  static const int _statusConfirming = 1;
+  static const int _statusReadyForCollection = 3;
+  static const int _statusRefundRequested = 5;
+  static const int _statusRefunded = 6;
+  // 与后端 OrderRefund.status 保持一致
+  static const int _refundRejected = 3;
+
+  // 分页订单列表；退款申请信息（status/reason/reject_reason）来自
+  // 同一接口原始 JSON 的 refund 关联（生成的 Order 模型不包含该字段）
+  final List<Order> _orders = [];
+  Map<int, Map<String, dynamic>> _refundByOrderId = {};
+
+  // ★ 分页变量
+  static const int _pageSize = 10;
+  int _page = 1;
+  bool _hasMore = true;
+  bool _isLoading = false;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    purchasesStore.getOrders(widget.services.api);
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 50) {
+        _fetchOrders();
+      }
+    });
+    _fetchOrders();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    _page = 1;
+    _hasMore = true;
+    _orders.clear();
+    _refundByOrderId = {};
+    await _fetchOrders();
+  }
+
+  // 分页拉取订单：GET /orders?per_page=N&page=N，
+  // 一次请求同时获得订单数据与退款申请信息
+  Future<void> _fetchOrders() async {
+    if (_isLoading || !_hasMore) return;
+    setState(() => _isLoading = true);
+
+    final api = widget.services.api;
+    final endpoint = api.apiSettings.endpointSub;
+    try {
+      final response = await http.get(
+        Uri.parse('$endpoint/orders?per_page=$_pageSize&page=$_page'),
+        headers: {
+          'x-api-key': api.apiKey,
+          'x-access-token': api.userProvider.user?.accessToken ?? '',
+          'Accept': 'application/json',
+        },
+      );
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        final payload = json['payload'];
+        final newOrders = <Order>[];
+        if (payload is List) {
+          for (final item in payload) {
+            if (item is! Map<String, dynamic>) continue;
+            newOrders.add(Order.fromJson(item));
+            if (item['id'] is int && item['refund'] is Map<String, dynamic>) {
+              _refundByOrderId[item['id'] as int] =
+                  item['refund'] as Map<String, dynamic>;
+            }
+          }
+        }
+        // paginator 判断是否还有下一页，异常时按本页数量兜底
+        final paginator = json['paginator'];
+        var hasMore = newOrders.length >= _pageSize;
+        if (paginator is Map<String, dynamic> &&
+            paginator['current_page'] is int &&
+            paginator['last_page'] is int) {
+          hasMore = (paginator['current_page'] as int) <
+              (paginator['last_page'] as int);
+        }
+        if (!mounted) return;
+        setState(() {
+          _orders.addAll(newOrders);
+          _page++;
+          _hasMore = hasMore;
+        });
+      } else if (_page == 1 && mounted) {
+        await HttpExceptionNotifyUser.showInfo(
+          S.of(context).somethingWentWrong,
+        );
+      }
+    } catch (_) {
+      if (_page == 1 && mounted) {
+        await HttpExceptionNotifyUser.showInfo(
+          S.of(context).somethingWentWrong,
+        );
+      }
+    }
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
@@ -58,17 +162,11 @@ class _PurchaseItemState extends State<PurchaseItem> {
     return Scaffold(
       backgroundColor: AppColors.kf4f4f4,
       appBar: _appBar(),
-      body: Observer(
-        builder: (context) {
-          if (purchasesStore.orderList.isNotEmpty) {
-            return _purchasesList();
-          }
-          if (purchasesStore.isLoading) {
-            return Center(child: progressIndicator());
-          }
-          return _emptyState();
-        },
-      ),
+      body: _orders.isNotEmpty
+          ? _purchasesList()
+          : _isLoading
+              ? Center(child: progressIndicator())
+              : _emptyState(),
     );
   }
 
@@ -77,10 +175,7 @@ class _PurchaseItemState extends State<PurchaseItem> {
       backgroundColor: Colors.white,
       elevation: 0,
       leading: InkWell(
-        onTap: () {
-          purchasesStore.unExpandEveryItem();
-          Navigator.pop(context);
-        },
+        onTap: () => Navigator.pop(context),
         child: navBarIcon(iconAssetName: 'ic_nb_back.png'),
       ),
       centerTitle: true,
@@ -129,54 +224,209 @@ class _PurchaseItemState extends State<PurchaseItem> {
   Widget _purchasesList() {
     return RefreshIndicator(
       color: AppColors.k0cbcc5,
-      onRefresh: () => purchasesStore.getOrders(widget.services.api),
-      child: Observer(
-        builder: (context) {
-          return ListView.builder(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
-            ),
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            itemCount: purchasesStore.orderList.length,
-            itemBuilder: (context, index) => _orderCard(index),
-          );
+      onRefresh: _refresh,
+      child: ListView.builder(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        itemCount: _orders.length + 1,
+        itemBuilder: (context, index) {
+          if (index < _orders.length) {
+            return _orderCard(index);
+          }
+          // ★ 底部加载区域
+          if (_isLoading && _page > 1) {
+            return const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CupertinoActivityIndicator()),
+            );
+          }
+          if (!_hasMore) {
+            return Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 16),
+              child: Center(
+                child: Text(
+                  '—— ${S.of(context).no_more_orders} ——',
+                  style: GoogleFonts.rubik(
+                    color: Colors.grey,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            );
+          }
+          return const SizedBox.shrink();
         },
       ),
     );
   }
 
+  // 点击卡片进入订单详情页，详情页发生退款申请等操作后返回并刷新列表
+  Future<void> _openDetail(Order order) async {
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PurchaseDetail(
+          order: order,
+          refund: _refundByOrderId[order.id],
+          api: widget.services.api,
+          store: widget.services.store,
+        ),
+      ),
+    );
+    if (changed == true) {
+      await _refresh();
+    }
+  }
+
+  // 订单卡片（参考京东订单列表样式）：
+  // 药房 + 状态 / 订单号 + 时间 / 商品预览 / 合计 / 操作按钮
   Widget _orderCard(int index) {
-    return Observer(
+    return Builder(
       builder: (context) {
-        final order = purchasesStore.orderList[index];
-        final expanded = purchasesStore.isExpandedList[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: AppColors.kffffff,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.grey.shade200),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.k010101.withOpacity(0.04),
-                blurRadius: 10,
-                offset: Offset(0, 4),
-              ),
-            ],
+        final order = _orders[index];
+        return Card(
+          margin: const EdgeInsets.only(bottom: 16),
+          color: AppColors.kffffff,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: Column(
-              children: [
-                _cardHeader(order, expanded, index),
-                AnimatedSize(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeInOut,
-                  child: expanded
-                      ? _cardBody(order)
-                      : const SizedBox(width: double.infinity),
-                ),
-              ],
+          elevation: 0,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => _openDetail(order),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 药房名称 + 订单状态
+                  Row(
+                    children: [
+                      Container(
+                        height: 24,
+                        width: 24,
+                        decoration: BoxDecoration(
+                          color: AppColors.k0cbcc5.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.local_pharmacy_outlined,
+                          color: AppColors.k0cbcc5,
+                          size: 14,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          order.pharmacy?.name ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.rubik(
+                            color: AppColors.k010101,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _orderStatusText(order),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  // 订单号 + 下单时间
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${S.of(context).orderNumber}: ${order.id ?? ''}',
+                        style: GoogleFonts.rubik(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
+                      Text(
+                        _formatDate(order.createdAt),
+                        style: GoogleFonts.rubik(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Divider(color: Color(0xFFF4F5F7)),
+                  // 商品预览（京东风格）
+                  _productsPreview(order),
+                  const Divider(color: Color(0xFFF4F5F7)),
+                  // 件数 + 订单总计
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        S.of(context).totalItems(_totalQty(order)),
+                        style: GoogleFonts.rubik(
+                          color: Colors.grey,
+                          fontSize: 13,
+                        ),
+                      ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            '${S.of(context).orderTotal}  ',
+                            style: GoogleFonts.rubik(
+                              color: Colors.grey,
+                              fontSize: 13,
+                            ),
+                          ),
+                          Text(
+                            order.pharmacyCurrency ?? '',
+                            style: GoogleFonts.rubik(
+                              color: AppColors.k010101,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            '${order.orderTotal}',
+                            style: GoogleFonts.rubik(
+                              color: AppColors.k010101,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const Divider(color: Color(0xFFF4F5F7)),
+                  const SizedBox(height: 6),
+                  // 底部操作按钮
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (_canRequestRefund(order)) ...[
+                        _orderActionButton(
+                          label: S.of(context).requestRefund,
+                          color: AppColors.ke63030,
+                          onTap: () => _requestRefund(order),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
+                      _orderActionButton(
+                        label: S.of(context).orderAgain,
+                        color: AppColors.k0cbcc5,
+                        onTap: () => _orderAgain(order),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -184,143 +434,81 @@ class _PurchaseItemState extends State<PurchaseItem> {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Header (always visible, tap to toggle)
-  // ---------------------------------------------------------------------------
-
-  Widget _cardHeader(Order order, bool expanded, int index) {
-    return InkWell(
-      onTap: () => purchasesStore.updateExpansion(index, !expanded),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    order.pharmacy?.name ?? '',
-                    style: GoogleFonts.rubik(
-                      color: AppColors.k010101,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  _metaLine(
-                    S.of(context).orderNumber,
-                    order.id?.toString() ?? '',
-                  ),
-                  const SizedBox(height: 4),
-                  _metaLine(
-                    S.of(context).orderDate,
-                    _formatDate(order.createdAt),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${order.pharmacyCurrency} ${order.orderTotal}',
-                  style: GoogleFonts.rubik(
-                    color: AppColors.k0cbcc5,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                AnimatedRotation(
-                  turns: expanded ? 0.5 : 0,
-                  duration: const Duration(milliseconds: 200),
-                  child: Icon(
-                    Icons.keyboard_arrow_down,
-                    color: AppColors.k5e5e5e,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
+  int _totalQty(Order order) {
+    var count = 0;
+    for (final prod in order.products ?? <Product>[]) {
+      count += (prod.pivot?.qty ?? 0).toInt();
+    }
+    return count;
   }
 
-  Widget _metaLine(String label, String value) {
-    return RichText(
-      text: TextSpan(
-        style: GoogleFonts.rubik(color: AppColors.k5e5e5e, fontSize: 13),
-        children: [
-          TextSpan(text: '$label:  '),
-          TextSpan(
-            text: value,
-            style: GoogleFonts.rubik(
-              color: AppColors.k010101,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
+  bool _canRequestRefund(Order order) {
+    final status = order.orderStatus ?? 0;
+    if (status < _statusConfirming || status > _statusReadyForCollection) {
+      return false;
+    }
+    // 已有退款申请（含被拒绝）的订单不允许再次申请
+    return _refundByOrderId[order.id] == null;
   }
 
-  String _formatDate(String? raw) {
-    if (raw == null || raw.isEmpty) return '';
-    return DateFormat('dd MMM yyyy hh:mm aaa').format(DateTime.parse(raw));
-  }
-
-  // ---------------------------------------------------------------------------
-  // Body (products + summary + actions)
-  // ---------------------------------------------------------------------------
-
-  Widget _cardBody(Order order) {
+  // 商品预览：单件显示详情行，多件横排缩略图（最多 3 张，自适应宽度）
+  Widget _productsPreview(Order order) {
     final products = order.products ?? [];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        divider(),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
+    if (products.isEmpty) return const SizedBox.shrink();
+    if (products.length == 1) {
+      return _singleProductRow(order, products.first);
+    }
+
+    final shownCount = products.length > 3 ? 3 : products.length;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const spacing = 8.0;
+          var size = (constraints.maxWidth - spacing * 2) / 3;
+          size = size.clamp(48.0, 84.0);
+          return Row(
             children: [
-              for (var i = 0; i < products.length; i++) ...[
-                if (i > 0) divider(),
-                _productRow(order, products[i]),
+              for (var i = 0; i < shownCount; i++) ...[
+                _productImage(products[i], size),
+                if (i != shownCount - 1) const SizedBox(width: spacing),
               ],
+              const Spacer(),
+              Icon(
+                Icons.chevron_right,
+                color: AppColors.kb1b1b1,
+                size: 18,
+              ),
             ],
-          ),
-        ),
-        _summary(order),
-      ],
+          );
+        },
+      ),
     );
   }
 
-  Widget _productRow(Order order, Product prod) {
+  Widget _singleProductRow(Order order, Product prod) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _productImage(prod),
-          const SizedBox(width: 14),
+          _productImage(prod, 64),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   prod.name ?? '',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.rubik(
                     color: AppColors.k010101,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -328,15 +516,15 @@ class _PurchaseItemState extends State<PurchaseItem> {
                       '${order.pharmacyCurrency} ${prod.unitPrice}',
                       style: GoogleFonts.rubik(
                         color: AppColors.k010101,
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
-                      '×${prod.pivot?.qty ?? 0}',
+                      '×${(prod.pivot?.qty ?? 0).toInt()}',
                       style: GoogleFonts.rubik(
                         color: AppColors.k5e5e5e,
-                        fontSize: 14,
+                        fontSize: 13,
                       ),
                     ),
                   ],
@@ -349,172 +537,74 @@ class _PurchaseItemState extends State<PurchaseItem> {
     );
   }
 
-  Widget _productImage(Product prod) {
+  Widget _productImage(Product prod, double size) {
     final images = prod.productImages;
-    if (images != null && images.isNotEmpty) {
+    final url = (images != null && images.isNotEmpty) ? images.first.image : null;
+    if (url != null && url.isNotEmpty) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: Image.network(
-          images.first.image!,
-          height: 64,
-          width: 64,
+          url,
+          height: size,
+          width: size,
           fit: BoxFit.cover,
-          errorBuilder: (context, exception, stackTrace) => _imageFallback(),
+          errorBuilder: (context, exception, stackTrace) => ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.asset(
+              'assets/images/default_shop_image.png',
+              height: size,
+              width: size,
+              fit: BoxFit.cover,
+            ),
+          ),
         ),
       );
     }
-    return _placeholderBox(Icon(Icons.local_pharmacy, size: 36));
-  }
-
-  Widget _imageFallback() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: Image.asset(
-        'assets/images/default_shop_image.png',
-        height: 64,
-        width: 64,
-        fit: BoxFit.cover,
-      ),
-    );
-  }
-
-  Widget _placeholderBox(Widget child) {
     return Container(
-      height: 64,
-      width: 64,
+      height: size,
+      width: size,
       decoration: BoxDecoration(
         color: AppColors.kf4f4f4,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Center(child: child),
-    );
-  }
-
-  // ---------------------------------------------------------------------------
-  // Summary + actions
-  // ---------------------------------------------------------------------------
-
-  Widget _summary(Order order) {
-    return Container(
-      color: AppColors.k0cbcc5.withOpacity(0.06),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-      child: Column(
-        children: [
-          _summaryRow(
-            S.of(context).subTotal,
-            '${order.pharmacyCurrency} ${order.subTotal}',
-          ),
-          const SizedBox(height: 6),
-          _summaryRow(
-            S.of(context).deliveryFees,
-            '${order.pharmacyCurrency} ${order.deliveryFee}',
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 10),
-            child: Divider(height: 1),
-          ),
-          _summaryRow(
-            S.of(context).orderTotal,
-            '${order.pharmacyCurrency} ${order.orderTotal}',
-            emphasize: true,
-          ),
-          const SizedBox(height: 16),
-          _actionButtons(order),
-        ],
+      child: Center(
+        child: Icon(Icons.local_pharmacy, size: size / 2),
       ),
     );
   }
 
-  Widget _summaryRow(String label, String value, {bool emphasize = false}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.rubik(
-            color: emphasize ? AppColors.k010101 : AppColors.k5e5e5e,
-            fontSize: emphasize ? 14 : 13,
-            fontWeight: emphasize ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
-        Text(
-          value,
-          style: GoogleFonts.rubik(
-            color: emphasize ? AppColors.k0cbcc5 : AppColors.k010101,
-            fontSize: emphasize ? 16 : 13,
-            fontWeight: emphasize ? FontWeight.bold : FontWeight.w500,
-          ),
-        ),
-      ],
+  // 底部操作按钮（圆角描边胶囊）
+  Widget _orderActionButton({
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        side: BorderSide(color: color.withOpacity(0.6)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.rubik(fontSize: 13, color: color),
+      ),
     );
   }
 
-  Widget _actionButtons(Order order) {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.k0cbcc5,
-              side: BorderSide(color: AppColors.k0cbcc5),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            onPressed: () => _viewReceipt(order),
-            child: Text(
-              S.of(context).viewReceipt,
-              style: GoogleFonts.rubik(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.k0cbcc5,
-              foregroundColor: AppColors.kffffff,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            onPressed: () => _orderAgain(order),
-            child: Text(
-              S.of(context).orderAgain,
-              style: GoogleFonts.rubik(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ---------------------------------------------------------------------------
-  // Actions
-  // ---------------------------------------------------------------------------
-
-  void _viewReceipt(Order order) {
-    purchasesStore.orderId = order.id ?? 0;
-    Navigator.push(
+  // 申请退款（共享流程），提交成功后刷新列表
+  Future<void> _requestRefund(Order order) async {
+    final ok = await showRefundFlow(
       context,
-      MaterialPageRoute<void>(
-        builder: (context) => getIt<PurchaseViewReceipt>(
-          param1: PurchaseViewReceiptParams(
-            purchasesStore.orderId,
-            order.pharmacyCurrency!,
-          ),
-        ),
-      ),
+      order: order,
+      api: widget.services.api,
     );
+    if (ok) {
+      await _refresh();
+    }
   }
 
   Future<void> _orderAgain(Order order) async {
@@ -535,7 +625,39 @@ class _PurchaseItemState extends State<PurchaseItem> {
         param1: EShopPaymentBottomSheetParams(order: order),
       ),
     );
-    await purchasesStore.getOrders(widget.services.api);
+    await _refresh();
+  }
+
+  // 订单状态文字：默认已支付；退款流程中显示 退款中/已退款/已拒绝
+  Widget _orderStatusText(Order order) {
+    final status = order.orderStatus ?? 0;
+    final refund = _refundByOrderId[order.id];
+
+    String label;
+    Color color;
+    if (status == _statusRefundRequested) {
+      label = S.of(context).refunding;
+      color = AppColors.ke68c30;
+    } else if (status == _statusRefunded) {
+      label = S.of(context).refunded;
+      color = AppColors.k8f8f8f;
+    } else if (refund != null && refund['status'] == _refundRejected) {
+      label = S.of(context).refused;
+      color = AppColors.ke63030;
+    } else {
+      label = S.of(context).paid;
+      color = AppColors.k0cbcc5;
+    }
+
+    return Text(
+      label,
+      style: GoogleFonts.rubik(color: color, fontSize: 14),
+    );
+  }
+
+  String _formatDate(String? raw) {
+    if (raw == null || raw.isEmpty) return '';
+    return DateFormat('dd MMM yyyy hh:mm aaa').format(DateTime.parse(raw));
   }
 
   Widget divider() {

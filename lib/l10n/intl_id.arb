@@ -483,5 +483,19 @@
   "affiliate_coupon_code": "Kode Kupon",
   "affiliate_target_link": "Tautan",
   "affiliate_visit_now": "Kunjungi Sekarang",
-  "affiliate_copy": "Salin"
+  "affiliate_copy": "Salin",
+  "cancelOrderRefund": "Batalkan Pesanan & Refund",
+  "requestRefund": "Refund",
+  "cancelOrderRefundConfirm": "Apakah Anda yakin ingin membatalkan pesanan ini dan meminta pengembalian dana?",
+  "notNow": "Nanti Saja",
+  "refundReason": "Alasan Pengembalian Dana",
+  "selectRefundReason": "Silakan pilih alasan pengembalian dana",
+  "refundReasonNoLongerNeeded": "Saya tidak membutuhkannya lagi",
+  "refundReasonWrongItem": "Salah memesan barang",
+  "refundReasonWrongAddress": "Informasi pengiriman salah",
+  "refundReasonDeliveryTooSlow": "Pengiriman terlalu lama",
+  "refundReasonOther": "Alasan lainnya",
+  "pleaseDescribeReason": "Silakan jelaskan alasan Anda",
+  "refundRequestSubmitted": "Permintaan pengembalian dana telah dikirim",
+  "refundRequestRejected": "Permintaan pengembalian dana ditolak"
 }

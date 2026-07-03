@@ -456,5 +456,19 @@
   "affiliate_coupon_code": "Κωδικός κουπονιού",
   "affiliate_target_link": "Σύνδεσμος",
   "affiliate_visit_now": "Επίσκεψη τώρα",
-  "affiliate_copy": "Αντιγραφή"
+  "affiliate_copy": "Αντιγραφή",
+  "cancelOrderRefund": "Ακύρωση παραγγελίας & επιστροφή χρημάτων",
+  "requestRefund": "Επιστροφή",
+  "cancelOrderRefundConfirm": "Είστε βέβαιοι ότι θέλετε να ακυρώσετε αυτήν την παραγγελία και να ζητήσετε επιστροφή χρημάτων;",
+  "notNow": "Όχι τώρα",
+  "refundReason": "Λόγος επιστροφής χρημάτων",
+  "selectRefundReason": "Επιλέξτε λόγο επιστροφής χρημάτων",
+  "refundReasonNoLongerNeeded": "Δεν το χρειάζομαι πια",
+  "refundReasonWrongItem": "Παρήγγειλα λάθος προϊόν",
+  "refundReasonWrongAddress": "Λανθασμένα στοιχεία παράδοσης",
+  "refundReasonDeliveryTooSlow": "Η παράδοση καθυστερεί πολύ",
+  "refundReasonOther": "Άλλοι λόγοι",
+  "pleaseDescribeReason": "Περιγράψτε τον λόγο σας",
+  "refundRequestSubmitted": "Το αίτημα επιστροφής χρημάτων υποβλήθηκε",
+  "refundRequestRejected": "Το αίτημα επιστροφής χρημάτων απορρίφθηκε"
 }

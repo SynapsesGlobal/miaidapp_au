@@ -456,5 +456,19 @@
   "affiliate_coupon_code": "Coupon Code",
   "affiliate_target_link": "Target Link",
   "affiliate_visit_now": "Visit Now",
-  "affiliate_copy": "Copy"
+  "affiliate_copy": "Copy",
+  "cancelOrderRefund": "Cancel Order & Refund",
+  "requestRefund": "Refund",
+  "cancelOrderRefundConfirm": "Are you sure you want to cancel this order and request a refund?",
+  "notNow": "Not Now",
+  "refundReason": "Refund Reason",
+  "selectRefundReason": "Please select a refund reason",
+  "refundReasonNoLongerNeeded": "I no longer need it",
+  "refundReasonWrongItem": "I ordered the wrong item",
+  "refundReasonWrongAddress": "Incorrect delivery information",
+  "refundReasonDeliveryTooSlow": "Delivery is taking too long",
+  "refundReasonOther": "Other reasons",
+  "pleaseDescribeReason": "Please describe your reason",
+  "refundRequestSubmitted": "Your refund request has been submitted",
+  "refundRequestRejected": "Refund request rejected"
 }

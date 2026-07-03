@@ -482,5 +482,19 @@
   "affiliate_coupon_code": "쿠폰 코드",
   "affiliate_target_link": "링크",
   "affiliate_visit_now": "지금 방문",
-  "affiliate_copy": "복사"
+  "affiliate_copy": "복사",
+  "cancelOrderRefund": "주문 취소 및 환불 신청",
+  "requestRefund": "환불 신청",
+  "cancelOrderRefundConfirm": "이 주문을 취소하고 환불을 신청하시겠습니까?",
+  "notNow": "나중에",
+  "refundReason": "환불 사유",
+  "selectRefundReason": "환불 사유를 선택해 주세요",
+  "refundReasonNoLongerNeeded": "더 이상 필요하지 않음",
+  "refundReasonWrongItem": "잘못 주문함",
+  "refundReasonWrongAddress": "배송 정보 오류",
+  "refundReasonDeliveryTooSlow": "배송이 너무 오래 걸림",
+  "refundReasonOther": "기타 사유",
+  "pleaseDescribeReason": "구체적인 사유를 입력해 주세요",
+  "refundRequestSubmitted": "환불 신청이 제출되었습니다",
+  "refundRequestRejected": "환불 신청이 거절되었습니다"
 }
