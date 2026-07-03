@@ -496,5 +496,6 @@
   "refundReasonOther": "기타 사유",
   "pleaseDescribeReason": "구체적인 사유를 입력해 주세요",
   "refundRequestSubmitted": "환불 신청이 제출되었습니다",
+  "orderDeleted": "주문이 삭제되었습니다",
   "refundRequestRejected": "환불 신청이 거절되었습니다"
 }

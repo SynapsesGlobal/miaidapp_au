@@ -470,5 +470,6 @@
   "refundReasonOther": "Other reasons",
   "pleaseDescribeReason": "Please describe your reason",
   "refundRequestSubmitted": "Your refund request has been submitted",
+  "orderDeleted": "Order deleted",
   "refundRequestRejected": "Refund request rejected"
 }

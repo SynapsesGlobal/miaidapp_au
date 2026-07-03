@@ -410,6 +410,14 @@ class _PurchaseItemState extends State<PurchaseItem> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
+                      if (_canDeleteOrder(order)) ...[
+                        _orderActionButton(
+                          label: S.of(context).deleteOrder,
+                          color: AppColors.k8f8f8f,
+                          onTap: () => _confirmDeleteOrder(order),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
                       if (_canRequestRefund(order)) ...[
                         _orderActionButton(
                           label: S.of(context).requestRefund,
@@ -593,6 +601,135 @@ class _PurchaseItemState extends State<PurchaseItem> {
         style: GoogleFonts.rubik(fontSize: 13, color: color),
       ),
     );
+  }
+
+  // 退款流程中的订单不允许删除
+  bool _canDeleteOrder(Order order) {
+    return (order.orderStatus ?? 0) != _statusRefundRequested;
+  }
+
+  // 删除订单确认框（风格与退款确认框一致）
+  Future<void> _confirmDeleteOrder(Order order) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+        title: Text(
+          S.of(context).deleteOrder,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.rubik(
+            color: AppColors.k010101,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Text(
+          S.of(context).deleteOrderConfirm,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.rubik(fontSize: 13),
+        ),
+        actions: [
+          Padding(
+            padding: EdgeInsets.only(left: 64.5, right: 63.5, bottom: 24.5),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: MediaQuery.of(context).size.width,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(15),
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.k0cbcc5.withOpacity(0.2),
+                        blurRadius: 10.0,
+                        spreadRadius: 0.0,
+                        offset: Offset(0.0, 4),
+                      ),
+                    ],
+                  ),
+                  child: TextButton(
+                    style: ButtonStyle(
+                      backgroundColor:
+                          MaterialStateProperty.all(AppColors.k0cbcc5),
+                      shape: MaterialStateProperty.all(
+                        RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                      ),
+                    ),
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: Text(
+                      S.of(context).cancel,
+                      style: GoogleFonts.rubik(
+                        color: AppColors.kffffff,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20),
+                Center(
+                  child: InkWell(
+                    onTap: () => Navigator.of(context).pop(true),
+                    child: Text(
+                      S.of(context).delete,
+                      style: GoogleFonts.rubik(
+                        color: AppColors.k0cbcc5,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await _deleteOrder(order);
+  }
+
+  // 删除订单：DELETE /orders/{order_id}，仅隐藏 App 端显示，
+  // 药店端订单显示不受影响
+  Future<void> _deleteOrder(Order order) async {
+    final api = widget.services.api;
+    final endpoint = api.apiSettings.endpointSub;
+    try {
+      final response = await http.delete(
+        Uri.parse('$endpoint/orders/${order.id}'),
+        headers: {
+          'x-api-key': api.apiKey,
+          'x-access-token': api.userProvider.user?.accessToken ?? '',
+          'Accept': 'application/json',
+        },
+      );
+      if (response.statusCode == 200) {
+        await HttpExceptionNotifyUser.showInfo(S.of(context).orderDeleted);
+        if (!mounted) return;
+        setState(() {
+          _orders.remove(order);
+          _refundByOrderId.remove(order.id);
+        });
+        return;
+      }
+      String? message;
+      try {
+        message = jsonDecode(response.body)['message'] as String?;
+      } catch (_) {}
+      await HttpExceptionNotifyUser.showInfo(
+        message?.isNotEmpty == true
+            ? message!
+            : S.of(context).somethingWentWrong,
+      );
+    } catch (e) {
+      await HttpExceptionNotifyUser.showInfo(
+        S.of(context).somethingWentWrong,
+      );
+    }
   }
 
   // 申请退款（共享流程），提交成功后刷新列表

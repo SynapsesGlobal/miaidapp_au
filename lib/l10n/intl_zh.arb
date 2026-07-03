@@ -471,5 +471,6 @@
   "refundReasonOther": "其他原因",
   "pleaseDescribeReason": "请填写具体退款原因",
   "refundRequestSubmitted": "退款申请已提交",
+  "orderDeleted": "订单已删除",
   "refundRequestRejected": "退款申请被拒绝"
 }

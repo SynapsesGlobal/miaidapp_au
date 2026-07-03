@@ -497,5 +497,6 @@
   "refundReasonOther": "Alasan lainnya",
   "pleaseDescribeReason": "Silakan jelaskan alasan Anda",
   "refundRequestSubmitted": "Permintaan pengembalian dana telah dikirim",
+  "orderDeleted": "Pesanan telah dihapus",
   "refundRequestRejected": "Permintaan pengembalian dana ditolak"
 }
