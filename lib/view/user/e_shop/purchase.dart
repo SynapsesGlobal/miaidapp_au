@@ -53,6 +53,7 @@ class _PurchaseItemState extends State<PurchaseItem> {
   // 与后端 Order.order_status 保持一致
   static const int _statusConfirming = 1;
   static const int _statusReadyForCollection = 3;
+  static const int _statusCollected = 4;
   static const int _statusRefundRequested = 5;
   static const int _statusRefunded = 6;
   // 与后端 OrderRefund.status 保持一致
@@ -603,9 +604,10 @@ class _PurchaseItemState extends State<PurchaseItem> {
     );
   }
 
-  // 退款流程中的订单不允许删除
+  // 仅已取货或已退款（流程已结束）的订单允许删除
   bool _canDeleteOrder(Order order) {
-    return (order.orderStatus ?? 0) != _statusRefundRequested;
+    final status = order.orderStatus ?? 0;
+    return status == _statusCollected || status == _statusRefunded;
   }
 
   // 删除订单确认框（风格与退款确认框一致）
