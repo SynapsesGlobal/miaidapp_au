@@ -333,13 +333,13 @@ class _OrdersState extends State<Orders> {
                   label: S.of(context).deleteOrder,
                   onTap: () => _confirmDeleteOrder(order['orderId'].toString()),
                 ),
-                if (canCancel) const SizedBox(width: 10),
+                /*if (canCancel) const SizedBox(width: 10),
                 if (canCancel)
                   _orderActionButton(
                     label: S.of(context).cancelOrder,
                     primary: true,
                     onTap: () => _showCancelOrderSheet(order),
-                  ),
+                  ),*/
               ],
             ),
           ],

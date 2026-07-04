@@ -402,7 +402,7 @@ class _PurchaseDetailState extends State<PurchaseDetail> {
             ),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 10),
-              child: Divider(height: 1),
+              child: Divider(height: 1, color: Colors.black12,),
             ),
             _summaryRow(
               S.of(context).orderTotal,
@@ -633,6 +633,6 @@ class _PurchaseDetailState extends State<PurchaseDetail> {
   }
 
   Widget divider() {
-    return Container(height: 0.5, color: AppColors.k5e5e5e.withOpacity(0.15));
+    return Container(height: 0.5, color: Colors.black12);
   }
 }
