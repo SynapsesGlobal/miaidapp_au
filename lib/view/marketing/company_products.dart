@@ -6,9 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:miaid/view/marketing/checkout.dart';
+import 'package:miaid/services/marketing_payment_service.dart';
 import 'package:miaid/view/marketing/product_detail.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../api_utils/api_provider.dart';
 import '../../api_utils/consts.dart';
@@ -19,6 +18,7 @@ import 'package:http/http.dart' as http;
 
 import '../../generated/l10n.dart';
 import '../../utils/configure_dependencies.dart';
+import '../../widget/quantity_dialog.dart';
 
 class CompanyProducts extends StatefulWidget {
   final dynamic company;
@@ -297,11 +297,16 @@ class _CompanyProductsState extends State<CompanyProducts> with SingleTickerProv
                 Expanded(child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(company_products[index]['title'], style: GoogleFonts.rubik(
-                      color: AppColors.k010101,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    )),
+                    Text(
+                      company_products[index]['title'],
+                      style: GoogleFonts.rubik(
+                        color: AppColors.k010101,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     SizedBox(height: 2),
                     Text(
                       company_products[index]['description'],
@@ -341,13 +346,23 @@ class _CompanyProductsState extends State<CompanyProducts> with SingleTickerProv
                       padding: EdgeInsets.zero,
                       onPressed: () async {
                         var product = company_products[index];
-                        await Navigator.push(context, MaterialPageRoute<void>(
-                          builder: (context) => Checkout(
-                            products: [product],
-                            company: widget.company,
-                            quantities: {product['productId']: 1},
-                          ),
-                        ),);
+                        var productId = product['productId'].toString();
+                        var companyId = widget.company['companyId'].toString();
+                        await showQuantityDialog(
+                          context: context,
+                          title: product['title'],
+                          currency: product['currency']?.toString(),
+                          unitPrice: num.tryParse(
+                              product['discount_price'].toString()),
+                          imageUrl: product['image']?.toString(),
+                          onConfirm: (qty) async {
+                            await MarketingPaymentService.instance.handlePurchase(
+                              context: context,
+                              companyId: companyId,
+                              products: [{'productId': productId, 'quantity': qty,}],
+                            );
+                          },
+                        );
                       },
                       minWidth: MediaQuery.of(context).size.width * 0.3,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -425,11 +440,16 @@ class _CompanyProductsState extends State<CompanyProducts> with SingleTickerProv
                   imageUrl: company_products[index]['image'],
                 ),
                 SizedBox(height: 6),
-                Text(company_products[index]['title'], style: GoogleFonts.rubik(
-                  color: AppColors.k010101,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),),
+                Text(
+                  company_products[index]['title'],
+                  style: GoogleFonts.rubik(
+                    color: AppColors.k010101,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 SizedBox(height: 2),
                 Text(
                   company_products[index]['description'],
@@ -468,13 +488,22 @@ class _CompanyProductsState extends State<CompanyProducts> with SingleTickerProv
                 MaterialButton(
                   onPressed: () async {
                     var product = company_products[index];
-                    await Navigator.push(context, MaterialPageRoute<void>(
-                      builder: (context) => Checkout(
-                        products: [product],
-                        company: widget.company,
-                        quantities: {product['productId']: 1},
-                      ),
-                    ),);
+                    var productId = product['productId'].toString();
+                    var companyId = widget.company['companyId'].toString();
+                    await showQuantityDialog(
+                      context: context,
+                      title: product['title'],
+                      currency: product['currency']?.toString(),
+                      unitPrice: num.tryParse(product['discount_price'].toString()),
+                      imageUrl: product['image']?.toString(),
+                      onConfirm: (qty) async {
+                        await MarketingPaymentService.instance.handlePurchase(
+                          context: context,
+                          companyId: companyId,
+                          products: [{'productId': productId, 'quantity': qty,}],
+                        );
+                      },
+                    );
                   },
                   minWidth: MediaQuery.of(context).size.width,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
