@@ -50,7 +50,9 @@ abstract class _HomeScreenStore with Store {
       // 避免 countryCode 保持 null 导致首页国家显示为空。真机定位正常时不会进入此分支。
       debugPrint('fetchCountryCode failed, fallback to cached countryCode: $e');
       final sharedPreferences = await SharedPreferences.getInstance();
-      countryCode = sharedPreferences.getString('countryCode');
+      // 缓存也没有时（如新装的模拟器）用系统区域设置的国家兜底
+      countryCode = sharedPreferences.getString('countryCode')
+          ?? PlatformDispatcher.instance.locale.countryCode;
     }
     emergencyNumber = await fetchEmergencyNumber(countryCode);
   }
@@ -118,7 +120,12 @@ Future<Position> determinePosition({
     return lastPosition;
   }
 
-  final position = await Geolocator.getCurrentPosition(desiredAccuracy: desiredAccuracy ?? LocationAccuracy.medium);
+  // timeLimit 防止模拟器等无定位源的环境下 getCurrentPosition 无限挂起，
+  // 超时会抛 TimeoutException，由调用方走定位失败的兜底逻辑
+  final position = await Geolocator.getCurrentPosition(
+    desiredAccuracy: desiredAccuracy ?? LocationAccuracy.medium,
+    timeLimit: const Duration(seconds: 10),
+  );
   return position;
 }
 

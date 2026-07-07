@@ -9,14 +9,12 @@ import 'package:miaid/view/marketing/companies.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:miaid/view/marketing/orders.dart';
-import 'package:miaid/view/marketing/subcategory.dart';
 import 'package:miaid/view/marketing/wishes.dart';
 
 import '../../api_utils/http_exception.dart';
 import '../../component/nav_bar_icons.dart';
 import '../../config/app_colors.dart';
 import '../../generated/l10n.dart';
-import 'company_products.dart';
 
 class MarketingCategory extends StatefulWidget {
   const MarketingCategory({super.key});
@@ -27,12 +25,12 @@ class MarketingCategory extends StatefulWidget {
 
 class _MarketingCategoryState extends State<MarketingCategory> {
   List categories = [];
+
   Future<void> _getMarketingCategories() async {
     final headers = <String, String>{
       'Content-Type': 'application/json',
       'x-api-key': Consts.marketingApiKey,
     };
-    print(headers);
 
     await EasyLoading.show(
       status: 'Loading',
@@ -66,6 +64,7 @@ class _MarketingCategoryState extends State<MarketingCategory> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF6F7F9),
       appBar: AppBar(
         automaticallyImplyLeading: false,
         elevation: 0,
@@ -86,17 +85,18 @@ class _MarketingCategoryState extends State<MarketingCategory> {
           Tooltip(
             message: 'My orders',
             child: InkWell(
+              customBorder: const CircleBorder(),
               onTap: ()=> Navigator.push(context, MaterialPageRoute<void>(
                 builder: (context) => Orders(),
               ),),
               child: Container(
-                width: 30,
-                height: 30,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: AppColors.k0cbcc5
+                  shape: BoxShape.circle,
+                  color: AppColors.k0cbcc5.withOpacity(0.12),
                 ),
-                child: Icon(Icons.list_alt, color: Colors.white, size: 20,),
+                child: Icon(Icons.receipt_long_outlined, color: AppColors.k0cbcc5, size: 18,),
               ),
             ),
           ),
@@ -104,71 +104,121 @@ class _MarketingCategoryState extends State<MarketingCategory> {
           Tooltip(
             message: 'My wishes',
             child: InkWell(
+              customBorder: const CircleBorder(),
               onTap: ()=> Navigator.push(context, MaterialPageRoute<void>(
                 builder: (context) => Wishes(),
               ),),
               child: Container(
-                width: 30,
-                height: 30,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: AppColors.k0cbcc5
+                  shape: BoxShape.circle,
+                  color: AppColors.k0cbcc5.withOpacity(0.12),
                 ),
-                child: Icon(Icons.favorite, color: Colors.white, size: 20),
+                child: Icon(Icons.favorite_border, color: AppColors.k0cbcc5, size: 18),
               ),
             ),
           ),
-          SizedBox(width: 10,)
+          SizedBox(width: 12,)
         ],
       ),
       body: MasonryGridView.count(
-        padding: EdgeInsets.all(10),
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
         crossAxisCount: 2,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
+        mainAxisSpacing: 14,
+        crossAxisSpacing: 14,
         itemCount: categories.length,
-        itemBuilder: (context, index) => InkWell(
-          onTap: (){
-            var slug = categories[index]['slug'].toString().toUpperCase();
-            if (slug == Consts.MiSpaceAirLine.toString().toUpperCase()) {
-              Navigator.push(context, MaterialPageRoute<void>(
-                builder: (context) => CategoryAirline(),
-              ),);
-            } else {
-              Navigator.push(context, MaterialPageRoute<void>(
-                builder: (context) => Companies(categoryId: categories[index]['mainCateId'], category: categories[index]['mainCate']),
-              ),);
-            }
-          },
-          child: Container(
-            padding: EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(color: Colors.grey.withOpacity(0.2), blurRadius: 5, spreadRadius: 2),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CachedNetworkImage(
-                  height: 160,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  imageUrl: categories[index]['mainImg'],
+        itemBuilder: (context, index) => _buildCategoryCard(categories[index]),
+      ),
+    );
+  }
+
+  Widget _buildCategoryCard(Map category) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          var slug = category['slug'].toString().toUpperCase();
+          if (slug == Consts.MiSpaceAirLine.toString().toUpperCase()) {
+            Navigator.push(context, MaterialPageRoute<void>(
+              builder: (context) => CategoryAirline(),
+            ),);
+          } else {
+            Navigator.push(context, MaterialPageRoute<void>(
+              builder: (context) => Companies(
+                categoryId: category['mainCateId'],
+                category: category['mainCate']
+              ),
+            ),);
+          }
+        },
+        child: Stack(
+          children: [
+            AspectRatio(
+              aspectRatio: 4 / 5,
+              child: CachedNetworkImage(
+                width: double.infinity,
+                fit: BoxFit.cover,
+                imageUrl: category['mainImg'] ?? '',
+                placeholder: (context, url) => Container(
+                  color: const Color(0xFFEDEFF2),
+                  child: Icon(Icons.category_outlined,
+                      size: 36, color: Colors.grey.shade400),
                 ),
-                SizedBox(height: 8),
-                Text(
-                  categories[index]['mainCate'],
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                errorWidget: (context, url, error) => Container(
+                  color: const Color(0xFFEDEFF2),
+                  child: Icon(Icons.category_outlined,
+                      size: 36, color: Colors.grey.shade400),
                 ),
-              ],
+              ),
             ),
-          ),
+            // 底部渐变压暗，保证图上的分类名可读
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: const [0.5, 1.0],
+                    colors: [Colors.transparent, Colors.black.withOpacity(0.6)],
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 12, right: 12, bottom: 12,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      category['mainCate']?.toString() ?? '',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.rubik(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        height: 1.25,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.25),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.arrow_forward,
+                        size: 15, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

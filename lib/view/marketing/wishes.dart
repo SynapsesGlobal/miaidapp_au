@@ -13,8 +13,8 @@ import '../../api_utils/http_exception.dart';
 import '../../component/nav_bar_icons.dart';
 import '../../config/app_colors.dart';
 import '../../generated/l10n.dart';
+import '../../services/marketing_payment_service.dart';
 import '../../utils/configure_dependencies.dart';
-import 'checkout.dart';
 import 'company_products.dart';
 
 class Wishes extends StatefulWidget {
@@ -28,7 +28,7 @@ class _WishesState extends State<Wishes> {
   List wishes = [];
   List selectedProducts = [];
   Map<int, bool> selectedCompanies = {};
-  Map<int, int> quantities = {};
+  Map<int, int> quantities = {}; // ⭐ 产品数量
   String no_data = '';
   bool isLoading = true;
 
@@ -53,7 +53,8 @@ class _WishesState extends State<Wishes> {
       final api = getIt<ApiProvider>();
       final url = Uri.parse(Consts.marketingApiHost + '/product/wishes')
           .replace(queryParameters: {
-        'userId': api.userProvider.user!.id.toString()
+        'userId': api.userProvider.user!.id.toString(),
+        'source': 'au'
       });
 
       final response = await http.get(url, headers: headers);
@@ -75,7 +76,7 @@ class _WishesState extends State<Wishes> {
               int pid = p['productId'];
 
               selectedProducts.add(pid);
-              quantities[pid] = 1;
+              quantities[pid] = 1; // ⭐ 默认数量
             }
           }
 
@@ -147,19 +148,15 @@ class _WishesState extends State<Wishes> {
 
   Future<void> _purchase(String companyId) async {
     var purchaseProducts = <Map<String, dynamic>>[];
-    var products = [];
-    var company;
 
     for (var w in wishes) {
       if (w['companyId'].toString() != companyId.toString()) continue;
 
-      company = w['company'];
       for (var p in w['products']) {
         int pid = p['productId'];
 
         if (!selectedProducts.contains(pid)) continue;
         purchaseProducts.add({'productId': pid, 'quantity': quantities[pid] ?? 1,});
-        products.add(p);
       }
     }
 
@@ -168,19 +165,11 @@ class _WishesState extends State<Wishes> {
       return;
     }
 
-    await Navigator.push(context, MaterialPageRoute<void>(
-      builder: (context) => Checkout(
-        products: products,
-        company: company,
-        quantities: quantities,
-      ),
-    ),);
-
-    /*await MarketingPaymentService.instance.handlePurchase(
+    await MarketingPaymentService.instance.handlePurchase(
       context: context,
       companyId: companyId,
       products: purchaseProducts,
-    );*/
+    );
   }
 
   void _toggleCompanySelection(int companyId, bool? selected) {
@@ -223,7 +212,7 @@ class _WishesState extends State<Wishes> {
         backgroundColor: AppColors.kffffff,
         centerTitle: true,
         title: Text(
-          S.of(context).my_wishes,
+          '我的收藏',
           style: GoogleFonts.rubik(
             color: AppColors.k010101,
             fontSize: 15,
@@ -249,6 +238,14 @@ class _WishesState extends State<Wishes> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                /*Text(
+                  wishes[index]['companyName'],
+                  style: GoogleFonts.rubik(
+                    color: AppColors.k010101,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),*/
                 InkWell(
                   onTap: ()=> Navigator.push(context, MaterialPageRoute<void>(
                     builder: (context) => CompanyProducts(company: wishes[index]['company']),
@@ -274,8 +271,8 @@ class _WishesState extends State<Wishes> {
                 ),
                 Divider(color: Colors.black12),
                 ...List.generate(wishes[index]['products'].length, (pIndex) => _buildProducts(
-                  wishes[index]['products'][pIndex],
-                  wishes[index]['companyId'].toString()),
+                    wishes[index]['products'][pIndex],
+                    wishes[index]['companyId'].toString()),
                 ),
                 Row(children: [
                   SizedBox(
@@ -292,16 +289,15 @@ class _WishesState extends State<Wishes> {
                     onPressed: () => _purchase(wishes[index]['companyId'].toString()),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     color: AppColors.k0cbcc5,
-                    child: Text(S.of(context).purchase, style: GoogleFonts.rubik(color: Colors.white),),
+                    child: Text('Purchase', style: GoogleFonts.rubik(color: Colors.white),),
                   ),),
                   SizedBox(width: 10),
                   Expanded(child: MaterialButton(
-                    onPressed: () => {
-                      showDeleteAlertDialog(context, wishes[index]['companyId'].toString())
-                    },
+                    onPressed: () => _removeFromWishlist(wishes[index]['companyId'].toString()),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     color: AppColors.kfa0020,
-                    child: Text(S.of(context).delete, style: GoogleFonts.rubik(color: Colors.white),),
+                    child: Text('Delete', style: GoogleFonts.rubik(color: Colors.white),
+                    ),
                   ),),
                 ],),
               ],
@@ -320,8 +316,8 @@ class _WishesState extends State<Wishes> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.star_border,
-              size: 72,
+              Icons.collections,
+              size: 40,
               color: AppColors.kb1b1b1,
             ),
             const SizedBox(height: 16),
@@ -393,11 +389,11 @@ class _WishesState extends State<Wishes> {
                     fontSize: 14,
                   ),),
                   product['price'] != product['discount_price'] ? Text('${product['currency']} ${product['price']}', style: GoogleFonts.rubik(
-                    color: Colors.red,
-                    fontSize: 14,
-                    fontWeight: FontWeight.normal,
-                    decoration: TextDecoration.lineThrough,
-                    decorationColor: Colors.red
+                      color: Colors.red,
+                      fontSize: 14,
+                      fontWeight: FontWeight.normal,
+                      decoration: TextDecoration.lineThrough,
+                      decorationColor: Colors.red
                   )) : Offstage(),
                 ],
               ),
@@ -414,9 +410,9 @@ class _WishesState extends State<Wishes> {
                 ),
                 SizedBox(width: 5,),
                 Text(quantities[product['productId']].toString() ?? '1', style: GoogleFonts.rubik(
-                  color: Colors.black,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500
+                    color: Colors.black,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500
                 )),
                 SizedBox(width: 5,),
                 InkWell(
@@ -433,95 +429,5 @@ class _WishesState extends State<Wishes> {
         ),),
       ],),
     );
-  }
-
-  void showDeleteAlertDialog(BuildContext context, String companyId) {
-    Widget okButton = Padding(
-      padding: EdgeInsets.only(left: 64.5, right: 63.5, bottom: 24.5),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: MediaQuery.of(context).size.width,
-            height: 36,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.k0cbcc5.withOpacity(0.2),
-                  blurRadius: 10.0,
-                  spreadRadius: 0.0, //extend the shadow
-                  offset: Offset(
-                    0.0, // Move to right 10  horizontally
-                    4, // Move to bottom 10 Vertically
-                  ),
-                ),
-              ],
-            ),
-            child: TextButton(
-              style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.all(AppColors.k0cbcc5),
-                shape: MaterialStateProperty.all(
-                  RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(9),
-                  ),
-                ),
-              ),
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                S.of(context).cancel,
-                style: GoogleFonts.rubik(
-                  color: AppColors.kffffff,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: 10,),
-          Center(
-            child: TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(
-                S.of(context).confirm,
-                style: GoogleFonts.rubik(
-                  color: AppColors.kfa0020,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-    var alert = AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(12)),
-      ),
-      title: Text(
-        S.of(context).delete_wished_products,
-        textAlign: TextAlign.center,
-        style: GoogleFonts.rubik(
-            color: AppColors.k010101, fontWeight: FontWeight.w700),
-      ),
-      content: Text(
-        S.of(context).confirm_delete_wished_products,
-        textAlign: TextAlign.center,
-        style: GoogleFonts.rubik(
-          fontSize: 13,
-        ),
-      ),
-      actions: [okButton],
-    );
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return alert;
-      }).then((value) async {
-      if (value ?? false) {
-        await _removeFromWishlist(companyId);
-      }
-    });
   }
 }

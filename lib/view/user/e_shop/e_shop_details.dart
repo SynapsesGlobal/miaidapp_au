@@ -545,7 +545,7 @@ class _EShopDetailsState extends State<EShopDetails> {
           builder: (BuildContext context, onTap) => InkWell(
             onTap: onTap,
             child: Card(
-              elevation: 4,
+              elevation: 1,
               child: Container(
                 padding: EdgeInsets.only(left: 12.0, right: 12.0, top: 8.0, bottom: 8.0),
                 child: Row(children: [
