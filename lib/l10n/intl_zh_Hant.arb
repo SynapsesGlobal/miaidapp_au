@@ -466,6 +466,8 @@
   "refundReasonOther": "其他原因",
   "pleaseDescribeReason": "請填寫具體退款原因",
   "refundRequestSubmitted": "退款申請已提交",
+  "refundUploadPhotos": "上傳憑證圖片（選填）",
+  "refundDetailLabel": "詳細說明（選填）",
   "orderDeleted": "訂單已刪除",
   "refundRequestRejected": "退款申請被拒絕"
 }

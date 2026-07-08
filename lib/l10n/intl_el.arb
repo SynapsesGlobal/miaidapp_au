@@ -470,6 +470,8 @@
   "refundReasonOther": "Άλλοι λόγοι",
   "pleaseDescribeReason": "Περιγράψτε τον λόγο σας",
   "refundRequestSubmitted": "Το αίτημα επιστροφής χρημάτων υποβλήθηκε",
+  "refundUploadPhotos": "Μεταφόρτωση φωτογραφιών (προαιρετικό)",
+  "refundDetailLabel": "Περιγράψτε λεπτομερώς (προαιρετικό)",
   "orderDeleted": "Η παραγγελία διαγράφηκε",
   "refundRequestRejected": "Το αίτημα επιστροφής χρημάτων απορρίφθηκε"
 }

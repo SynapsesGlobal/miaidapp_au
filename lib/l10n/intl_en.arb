@@ -470,6 +470,8 @@
   "refundReasonOther": "Other reasons",
   "pleaseDescribeReason": "Please describe your reason",
   "refundRequestSubmitted": "Your refund request has been submitted",
+  "refundUploadPhotos": "Upload photos (optional)",
+  "refundDetailLabel": "Tell us more (optional)",
   "orderDeleted": "Order deleted",
   "refundRequestRejected": "Refund request rejected"
 }
