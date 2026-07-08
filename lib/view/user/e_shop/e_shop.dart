@@ -618,9 +618,10 @@ class _EShopState extends State<EShop> with SingleTickerProviderStateMixin {
                 return _mapBox();
               } else {
                 if (eShopStore.isLoading) {
-                  return Align(
-                    alignment: Alignment.center,
-                    child: progressIndicator(),
+                  return Expanded(
+                    child: Center(
+                      child: progressIndicator(),
+                    ),
                   );
                 } else {
                   return _eShopList(context);
