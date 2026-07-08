@@ -176,7 +176,12 @@ class _CompaniesState extends State<Companies> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Stack(
+            // 封面图内缩留白,避免图片贴边显得拥挤
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
               children: [
                 AspectRatio(
                   aspectRatio: 4 / 3,
@@ -246,9 +251,11 @@ class _CompaniesState extends State<Companies> {
                     ),
                   ),
               ],
+                ),
+              ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -271,7 +278,7 @@ class _CompaniesState extends State<Companies> {
                       ],
                     ),
                   if (address.isNotEmpty && phone.isNotEmpty)
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 6),
                   if (phone.isNotEmpty)
                     Row(
                       children: [

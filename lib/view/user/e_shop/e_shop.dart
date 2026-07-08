@@ -1,6 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
@@ -344,6 +346,7 @@ class _EShopState extends State<EShop> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF6F7F9),
       appBar: AppBar(
         elevation: 0,
         backgroundColor: AppColors.kffffff,
@@ -453,6 +456,20 @@ class _EShopState extends State<EShop> with SingleTickerProviderStateMixin {
       ),
       body: Column(
         children: [
+          // 顶部搜索/筛选区:白底 + 轻投影,与灰色背景上的列表卡片区分层次
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Column(children: [
           Container(
             width: MediaQuery.of(context).size.width,
             height: 50,
@@ -592,6 +609,8 @@ class _EShopState extends State<EShop> with SingleTickerProviderStateMixin {
               ],
             ),
           ),
+            ],),
+          ),
           SizedBox(height: 8),
           Observer(
             builder: (context) {
@@ -614,33 +633,298 @@ class _EShopState extends State<EShop> with SingleTickerProviderStateMixin {
     );
   }
 
+  /// 用户到店铺的直线距离（米）,定位或店铺坐标缺失时返回 null
+  double? _distanceMeters(PharmacyLocation pharmacy) {
+    final location = eShopStore.currentLocation;
+    final lat = pharmacy.latitude;
+    final lng = pharmacy.longitude;
+    if (location == null || lat == null || lng == null) return null;
+
+    return Geolocator.distanceBetween(
+      location.latitude, location.longitude, lat, lng);
+  }
+
+  /// 距离文案,如 "850 m" / "1.2 km"
+  String? _distanceLabel(double? meters) {
+    if (meters == null) return null;
+    if (meters < 1000) return '${meters.round()} m';
+    return '${(meters / 1000).toStringAsFixed(1)} km';
+  }
+
   Widget _eShopList(BuildContext context) {
-    return (eShopStore.searchingAPharmacy && eShopStore.searchPharmacies.isEmpty) || eShopStore.pharmacyList.isEmpty ? Text(S.of(context).noShopsAtLocation) : Expanded(
-      child: MasonryGridView.count(
-        padding: EdgeInsets.all(10),
-        crossAxisCount: Utils.isPad(context) ? 3 :2,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
-        itemCount: eShopStore.searchingAPharmacy ? eShopStore.searchPharmacies.length : eShopStore.pharmacyList.length,
-        itemBuilder: (context, index) {
-          var pharmacy = eShopStore.searchingAPharmacy ? eShopStore.searchPharmacies[index] : eShopStore.pharmacyList[index];
-          return eShopCard(
-            pharmacyName: pharmacy.pharmacy!.name ?? '',
-            contactNo: pharmacy.pharmacy!.phone ?? '',
-            containerColor: AppColors.kffffff,
-            address: pharmacy.address ?? '',
-            productPhotoUrl: ImageWidget(imageUrl: pharmacy.pharmacy!.coverUrl ?? ''),
-            onTap: () async {
-              await Navigator.push(context, MaterialPageRoute<void>(builder: (context) => getIt<EShopDetails>(
-                param1: EShopDetailsParams(
-                  pharmacy.pharmacy!.id!,
-                  pharmacy,
+    final source = eShopStore.searchingAPharmacy
+        ? eShopStore.searchPharmacies
+        : eShopStore.pharmacyList;
+
+    if (source.isEmpty) {
+      return Expanded(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.storefront_outlined,
+                  size: 56, color: Colors.grey.shade300),
+              const SizedBox(height: 12),
+              Text(
+                S.of(context).noShopsAtLocation,
+                style: GoogleFonts.rubik(
+                  color: Colors.grey,
+                  fontSize: 14,
                 ),
-              ),),);
-              setState(() {});
-            },
-          );
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // 有定位时按距离从近到远排序,无坐标的店铺排在最后
+    final pharmacies = List<PharmacyLocation>.from(source);
+    if (eShopStore.currentLocation != null) {
+      pharmacies.sort((a, b) {
+        final da = _distanceMeters(a);
+        final db = _distanceMeters(b);
+        if (da == null && db == null) return 0;
+        if (da == null) return 1;
+        if (db == null) return -1;
+        return da.compareTo(db);
+      });
+    }
+
+    return Expanded(
+      child: MasonryGridView.count(
+        padding: const EdgeInsets.fromLTRB(12, 6, 12, 24),
+        crossAxisCount: Utils.isPad(context) ? 3 : 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        itemCount: pharmacies.length,
+        itemBuilder: (context, index) => _buildPharmacyCard(pharmacies[index]),
+      ),
+    );
+  }
+
+  Widget _buildPharmacyCard(PharmacyLocation pharmacy) {
+    final distance = _distanceLabel(_distanceMeters(pharmacy));
+    final name = pharmacy.pharmacy?.name ?? '';
+    final phone = pharmacy.pharmacy?.phone ?? '';
+    final address = pharmacy.address ?? '';
+    final coverUrl = pharmacy.pharmacy?.coverUrl ?? '';
+    final isOpen = pharmacy.pharmacy?.isOpen == 1;
+    final hours = pharmacy.pharmacy?.openingHours;
+    final startAt = (hours?.isNotEmpty ?? false) ? hours!.first.startAt : null;
+    final endAt = (hours?.isNotEmpty ?? false) ? hours!.first.endAt : null;
+    final hoursLabel =
+        ((startAt?.length ?? 0) >= 5 && (endAt?.length ?? 0) >= 5)
+            ? '${startAt!.substring(0, 5)} - ${endAt!.substring(0, 5)}'
+            : null;
+
+    Widget coverPlaceholder() => Image.asset(
+          'assets/images/default_shop_image.png',
+          fit: BoxFit.cover,
+        );
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      elevation: 0,
+      child: InkWell(
+        onTap: () async {
+          await Navigator.push(context, MaterialPageRoute<void>(
+            builder: (context) => getIt<EShopDetails>(
+              param1: EShopDetailsParams(
+                pharmacy.pharmacy!.id!,
+                pharmacy,
+              ),
+            ),
+          ),);
+          setState(() {});
         },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 封面图内缩留白,避免图片贴边显得拥挤
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+              children: [
+                AspectRatio(
+                  aspectRatio: 4 / 3,
+                  child: coverUrl.isEmpty
+                      ? coverPlaceholder()
+                      : CachedNetworkImage(
+                          fit: BoxFit.cover,
+                          imageUrl: coverUrl,
+                          placeholder: (context, url) => Container(
+                            color: const Color(0xFFEDEFF2),
+                            child: Icon(Icons.storefront_outlined,
+                                size: 32, color: Colors.grey.shade400),
+                          ),
+                          errorWidget: (context, url, error) =>
+                              coverPlaceholder(),
+                        ),
+                ),
+                // 底部渐变压暗,保证图上的店名可读
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: const [0.55, 1.0],
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.55),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 10, right: 10, bottom: 8,
+                  child: Text(
+                    name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.rubik(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      height: 1.25,
+                    ),
+                  ),
+                ),
+                if (distance != null)
+                  Positioned(
+                    top: 8, right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.45),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.near_me,
+                              size: 11, color: Colors.white),
+                          const SizedBox(width: 3),
+                          Text(distance, style: GoogleFonts.rubik(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 营业状态 + 营业时间
+                  Row(
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isOpen
+                              ? AppColors.k25d000
+                              : Colors.grey.shade400,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isOpen ? S.of(context).open : S.of(context).closed,
+                        style: GoogleFonts.rubik(
+                          color: isOpen
+                              ? AppColors.k25d000
+                              : Colors.grey.shade500,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (hoursLabel != null) ...[
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            hoursLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.rubik(
+                              color: AppColors.k8f8e94,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  if (address.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.location_on_outlined,
+                            size: 14, color: Colors.grey.shade500),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(address, maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.rubik(
+                              color: Colors.grey.shade600,
+                              fontSize: 12,
+                              height: 1.3,
+                            ),),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (phone.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(Icons.phone_outlined,
+                            size: 14, color: AppColors.k0cbcc5),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(phone, maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.rubik(
+                              color: AppColors.k010101,
+                              fontSize: 12,
+                            ),),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
       ),
     );
   }
@@ -716,88 +1000,6 @@ class _EShopState extends State<EShop> with SingleTickerProviderStateMixin {
               eShopStore.changeView(int.parse(value));
             },
             groupValue: eShopStore.viewType.toString(),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget eShopCard({
-    required String pharmacyName,
-      required String contactNo,
-      required String address,
-      required Widget productPhotoUrl,
-      required Color containerColor,
-      VoidCallback? onTap
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.only(bottom: 15),
-        decoration: BoxDecoration(
-          color: containerColor,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.k003f51.withOpacity(0.15),
-              offset: Offset(0, 4,),
-              blurRadius: 15,
-              spreadRadius: 0,
-            )
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.only(left: 12, top: 12, right: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: 133,
-                height: 133,
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: AppColors.k0cbcc5,
-                    width: 1,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: productPhotoUrl,
-                ),
-              ),
-              SizedBox(height: 16,),
-              Text(
-                pharmacyName,
-                style: GoogleFonts.rubik(
-                  color: AppColors.k010101,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 4,),
-              Text(
-                contactNo,
-                style: GoogleFonts.rubik(
-                  color: AppColors.k5e5e5e,
-                  fontSize: 12,
-                  fontWeight: FontWeight.normal,
-                ),
-              ),
-              SizedBox(
-                height: 4,
-              ),
-              Text(
-                address,
-                style: GoogleFonts.rubik(
-                  color: AppColors.kb1b1b1,
-                  fontSize: 12,
-                  fontWeight: FontWeight.normal,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
           ),
         ),
       ),
