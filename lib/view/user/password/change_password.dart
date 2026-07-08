@@ -51,6 +51,7 @@ class _ChangePasswordState extends State<ChangePassword> {
     final store = widget.services.store;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF6F7F9),
       appBar: AppBar(
         elevation: 0,
         backgroundColor: AppColors.kffffff,
@@ -75,14 +76,16 @@ class _ChangePasswordState extends State<ChangePassword> {
         ),
       ),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Container(
           child: Observer(
             builder: (context) => Column(
               children: [
-                Form(
+                _formCard(
+                  child: Form(
                   key: formKey,
                   child: Padding(
-                    padding: const EdgeInsets.only(left: 20, right: 20),
+                    padding: EdgeInsets.zero,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -321,21 +324,35 @@ class _ChangePasswordState extends State<ChangePassword> {
                     ),
                   ),
                 ),
-                SizedBox(
-                  height: 30,
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 20, right: 20),
-                  child: Container(
+                SizedBox(
+                  height: 24,
+                ),
+                Container(
                     width: MediaQuery.of(context).size.width,
-                    height: 44,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [const Color(0xFF12CCD6), AppColors.k0cbcc5],
+                      ),
+                      borderRadius: BorderRadius.circular(23),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.k0cbcc5.withOpacity(0.35),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
                     child: TextButton(
                       style: ButtonStyle(
                         backgroundColor:
-                            MaterialStateProperty.all(AppColors.k0cbcc5),
+                            MaterialStateProperty.all(Colors.transparent),
                         shape: MaterialStateProperty.all(
                           RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(9),
+                            borderRadius: BorderRadius.circular(23),
                           ),
                         ),
                       ),
@@ -386,18 +403,38 @@ class _ChangePasswordState extends State<ChangePassword> {
                         S.of(context).savePass,
                         style: GoogleFonts.rubik(
                           color: AppColors.kffffff,
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-                  ),
                 ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  // 白色圆角分区卡
+  Widget _formCard({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.k010101.withOpacity(0.04),
+            offset: const Offset(0, 3),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 
