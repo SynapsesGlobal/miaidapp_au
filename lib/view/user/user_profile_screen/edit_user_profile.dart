@@ -107,7 +107,7 @@ class _EditUserProfileState extends State<EditUserProfile> {
     final store = widget.services.store;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF6F7F9),
       appBar: AppBar(
         elevation: 0,
         backgroundColor: AppColors.kffffff,
@@ -130,20 +130,39 @@ class _EditUserProfileState extends State<EditUserProfile> {
         ),
       ),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Observer(
           builder: (context) => Form(
             key: formKey,
             child: Column(
               children: [
-                accountDetails(),
-                generalDetails(),
-                nextOfKin(),
-                regularDoctor(),
+                _formCard(child: accountDetails()),
+                const SizedBox(height: 16),
+                _formCard(child: generalDetails()),
+                const SizedBox(height: 16),
+                _formCard(child: nextOfKin()),
+                const SizedBox(height: 16),
+                _formCard(child: regularDoctor()),
                 Padding(
-                  padding: const EdgeInsets.only(left: 20, right: 20, top: 30, bottom: 44),
+                  padding: const EdgeInsets.only(top: 24, bottom: 28),
                   child: Container(
                     width: MediaQuery.of(context).size.width,
-                    height: 44,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [const Color(0xFF12CCD6), AppColors.k0cbcc5],
+                      ),
+                      borderRadius: BorderRadius.circular(23),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.k0cbcc5.withOpacity(0.35),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
                     child: TapDebouncer(
                       onTap: () async {
                         if (formKey.currentState!.validate()) {
@@ -220,18 +239,18 @@ class _EditUserProfileState extends State<EditUserProfile> {
                       },
                       builder: (context, onTap) => TextButton(
                         style: ButtonStyle(
-                          backgroundColor: MaterialStateProperty.all(AppColors.k0cbcc5),
+                          backgroundColor: MaterialStateProperty.all(Colors.transparent),
                           shape: MaterialStateProperty.all(
                             RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(9),
+                              borderRadius: BorderRadius.circular(23),
                             ),
                           ),
                         ),
                         onPressed: onTap,
                         child: Text(S.of(context).saveChanges, style: GoogleFonts.rubik(
                           color: AppColors.kffffff,
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),),
                       ),
                     ),
@@ -245,9 +264,55 @@ class _EditUserProfileState extends State<EditUserProfile> {
     );
   }
 
+  // 白色圆角分区卡
+  Widget _formCard({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.k010101.withOpacity(0.04),
+            offset: const Offset(0, 3),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  // 分区标题：主题色小竖条 + 文字
+  Widget _cardTitle(String title) {
+    return Row(
+      children: [
+        Container(
+          width: 3,
+          height: 14,
+          decoration: BoxDecoration(
+            color: AppColors.k0cbcc5,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: GoogleFonts.rubik(
+            color: AppColors.k010101,
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget accountDetails() {
     return Padding(
-      padding: const EdgeInsets.only(left: 20, right: 20),
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -255,18 +320,8 @@ class _EditUserProfileState extends State<EditUserProfile> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 20),
-                  child: Text(
-                    S.of(context).accountDetails,
-                    style: GoogleFonts.rubik(
-                      color: AppColors.k010101,
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 19,),
+                _cardTitle(S.of(context).accountDetails),
+                SizedBox(height: 16,),
                 Text(
                   S.of(context).fname,
                   textAlign: TextAlign.left,
@@ -603,7 +658,7 @@ class _EditUserProfileState extends State<EditUserProfile> {
     final store = widget.services.store;
 
     return Padding(
-      padding: const EdgeInsets.only(left: 20, right: 20),
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -611,19 +666,9 @@ class _EditUserProfileState extends State<EditUserProfile> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 20),
-                  child: Text(
-                    S.of(context).generalDetail,
-                    style: GoogleFonts.rubik(
-                      color: AppColors.k010101,
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+                _cardTitle(S.of(context).generalDetail),
                 SizedBox(
-                  height: 19,
+                  height: 16,
                 ),
                 Text(
                   S.of(context).dob + " *",
@@ -1001,26 +1046,13 @@ class _EditUserProfileState extends State<EditUserProfile> {
   Widget nextOfKin() {
     final store = widget.services.store;
     return Padding(
-      padding: const EdgeInsets.only(left: 20, right: 20),
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _cardTitle(S.of(context).nextOfKin),
           SizedBox(
-            height: 20,
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 20),
-            child: Text(
-              S.of(context).nextOfKin,
-              style: GoogleFonts.rubik(
-                color: AppColors.k010101,
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          SizedBox(
-            height: 19,
+            height: 16,
           ),
           Text(
             S.of(context).fullName,
@@ -1258,26 +1290,13 @@ class _EditUserProfileState extends State<EditUserProfile> {
 
   Widget regularDoctor() {
     return Padding(
-      padding: const EdgeInsets.only(left: 20, right: 20),
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _cardTitle(S.of(context).regularDoctor),
           SizedBox(
-            height: 20,
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 20),
-            child: Text(
-              S.of(context).regularDoctor,
-              style: GoogleFonts.rubik(
-                color: AppColors.k010101,
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          SizedBox(
-            height: 19,
+            height: 16,
           ),
           Text(
             S.of(context).fullName,

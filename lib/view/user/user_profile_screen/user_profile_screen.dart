@@ -178,7 +178,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF6F7F9),
       drawer: getDrawer(widget.services.store.user),
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -212,8 +212,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   S.of(context).editProfile,
                   style: GoogleFonts.rubik(
                     color: AppColors.k0cbcc5,
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -221,200 +221,78 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           ),
         ],
         leading: Builder(
-          builder: (BuildContext context) {
-            return InkWell(
-              onTap: () {
-                Navigator.pop(context);
-              },
-              child: navBarIcon(iconAssetName: 'ic_nb_back.png'),
-            );
-          },
+          builder: (BuildContext context) => InkWell(
+            onTap: () {
+              Navigator.pop(context);
+            },
+            child: navBarIcon(iconAssetName: 'ic_nb_back.png'),
+          ),
         ),
       ),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            _profileHeaderCard(),
+            const SizedBox(height: 16),
+            _sectionCard(
+              title: S.of(context).generalDetail,
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 16, left: 20),
-                  child: Container(
-                    decoration: BoxDecoration(
-                        shape: BoxShape.circle, color: Colors.white),
-                    child: Stack(
-                      children: [
-                        Container(
-                          height: 84,
-                          width: 84,
-                          margin: EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: AppColors.k0cbcc5),
-                            shape: BoxShape.circle,
-                            image: profileDecorationImage(
-                                context,
-                                widget.services.user.user!,
-                                getIt<ApiSettings>()),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 30,
-                          child: InkWell(
-                            onTap: askImageSource,
-                            child: Image(
-                              image: AssetImage(
-                                'assets/images/ic_profile_uploadpicture.png',
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 15, top: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.services.user.user?.fullName ?? '',
-                          style: GoogleFonts.rubik(
-                            color: AppColors.k010101,
-                            fontSize: 21,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(
-                          height: 10,
-                        ),
-                        Text(
-                          widget.services.user.user?.email ?? '',
-                          style: GoogleFonts.rubik(
-                            color: AppColors.k696969,
-                            fontSize: 14,
-                          ),
-                        ),
-                        SizedBox(
-                          height: 10,
-                        ),
-                        Text(
-                          widget.services.user.user?.phone ?? '',
-                          style: GoogleFonts.rubik(
-                            color: AppColors.k696969,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
+                _infoRow(S.of(context).dob, dobController.text),
+                _infoRow(S.of(context).preLanguage, languageController.text),
+                _infoRow(S.of(context).gender, genderController.text),
+                _infoRow(
+                    S.of(context).doctorPre, doctorPreferenceController.text),
+                _infoRow(S.of(context).medicareNumber,
+                    medicareNumberController.text),
+                _infoRow(S.of(context).travelAgencyName,
+                    travelAgencyNameController.text,
+                    isLast: true),
               ],
             ),
-            SizedBox(
-              height: 36.1,
+            const SizedBox(height: 16),
+            _sectionCard(
+              title: S.of(context).nextOfKin,
+              children: [
+                _infoRow(S.of(context).fullName, nokFullNameController.text),
+                _infoRow(S.of(context).email, nokEmailController.text),
+                _infoRow(S.of(context).phone, nokPhoneController.text,
+                    isLast: true),
+              ],
             ),
-            generalDetails(),
-            nextOfKin(),
-            regularDoctor(),
-            Padding(
-              padding: const EdgeInsets.only(top: 20, left: 16),
-              child: Text(
-                S.of(context).otherSettings,
-                style: GoogleFonts.rubik(
-                  color: AppColors.k010101,
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+            const SizedBox(height: 16),
+            _sectionCard(
+              title: S.of(context).regularDoctor,
+              children: [
+                _infoRow(S.of(context).fullName,
+                    regularDoctorFullNameController.text),
+                _infoRow(S.of(context).email, regularDoctorEmailController.text,
+                    isLast: true),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 15,
-                bottom: 15,
-              ),
-              child: Container(
-                width: MediaQuery.of(context).size.width,
-                height: 44,
-                child: TextButton(
-                  style: ButtonStyle(
-                    backgroundColor:
-                        MaterialStateProperty.all(AppColors.kffffff),
-                    shape: MaterialStateProperty.all(
-                      RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(9),
-                      ),
-                    ),
-                    side: MaterialStateProperty.all(
-                      BorderSide(color: AppColors.k0cbcc5),
-                    ),
-                    overlayColor: MaterialStateProperty.all(
-                        AppColors.k0cbcc5.withOpacity(0.2)),
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute<void>(
-                        builder: (context) => getIt<ChangePassword>(),
-                      ),
-                    );
+            const SizedBox(height: 16),
+            _sectionCard(
+              title: S.of(context).otherSettings,
+              children: [
+                _actionTile(
+                  icon: Icons.lock_outline,
+                  label: S.of(context).changePass,
+                  color: AppColors.k0cbcc5,
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute<void>(
+                      builder: (context) => getIt<ChangePassword>(),
+                    ),);
                   },
-                  child: Text(
-                    S.of(context).changePass,
-                    style: GoogleFonts.rubik(
-                      color: AppColors.k0cbcc5,
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
                 ),
-              ),
-            ),
-            SizedBox(
-              height: 10,
-            ),
-            Padding(
-              padding: const EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 15,
-                bottom: 80,
-              ),
-              child: Container(
-                height: 44,
-                width: MediaQuery.of(context).size.width,
-                child: TextButton(
-                  style: ButtonStyle(
-                    backgroundColor:
-                        MaterialStateProperty.all(AppColors.kffffff),
-                    shape: MaterialStateProperty.all(
-                      RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(9),
-                      ),
-                    ),
-                    side: MaterialStateProperty.all(
-                      BorderSide(color: AppColors.kfa0020),
-                    ),
-                    overlayColor: MaterialStateProperty.all(
-                        AppColors.kfa0020.withOpacity(0.2)),
-                  ),
-                  onPressed: () {
-                    showDeleteAlertDialog(context);
-                  },
-                  child: Text(
-                    S.of(context).deleteAccount,
-                    style: GoogleFonts.rubik(
-                      color: AppColors.kfa0020,
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                Divider(height: 1, color: Colors.grey.shade200),
+                _actionTile(
+                  icon: Icons.delete_outline,
+                  label: S.of(context).deleteAccount,
+                  color: AppColors.kfa0020,
+                  onTap: () => showDeleteAlertDialog(context),
                 ),
-              ),
+              ],
             ),
           ],
         ),
@@ -422,551 +300,227 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget generalDetails() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  // 顶部个人信息卡：头像 + 姓名 + 联系方式
+  Widget _profileHeaderCard() {
+    final user = widget.services.user.user;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.k010101.withOpacity(0.04),
+            offset: const Offset(0, 3),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Stack(
             children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 20, left: 20),
-                child: Text(
-                  S.of(context).generalDetail,
-                  style: GoogleFonts.rubik(
-                    color: AppColors.k010101,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w500,
+              Container(
+                height: 84,
+                width: 84,
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.k0cbcc5, width: 2),
+                  shape: BoxShape.circle,
+                  image: profileDecorationImage(
+                    context,
+                    user!,
+                    getIt<ApiSettings>(),
                   ),
                 ),
               ),
-              SizedBox(
-                height: 19,
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: InkWell(
+                  onTap: askImageSource,
+                  child: Image(
+                    image: AssetImage(
+                      'assets/images/ic_profile_uploadpicture.png',
+                    ),
+                  ),
+                ),
               ),
-              Container(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            ],
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user.fullName ?? '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.rubik(
+                    color: AppColors.k010101,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 20, right: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 10),
-                            child: Text(
-                              S.of(context).dob,
-                              textAlign: TextAlign.left,
-                              style: GoogleFonts.rubik(
-                                color: AppColors.k696969,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          TextFormField(
-                            decoration: InputDecoration(
-                              contentPadding: EdgeInsets.only(left: 10),
-                            ),
-                            onChanged: (value) {
-                              // Nop
-                            },
-                            enabled: false,
-                            controller: dobController,
-                            style: GoogleFonts.rubik(
-                              color: AppColors.k010101,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
+                    Icon(Icons.mail_outline,
+                        size: 14, color: Colors.grey.shade500),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        user.email ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.rubik(
+                          color: AppColors.k696969,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
-              SizedBox(
-                height: 10,
-              ),
-              Container(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(height: 5),
+                Row(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 20, right: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 10),
-                            child: Text(
-                              S.of(context).preLanguage,
-                              textAlign: TextAlign.left,
-                              style: GoogleFonts.rubik(
-                                color: AppColors.k696969,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          TextFormField(
-                            decoration: InputDecoration(
-                              contentPadding: EdgeInsets.only(left: 10),
-                            ),
-                            enabled: false,
-                            controller: languageController,
-                            style: GoogleFonts.rubik(
-                              color: AppColors.k010101,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
+                    Icon(Icons.phone_outlined,
+                        size: 14, color: Colors.grey.shade500),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        user.phone ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.rubik(
+                          color: AppColors.k696969,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
-              SizedBox(
-                height: 10,
-              ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 白色圆角分区卡：主题色小竖条标题 + 内容行
+  Widget _sectionCard({required String title, required List<Widget> children}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.k010101.withOpacity(0.04),
+            offset: const Offset(0, 3),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
               Container(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 20, right: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 10),
-                            child: Text(
-                              S.of(context).gender,
-                              textAlign: TextAlign.left,
-                              style: GoogleFonts.rubik(
-                                color: AppColors.k696969,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            height: 6,
-                          ),
-                          TextFormField(
-                            onChanged: (value) {
-                              // Nop
-                            },
-                            decoration: InputDecoration(
-                              contentPadding: EdgeInsets.only(left: 10),
-                            ),
-                            enabled: false,
-                            controller: genderController,
-                            style: GoogleFonts.rubik(
-                              color: AppColors.k010101,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                width: 3,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: AppColors.k0cbcc5,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              SizedBox(
-                height: 10,
-              ),
-              Container(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 20, right: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 10),
-                            child: Text(
-                              S.of(context).doctorPre,
-                              textAlign: TextAlign.left,
-                              style: GoogleFonts.rubik(
-                                color: AppColors.k696969,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            height: 6,
-                          ),
-                          TextFormField(
-                            onChanged: (value) {
-                              // Nop
-                            },
-                            decoration: InputDecoration(
-                              contentPadding: EdgeInsets.only(left: 10),
-                            ),
-                            enabled: false,
-                            controller: doctorPreferenceController,
-                            style: GoogleFonts.rubik(
-                              color: AppColors.k010101,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: GoogleFonts.rubik(
+                  color: AppColors.k010101,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              SizedBox(
-                height: 10,
-              ),
-              Container(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 20, right: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 10),
-                            child: Text(
-                              S.of(context).medicareNumber,
-                              textAlign: TextAlign.left,
-                              style: GoogleFonts.rubik(
-                                color: AppColors.k696969,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            height: 6,
-                          ),
-                          TextFormField(
-                            onChanged: (value) {
-                              // Nop
-                            },
-                            decoration: InputDecoration(
-                              contentPadding: EdgeInsets.only(left: 10),
-                            ),
-                            enabled: false,
-                            controller: medicareNumberController,
-                            style: GoogleFonts.rubik(
-                              color: AppColors.k010101,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+            ],
+          ),
+          const SizedBox(height: 6),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  // 信息行：小号灰标签在上，值在下，行间细分隔线
+  Widget _infoRow(String label, String value, {bool isLast = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.rubik(
+                  color: AppColors.k8f8e94,
+                  fontSize: 12,
                 ),
               ),
-              SizedBox(
-                height: 10,
-              ),
-              Container(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 20, right: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 10),
-                            child: Text(
-                              S.of(context).travelAgencyName,
-                              textAlign: TextAlign.left,
-                              style: GoogleFonts.rubik(
-                                color: AppColors.k696969,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            height: 6,
-                          ),
-                          TextFormField(
-                            onChanged: (value) {
-                              // Nop
-                            },
-                            decoration: InputDecoration(
-                              contentPadding: EdgeInsets.only(left: 10),
-                            ),
-                            enabled: false,
-                            controller: travelAgencyNameController,
-                            style: GoogleFonts.rubik(
-                              color: AppColors.k010101,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+              const SizedBox(height: 3),
+              Text(
+                value,
+                style: GoogleFonts.rubik(
+                  color: AppColors.k010101,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
           ),
         ),
+        if (!isLast) Divider(height: 1, color: Colors.grey.shade100),
       ],
     );
   }
 
-  Widget nextOfKin() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 20, left: 20),
-                child: Text(
-                  S.of(context).nextOfKin,
-                  style: GoogleFonts.rubik(
-                    color: AppColors.k010101,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w500,
-                  ),
+  // 操作行：图标 + 文案 + 右箭头
+  Widget _actionTile({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 13),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                label,
+                style: GoogleFonts.rubik(
+                  color: color,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              SizedBox(
-                height: 19,
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 20, right: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 10),
-                      child: Text(
-                        S.of(context).fullName,
-                        textAlign: TextAlign.left,
-                        style: GoogleFonts.rubik(
-                          color: AppColors.k696969,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    TextFormField(
-                      onChanged: (value) {
-                        // Nop
-                      },
-                      decoration: InputDecoration(
-                        contentPadding: EdgeInsets.only(left: 10),
-                      ),
-                      enabled: false,
-                      controller: nokFullNameController,
-                      style: GoogleFonts.rubik(
-                        color: AppColors.k010101,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+            Icon(Icons.chevron_right, size: 20, color: AppColors.kb1b1b1),
+          ],
         ),
-        SizedBox(
-          height: 10,
-        ),
-        Container(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 20, right: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 10),
-                      child: Text(
-                        S.of(context).email,
-                        textAlign: TextAlign.left,
-                        style: GoogleFonts.rubik(
-                          color: AppColors.k696969,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    TextFormField(
-                      onChanged: (value) {
-                        // Nop
-                      },
-                      decoration: InputDecoration(
-                        contentPadding: EdgeInsets.only(left: 10),
-                      ),
-                      enabled: false,
-                      controller: nokEmailController,
-                      style: GoogleFonts.rubik(
-                        color: AppColors.k010101,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: 10,
-        ),
-        Container(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 20, right: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 10),
-                      child: Text(
-                        S.of(context).phone,
-                        textAlign: TextAlign.left,
-                        style: GoogleFonts.rubik(
-                          color: AppColors.k696969,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    TextFormField(
-                      onChanged: (value) {
-                        // Nop
-                      },
-                      decoration: InputDecoration(
-                        contentPadding: EdgeInsets.only(left: 10),
-                      ),
-                      enabled: false,
-                      controller: nokPhoneController,
-                      style: GoogleFonts.rubik(
-                        color: AppColors.k010101,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: 10,
-        ),
-      ],
-    );
-  }
-
-  Widget regularDoctor() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 20, left: 20),
-                child: Text(
-                  S.of(context).regularDoctor,
-                  style: GoogleFonts.rubik(
-                      color: AppColors.k010101,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w500),
-                ),
-              ),
-              SizedBox(
-                height: 19,
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 20, right: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 10),
-                      child: Text(
-                        S.of(context).fullName,
-                        textAlign: TextAlign.left,
-                        style: GoogleFonts.rubik(
-                          color: AppColors.k696969,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    TextFormField(
-                      onChanged: (value) {
-                        // Nop
-                      },
-                      decoration: InputDecoration(
-                        contentPadding: EdgeInsets.only(left: 10),
-                      ),
-                      enabled: false,
-                      controller: regularDoctorFullNameController,
-                      style: GoogleFonts.rubik(
-                        color: AppColors.k010101,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: 10,
-        ),
-        Container(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 20, right: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 10),
-                      child: Text(
-                        S.of(context).email,
-                        textAlign: TextAlign.left,
-                        style: GoogleFonts.rubik(
-                          color: AppColors.k696969,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    TextFormField(
-                      onChanged: (value) {
-                        // Nop
-                      },
-                      decoration: InputDecoration(
-                        contentPadding: EdgeInsets.only(left: 10),
-                      ),
-                      enabled: false,
-                      controller: regularDoctorEmailController,
-                      style: GoogleFonts.rubik(
-                        color: AppColors.k010101,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+      ),
     );
   }
 
