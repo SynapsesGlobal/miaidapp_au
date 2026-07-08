@@ -148,11 +148,11 @@ class _RefundRequestPageState extends State<RefundRequestPage> {
   }
 
   List<String> get _reasons => [
-        S.of(context).refundReasonNoLongerNeeded,
-        S.of(context).refundReasonWrongItem,
-        S.of(context).refundReasonWrongAddress,
-        S.of(context).refundReasonDeliveryTooSlow,
-        S.of(context).refundReasonOther,
+        S.of(context).refundReasonWrongMedication,
+        S.of(context).refundReasonDamaged,
+        S.of(context).refundReasonExpired,
+        S.of(context).refundReasonQualityIssue,
+        S.of(context).refundReasonDeliveryError,
       ];
 
   bool get _canSubmit => !_submitting && _selectedIndex >= 0;
