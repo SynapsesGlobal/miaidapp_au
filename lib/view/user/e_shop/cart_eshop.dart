@@ -601,7 +601,11 @@ class _CartEShopState extends State<CartEShop> {
               },
             ),
             Expanded(
-              child: Padding(
+              // 点击文字也能切换勾选；条款链接的手势在内层，优先响应跳转
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => cartStore.changeTermsAndConditions(),
+                child: Padding(
                 padding: const EdgeInsets.only(left: 6),
                 child: RichText(
                     textAlign: TextAlign.left,
@@ -632,6 +636,7 @@ class _CartEShopState extends State<CartEShop> {
                       ],
                     ),
                   ),
+                ),
                 )),
           ],
         ),
