@@ -10,7 +10,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:injectable/injectable.dart';
 import 'package:miaid/api_utils/api_provider.dart';
 import 'package:miaid/api_utils/http_exception.dart';
-import 'package:miaid/component/miaid_card.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
@@ -153,7 +152,7 @@ class _CartEShopState extends State<CartEShop> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.kf4f4f4,
+      backgroundColor: const Color(0xFFF6F7F9),
       appBar: AppBar(
         actions: [
           Observer(
@@ -207,33 +206,65 @@ class _CartEShopState extends State<CartEShop> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Observer(
-          builder: (context) {
-            if (cartStore.cartItems.isEmpty) {
-              return _emptyCart();
-            }
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                  child: ListView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    padding: EdgeInsets.zero,
-                    itemCount: cartStore.cartItems.length,
-                    itemBuilder: (BuildContext context, index) =>
-                        _listItem(index, context),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  child: _deliveryOptionAndOrderSummary(context),
-                ),
-              ],
-            );
-          },
+      // 商品少时也撑满视口：汇总与条款贴近底部结算栏，页面不留大片空白
+      body: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Observer(
+                builder: (context) {
+                  if (cartStore.cartItems.isEmpty) {
+                    return _emptyCart();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _sectionTitle(
+                                  S.of(context).cartProducts),
+                            ),
+                            // 商品件数徽章
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 9, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.keefeff,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                cartStore.cartItems.length.toString(),
+                                style: GoogleFonts.rubik(
+                                  color: AppColors.k0cbcc5,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        // 购物车条目有限，直接展开渲染；
+                        // ListView(shrinkWrap) 在 IntrinsicHeight 下无法测量会抛异常
+                        for (var i = 0;
+                            i < cartStore.cartItems.length;
+                            i++)
+                          _listItem(i, context),
+                        const SizedBox(height: 8),
+                        Expanded(
+                          child: _deliveryOptionAndOrderSummary(context),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
         ),
       ),
       bottomNavigationBar: Observer(
@@ -249,10 +280,18 @@ class _CartEShopState extends State<CartEShop> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.shopping_cart_outlined,
-              size: 72,
-              color: AppColors.kb1b1b1,
+            Container(
+              width: 96,
+              height: 96,
+              decoration: const BoxDecoration(
+                color: Color(0xFFEDEFF2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.shopping_cart_outlined,
+                size: 44,
+                color: Colors.grey.shade400,
+              ),
             ),
             const SizedBox(height: 16),
             Text(
@@ -289,31 +328,64 @@ class _CartEShopState extends State<CartEShop> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Observer(
-                builder: (context) => Row(
+                builder: (context) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       S.of(context).orderTotal,
                       style: GoogleFonts.rubik(
-                        color: AppColors.k010101,
-                        fontSize: 12,
+                        color: AppColors.k8f8e94,
+                        fontSize: 11,
                       ),
                     ),
-                    Text(
-                      '  ${cartStore.currency} ${((cartStore.deliveryOption == 2 && deliveryAvailableResponse?.status == true ? cartStore.deliveryFee : 0) + cartStore.subTotal).toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 17,
-                      ),
+                    const SizedBox(height: 2),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          '${cartStore.currency} ',
+                          style: GoogleFonts.rubik(
+                            color: AppColors.k010101,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          ((cartStore.deliveryOption == 2 && deliveryAvailableResponse?.status == true ? cartStore.deliveryFee : 0) + cartStore.subTotal).toStringAsFixed(2),
+                          style: GoogleFonts.rubik(
+                            color: AppColors.k0cbcc5,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 20,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-              TextButton(
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [const Color(0xFF12CCD6), AppColors.k0cbcc5],
+                  ),
+                  borderRadius: BorderRadius.circular(22),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.k0cbcc5.withOpacity(0.35),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: TextButton(
                 style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.all(AppColors.k0cbcc5),
+                  backgroundColor: MaterialStateProperty.all(Colors.transparent),
                   shape: MaterialStateProperty.all(
                     RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(9),
+                      borderRadius: BorderRadius.circular(22),
                     ),
                   ),
                 ),
@@ -394,20 +466,21 @@ class _CartEShopState extends State<CartEShop> {
                 },
                 child: Padding(
                   padding: const EdgeInsets.only(
-                    left: 16,
-                    right: 16,
-                    top: 8,
-                    bottom: 8,
+                    left: 22,
+                    right: 22,
+                    top: 9,
+                    bottom: 9,
                   ),
                   child: Text(
                     S.of(context).checkout,
                     style: GoogleFonts.rubik(
                       color: AppColors.kffffff,
                       fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
+              ),
               )
             ],
           ),
@@ -417,42 +490,12 @@ class _CartEShopState extends State<CartEShop> {
   }
 
   Widget _deliveryOptionAndOrderSummary(BuildContext context) {
-    var radioList = <Widget>[];
-    var optionsNumnber = 1;
-
-    if (deliveryAvailableResponse?.status == true) {
-      optionsNumnber = 2;
-    }
-
-    for (var i = 1; i <= optionsNumnber; i++) {
-      if (i != 2 || (i == 2 && (deliveryAvailableResponse != null && deliveryAvailableResponse?.status == true))) {
-        radioList.add(radiobuttonContainer(
-          child: ListTile(
-            minVerticalPadding: 10.0,
-            contentPadding: EdgeInsets.all(0),
-            dense: true,
-            title: Text(
-              i == 2 ? S.of(context).deliver : S.of(context).inStore,
-              style: GoogleFonts.rubik(
-                color: AppColors.k5e5e5e,
-                fontSize: 14,
-              ),
-            ),
-            leading: Radio(
-              value: i,
-              groupValue: cartStore.deliveryOption,
-              activeColor: AppColors.k0cbcc5,
-              toggleable: true,
-              onChanged: i == 2 ? (int? value) {
-                cartStore.changeDeliveryOption(value ?? 0);
-              } : (int? value) {
-                cartStore.changeDeliveryOption(value ?? 0);
-              },
-            ),
-          ),
-        ));
-      }
-    }
+    final radioList = <Widget>[
+      _deliveryOptionTile(1, S.of(context).inStore, Icons.storefront_outlined),
+      if (deliveryAvailableResponse?.status == true)
+        _deliveryOptionTile(
+            2, S.of(context).deliver, Icons.local_shipping_outlined),
+    ];
 
     var containsPrescription = false;
     // to change here
@@ -495,14 +538,16 @@ class _CartEShopState extends State<CartEShop> {
                 ),
                 const SizedBox(height: 12),
                 InkWell(
+                  borderRadius: BorderRadius.circular(10),
                   onTap: askImageSource,
                   child: Container(
                     height: 92,
                     width: 92,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.k0cbcc5),
+                      color: AppColors.kf4f4f4,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE0E0E0)),
                       image: cartStore.prescriptionPath == null ? null : DecorationImage(
                         image: CachedNetworkImageProvider(
                             widget.services.api.baseUrl + '/storage/' + cartStore.prescriptionPath!),
@@ -511,8 +556,8 @@ class _CartEShopState extends State<CartEShop> {
                     ),
                     child: cartStore.prescriptionPath == null ? Icon(
                       Icons.add_a_photo_outlined,
-                      color: AppColors.k0cbcc5,
-                      size: 32,
+                      color: AppColors.kb1b1b1,
+                      size: 28,
                     ) : null,
                   ),
                 ),
@@ -520,6 +565,8 @@ class _CartEShopState extends State<CartEShop> {
             ),
           ),
         ],
+        // 弹性空隙：商品少时把汇总和条款推向底部，页面不留大片空白
+        const Spacer(),
         const SizedBox(height: 16),
         _sectionCard(
           child: Column(
@@ -533,14 +580,15 @@ class _CartEShopState extends State<CartEShop> {
                   Text(
                     S.of(context).subTotal,
                     style: GoogleFonts.rubik(
-                      color: AppColors.k010101,
+                      color: AppColors.k8f8e94,
                       fontSize: 13,
                     ),
                   ),
                   Text(
                     '${cartStore.currency} ${cartStore.subTotal.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
+                    style: GoogleFonts.rubik(
+                      color: AppColors.k010101,
+                      fontWeight: FontWeight.w600,
                       fontSize: 14,
                     ),
                   ),
@@ -556,14 +604,15 @@ class _CartEShopState extends State<CartEShop> {
                         Text(
                           S.of(context).deliveryFees,
                           style: GoogleFonts.rubik(
-                            color: AppColors.k010101,
+                            color: AppColors.k8f8e94,
                             fontSize: 13,
                           ),
                         ),
                         Text(
                           '${cartStore.currency} ${cartStore.deliveryFee.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
+                          style: GoogleFonts.rubik(
+                            color: AppColors.k010101,
+                            fontWeight: FontWeight.w600,
                             fontSize: 14,
                           ),
                         )
@@ -732,170 +781,253 @@ class _CartEShopState extends State<CartEShop> {
 
   Widget _listItem(int index, BuildContext context) {
     var product = cartStore.cartItems[index].keys.first;
-    return Column(
-      children: [
-        SizedBox(
-          height: 10,
-        ),
-        miAidCard(
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 16, 16),
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.k010101.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 商品图
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              height: 76,
+              width: 76,
+              color: const Color(0xFFEDEFF2),
+              child: product.productImages == null ||
+                      product.productImages!.isEmpty
+                  ? Image.asset(
+                      'assets/images/default_shop_image.png',
+                      fit: BoxFit.cover,
+                    )
+                  : ImageWidget(imageUrl: product.productImages![0].image!),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(
-                    top: 8,
+                Text(
+                  product.name!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.rubik(
+                    color: AppColors.k010101,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    height: 1.3,
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.max,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        height: 70,
-                        width: 70,
-                        child: imageContainer(
-                          productPhotoUrl: product.productImages == null || product.productImages!.isEmpty ? Image.asset(
-                            'assets/images/default_shop_image.png',
-                            height: 160,
-                            width: 160,
-                          ) : ImageWidget(imageUrl: product.productImages![0].image!),
-                        ),
-                      ),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(
-                            left: 15,
-                            right: 16,
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // 价格：币种小字 + 金额主题色加粗
+                    // 注意不能用 baseline 对齐：IntrinsicHeight 下会抛异常
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 2),
+                          child: Text(
+                            '${cartStore.currency} ',
+                            style: GoogleFonts.rubik(
+                              color: AppColors.k8f8e94,
+                              fontSize: 11,
+                            ),
                           ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.max,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  bottom: 14,
+                        ),
+                        Text(
+                          product.unitPrice!.toStringAsFixed(2),
+                          style: GoogleFonts.rubik(
+                            color: AppColors.k0cbcc5,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 17,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Observer(
+                      builder: (context) {
+                        return cartStore.inRemoveMode
+                            ? InkWell(
+                                onTap: () =>
+                                    showAlertDialog(context, product),
+                                child: Image.asset(
+                                  'assets/images/btn_medicine_removeitem.png',
+                                  width: 30,
                                 ),
-                                child: Text(product.name!,
-                                  style: GoogleFonts.rubik(
-                                    color: AppColors.k010101,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  )
-                                ),
-                              ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(4),
-                                      color: AppColors.kf4f4f4,
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(
-                                        left: 7,
-                                        right: 7,
-                                        top: 3,
-                                        bottom: 2,
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text('${cartStore.currency} '),
-                                          Text(
-                                            product.unitPrice!.toStringAsFixed(2),
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 18,
-                                            ),
-                                          )
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  Observer(
-                                    builder: (context) {
-                                      return cartStore.inRemoveMode ? InkWell(
-                                        onTap: () => showAlertDialog(context, product),
-                                        child: Image.asset('assets/images/btn_medicine_removeitem.png', width: 30,),
-                                      ) : Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                        children: [
-                                          InkWell(
-                                            onTap: () {
-                                              if (cartStore.cartItems[index].values.first > 1) {
-                                                cartStore.decrementQuantity(product);
-                                              }
-                                            },
-                                            child: buttonContainer(
-                                              Image.asset(cartStore.cartItems[index].values.first <= 1
-                                                  ? 'assets/images/btn_medicine_quantity_minus_disabled.png'
-                                                  : 'assets/images/btn_medicine_quantity_minus.png'),
-                                            ),
-                                          ),
-                                          Padding(
-                                            padding: const EdgeInsets.only(left: 15, right: 15),
-                                            child: Text(
-                                              cartStore.cartItems[index].values.first.toString(),
-                                              style: TextStyle(
-                                                color: Color(0xff010101),
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 14,
-                                              ),
-                                            ),
-                                          ),
-                                          InkWell(
-                                            onTap: () {
-                                              cartStore.addItem(
-                                                product,
-                                                curr: cartStore.currency,
-                                              );
-                                            },
-                                            child: buttonContainer(
-                                              Image.asset('assets/images/btn_medicine_quantity_add.png'),
-                                            ),
-                                          ),
-                                        ],
-                                      );
-                                    },
-                                  ),
-                                ],
                               )
-                            ],
-                          ),
-                        ),
-                      )
-                    ],
-                  ),
-                )
+                            : _quantityStepper(index, product);
+                      },
+                    ),
+                  ],
+                ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 数量步进器：与商品数量弹窗同一套描边样式
+  Widget _quantityStepper(int index, Product product) {
+    final qty = cartStore.cartItems[index].values.first;
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            onTap: qty > 1
+                ? () => cartStore.decrementQuantity(product)
+                : null,
+            child: SizedBox(
+              width: 32,
+              height: 28,
+              child: Icon(
+                CupertinoIcons.minus,
+                size: 14,
+                color: qty > 1 ? AppColors.k010101 : Colors.grey[350],
+              ),
+            ),
+          ),
+          Container(
+            width: 36,
+            height: 28,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              border: Border.symmetric(
+                vertical: BorderSide(color: Colors.grey.shade300),
+              ),
+            ),
+            child: Text(
+              qty.toString(),
+              style: GoogleFonts.rubik(
+                color: AppColors.k010101,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          InkWell(
+            onTap: () =>
+                cartStore.addItem(product, curr: cartStore.currency),
+            child: SizedBox(
+              width: 32,
+              height: 28,
+              child: Icon(
+                CupertinoIcons.plus,
+                size: 14,
+                color: AppColors.k010101,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title) {
+    return Row(
+      children: [
+        Container(
+          width: 3,
+          height: 14,
+          decoration: BoxDecoration(
+            color: AppColors.k0cbcc5,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: GoogleFonts.rubik(
+            color: AppColors.k010101,
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
     );
   }
 
-  Widget imageContainer({required Widget productPhotoUrl}) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(6),
-      child: productPhotoUrl,
-    );
-  }
-
-  Widget _sectionTitle(String title) {
-    return Text(
-      title,
-      style: GoogleFonts.rubik(
-        color: AppColors.k010101,
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-      ),
+  Widget _deliveryOptionTile(int value, String label, IconData icon) {
+    return Observer(
+      builder: (_) {
+        final selected = cartStore.deliveryOption == value;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            // 再次点击已选中项可取消选择，保持原有 toggleable 行为
+            onTap: () =>
+                cartStore.changeDeliveryOption(selected ? 0 : value),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+              decoration: BoxDecoration(
+                color: selected ? AppColors.keefeff : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color:
+                      selected ? AppColors.k0cbcc5 : Colors.grey.shade200,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    icon,
+                    size: 20,
+                    color:
+                        selected ? AppColors.k0cbcc5 : AppColors.k8f8e94,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: GoogleFonts.rubik(
+                        color: AppColors.k010101,
+                        fontSize: 14,
+                        fontWeight:
+                            selected ? FontWeight.w500 : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    selected
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    color:
+                        selected ? AppColors.k0cbcc5 : AppColors.kb1b1b1,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -905,12 +1037,13 @@ class _CartEShopState extends State<CartEShop> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: AppColors.k003f51.withOpacity(0.08),
-            offset: const Offset(0, 4),
-            blurRadius: 15,
+            color: AppColors.k010101.withOpacity(0.04),
+            offset: const Offset(0, 3),
+            blurRadius: 10,
           ),
         ],
       ),

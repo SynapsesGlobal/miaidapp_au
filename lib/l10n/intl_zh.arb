@@ -150,6 +150,7 @@
   "purchaseReceipt": "购物收据",
   "totalOrder": "总订单",
   "cart": "购物车",
+  "cartProducts": "商品",
   "remove": "移除",
   "deliveryOption": "配送方式",
   "delivery": "配送",
