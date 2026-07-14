@@ -4,6 +4,12 @@ targets:
       - lib/**
       - $package$
     builders:
+      # MobX store 全部位于 lib/store/，限定扫描范围，
+      # 避免 mobx 解析生成文件/无关文件时卡死或触发 analyzer 崩溃
+      mobx_codegen:mobx_generator:
+        generate_for:
+          include:
+            - lib/store/**
       swagger_dart_code_generator:
         options:
           with_base_url: true
