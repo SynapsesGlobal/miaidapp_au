@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
+import 'package:intl/intl.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -92,12 +93,12 @@ class AppSettings {
 
   // en: English, cn: Chinese
   String get languageFull {
-    if (locale.languageCode == 'zh') return 'Chinese';
-    if (locale.languageCode == 'en') return 'English';
-    if (locale.languageCode == 'ko') return 'Korean';
-    if (locale.languageCode == 'id') return 'Indonesia';
-    if (locale.languageCode == 'el') return 'Greek';
-    if (locale.languageCode == 'zh_Hant') return 'ChineseTW';
+    if (Intl.getCurrentLocale() == 'zh') return 'Chinese';
+    if (Intl.getCurrentLocale() == 'en') return 'English';
+    if (Intl.getCurrentLocale() == 'ko') return 'Korean';
+    if (Intl.getCurrentLocale() == 'id') return 'Indonesia';
+    if (Intl.getCurrentLocale() == 'el') return 'Greek';
+    if (Intl.getCurrentLocale() == 'zh_Hant') return 'ChineseTW';
     return 'English';
   }
 }
