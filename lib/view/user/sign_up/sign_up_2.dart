@@ -190,12 +190,14 @@ class _SignUp2State extends State<SignUp2> {
                             final user = await ApiSuccessParser.payloadOrThrowWithMessage(response);
                             widget.services.user.onUserUpdated(user);
 
+                            // 在 builder 外创建，避免 MaterialApp 重建时路由 builder 重新执行生成新实例
+                            final homeScreen = getIt<HomeScreen>();
                             await Navigator.pushAndRemoveUntil(
                               context,
                               // ignore: inference_failure_on_instance_creation
                               MaterialPageRoute(
                                 settings: RouteSettings(name: "/"),
-                                builder: (context) => getIt<HomeScreen>(),
+                                builder: (context) => homeScreen,
                               ),
                               (route) => false,
                             );

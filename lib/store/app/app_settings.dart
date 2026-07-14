@@ -96,6 +96,8 @@ class AppSettings {
     if (locale.languageCode == 'en') return 'English';
     if (locale.languageCode == 'ko') return 'Korean';
     if (locale.languageCode == 'id') return 'Indonesia';
+    if (locale.languageCode == 'el') return 'Greek';
+    if (locale.languageCode == 'zh_Hant') return 'ChineseTW';
     return 'English';
   }
 }

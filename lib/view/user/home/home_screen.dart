@@ -119,6 +119,16 @@ class _HomeScreenState extends State<HomeScreen>
     super.initState();
   }
 
+  @override
+  void didUpdateWidget(HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 防御：若路由 builder 被重新执行（如切换语言导致 MaterialApp 重建）而生成了新的
+    // services/store，新 store 的国家信息为空，这里用缓存回填，避免界面退回“获取定位”
+    if (!identical(oldWidget.services, widget.services)) {
+      widget.services.store.loadCachedCountryCode();
+    }
+  }
+
   Future<void> _initEmergencyAndConsultationData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {

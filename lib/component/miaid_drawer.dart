@@ -120,11 +120,14 @@ class MiAidDrawer extends StatelessWidget {
               S.of(context).home,
               () {
                 Navigator.pop(context);
+                // 必须在 builder 外创建：MaterialApp 重建（如切换语言）会重新执行路由 builder，
+                // 在 builder 内 getIt 会每次生成新实例，导致 store 状态（如国家信息）被清空
+                final homeScreen = getIt<HomeScreen>();
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute<void>(
                     settings: const RouteSettings(name: '/'),
-                    builder: (context) => getIt<HomeScreen>(),
+                    builder: (context) => homeScreen,
                   ),
                   (route) => false,
                 );
@@ -557,12 +560,14 @@ Future<void> logout(BuildContext context, UserProvider user) async {
   while (Navigator.of(context).canPop()) {
     Navigator.of(context).pop();
   }
+  // 在 builder 外创建，避免 MaterialApp 重建时路由 builder 重新执行生成新实例
+  final homeScreen = getIt<HomeScreen>();
   await Navigator.pushAndRemoveUntil(
     context,
     // ignore: inference_failure_on_instance_creation
     MaterialPageRoute(
       // builder: (context) => getIt<SignIn>(),
-      builder: (context) => getIt<HomeScreen>(),
+      builder: (context) => homeScreen,
     ),
     (route) => false,
   );
@@ -573,12 +578,14 @@ Future<void> deleteUser(BuildContext context, UserProvider user) async {
   while (Navigator.of(context).canPop()) {
     Navigator.of(context).pop();
   }
+  // 在 builder 外创建，避免 MaterialApp 重建时路由 builder 重新执行生成新实例
+  final homeScreen = getIt<HomeScreen>();
   await Navigator.pushAndRemoveUntil(
     context,
     // ignore: inference_failure_on_instance_creation
     MaterialPageRoute(
       // builder: (context) => getIt<SignIn>(),
-      builder: (context) => getIt<HomeScreen>(),
+      builder: (context) => homeScreen,
     ),
     (route) => false,
   );

@@ -4,6 +4,17 @@ import 'package:flutter/src/widgets/framework.dart';
 import 'package:geolocator/geolocator.dart';
 
 class MyGeoLocation {
+  // 首页初始化（急救号码/剩余问诊次数/国家信息）等场景会并发请求定位权限，
+  // 而 geolocator 不允许并发的 requestPermission（会抛 PermissionRequestInProgress），
+  // 共享进行中的请求，让并发调用方等待同一次系统弹窗的结果，避免相互冲突随机失败。
+  static Future<LocationPermission>? _pendingPermissionRequest;
+
+  static Future<LocationPermission> requestPermission() {
+    final pending = _pendingPermissionRequest ??= Geolocator.requestPermission()
+        .whenComplete(() => _pendingPermissionRequest = null);
+    return pending;
+  }
+
   /// Determine the current position of the device.
   ///
   /// When the location services are not enabled or permissions
@@ -26,7 +37,7 @@ class MyGeoLocation {
 
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+      permission = await MyGeoLocation.requestPermission();
       if (permission == LocationPermission.denied) {
         // Permissions are denied, next time you could try
         // requesting permissions again (this is also where
