@@ -20,7 +20,6 @@ import 'package:miaid/generated_api_code/api_client.swagger.dart';
 import 'package:miaid/store/user/sign_up/sign_up_2_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/home/home_screen.dart';
-import 'package:multi_select_flutter/multi_select_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tap_debouncer/tap_debouncer.dart';
 
@@ -69,12 +68,306 @@ class _SignUp2State extends State<SignUp2> {
   final formKey = GlobalKey<FormState>();
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
-  late bool language_validated = true;
-
   @override
   void initState() {
     widget.services.store.fetchOnInit();
     super.initState();
+  }
+
+  // 语言多选底部弹窗：选项卡片式，高度自适应内容
+  Future<void> _showLanguagePicker(SignUp2Store store) async {
+    final temp = List<Language>.of(store.selectedLanguages);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final canConfirm = temp.isNotEmpty;
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 顶部拖拽指示条
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 10),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 8, 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          S.of(context).preLanguage,
+                          style: GoogleFonts.rubik(
+                            color: AppColors.k010101,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () => Navigator.of(context).pop(),
+                        borderRadius: BorderRadius.circular(20),
+                        child: const Padding(
+                          padding: EdgeInsets.all(8),
+                          child: Icon(
+                            Icons.close,
+                            color: Colors.grey,
+                            size: 22,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // 选项列表：内容多时可滚动，少时高度自适应
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                    child: Column(
+                      children: [
+                        for (final lang in store.languages)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () => setSheetState(() {
+                                temp.any((e) => e.id == lang.id)
+                                    ? temp.removeWhere(
+                                        (e) => e.id == lang.id)
+                                    : temp.add(lang);
+                              }),
+                              child: AnimatedContainer(
+                                duration:
+                                    const Duration(milliseconds: 150),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 13,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: temp.any((e) => e.id == lang.id)
+                                      ? AppColors.keefeff
+                                      : AppColors.kf4f4f4,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color:
+                                        temp.any((e) => e.id == lang.id)
+                                            ? AppColors.k0cbcc5
+                                            : Colors.transparent,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        lang.language ?? '',
+                                        style: GoogleFonts.rubik(
+                                          color: AppColors.k010101,
+                                          fontSize: 14,
+                                          fontWeight: temp.any(
+                                                  (e) => e.id == lang.id)
+                                              ? FontWeight.w500
+                                              : FontWeight.normal,
+                                        ),
+                                      ),
+                                    ),
+                                    Icon(
+                                      temp.any((e) => e.id == lang.id)
+                                          ? Icons.check_circle
+                                          : Icons.radio_button_unchecked,
+                                      color:
+                                          temp.any((e) => e.id == lang.id)
+                                              ? AppColors.k0cbcc5
+                                              : AppColors.kb1b1b1,
+                                      size: 20,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                // 确认按钮：未选择时置灰
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+                  child: MaterialButton(
+                    onPressed: canConfirm
+                        ? () {
+                            store.selectedLanguages = List.of(temp);
+                            store.selectedLanguage = temp.first;
+                            Navigator.of(context).pop();
+                          }
+                        : null,
+                    minWidth: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    color: AppColors.k0cbcc5,
+                    disabledColor: AppColors.kb1b1b1,
+                    child: Text(
+                      S.of(context).confirm,
+                      style: GoogleFonts.rubik(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // 性别选项的本地化文案
+  String _genderLabel(Gender gender) {
+    return gender.name == 'Female'
+        ? S.of(context).female
+        : gender.name == 'Male'
+            ? S.of(context).male
+            : S.of(context).selectGender;
+  }
+
+  // 性别单选底部弹窗：点选即生效并关闭
+  Future<void> _showGenderPicker(SignUp2Store store) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 顶部拖拽指示条
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 10),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 8, 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      S.of(context).gender,
+                      style: GoogleFonts.rubik(
+                        color: AppColors.k010101,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () => Navigator.of(context).pop(),
+                    borderRadius: BorderRadius.circular(20),
+                    child: const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Icon(
+                        Icons.close,
+                        color: Colors.grey,
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+              child: Column(
+                children: [
+                  for (final gender in store.genders)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () {
+                          store.selectedGender = gender;
+                          Navigator.of(context).pop();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 13,
+                          ),
+                          decoration: BoxDecoration(
+                            color: store.selectedGender?.id == gender.id
+                                ? AppColors.keefeff
+                                : AppColors.kf4f4f4,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: store.selectedGender?.id == gender.id
+                                  ? AppColors.k0cbcc5
+                                  : Colors.transparent,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  _genderLabel(gender),
+                                  style: GoogleFonts.rubik(
+                                    color: AppColors.k010101,
+                                    fontSize: 14,
+                                    fontWeight:
+                                        store.selectedGender?.id == gender.id
+                                            ? FontWeight.w500
+                                            : FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                              Icon(
+                                store.selectedGender?.id == gender.id
+                                    ? Icons.check_circle
+                                    : Icons.radio_button_unchecked,
+                                color: store.selectedGender?.id == gender.id
+                                    ? AppColors.k0cbcc5
+                                    : AppColors.kb1b1b1,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -344,47 +637,109 @@ class _SignUp2State extends State<SignUp2> {
                 ),
               ),
               SizedBox(height: 8,),
-              MultiSelectDialogField(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: language_validated ? AppColors.kb1b1b1 : AppColors.kfa0020,
-                    width: language_validated ? 0.5 : 1,
-                  ),
+              // 语言选择入口：已选语言以胶囊标签展示，点击打开底部选择弹窗；FormField 保留必填校验
+              FormField<List<Language>>(
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                validator: (_) => store.selectedLanguages.isEmpty
+                    ? S.of(context).selectLanguages
+                    : null,
+                builder: (state) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Observer(
+                      builder: (_) {
+                        final selected = store.selectedLanguages;
+                        return InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: () async {
+                            await _showLanguagePicker(store);
+                            state.didChange(store.selectedLanguages);
+                          },
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 11),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: state.hasError
+                                    ? AppColors.kfa0020
+                                    : AppColors.kb1b1b1,
+                                width: state.hasError ? 1 : 0.5,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.g_translate,
+                                  color: AppColors.k0cbcc5,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: selected.isEmpty
+                                      ? Text(
+                                          S.of(context).preLanguage,
+                                          style: GoogleFonts.rubik(
+                                            color: AppColors.kb1b1b1,
+                                            fontSize: 14,
+                                          ),
+                                        )
+                                      : Wrap(
+                                          spacing: 6,
+                                          runSpacing: 6,
+                                          children: [
+                                            for (final lang in selected)
+                                              Container(
+                                                padding: const EdgeInsets
+                                                    .symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.keefeff,
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          14),
+                                                ),
+                                                child: Text(
+                                                  lang.language ?? '',
+                                                  style: GoogleFonts.rubik(
+                                                    color:
+                                                        AppColors.k0cbcc5,
+                                                    fontSize: 12,
+                                                    fontWeight:
+                                                        FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                ),
+                                Icon(
+                                  Icons.keyboard_arrow_down,
+                                  color: AppColors.kb1b1b1,
+                                  size: 20,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    if (state.hasError)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 12, top: 6),
+                        child: Text(
+                          state.errorText!,
+                          style: GoogleFonts.rubik(
+                            color: AppColors.kfa0020,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-                title: Text(
-                  S.of(context).preLanguage,
-                  style: GoogleFonts.rubik(
-                    color: AppColors.k010101,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                buttonIcon: Icon(
-                  Icons.g_translate,
-                  color: AppColors.k0cbcc5,
-                  size: 24,
-                ),
-                items: store.languages.map((e) => MultiSelectItem(e, e.language!)).toList(),
-                onConfirm: (List<Language> values) {
-                  if (values.isNotEmpty) {
-                    store.selectedLanguages = values;
-                    store.selectedLanguage = values.first;
-                  } else {
-                    store.selectedLanguage = null;
-                    store.selectedLanguages = values;
-                  }
-                },
-                validator: (value) {
-                  if (value!.isEmpty) {
-                    setState(() => language_validated = false);
-                    return S.of(context).selectLanguages;
-                  } else {
-                    setState(() => language_validated = true);
-                    return null;
-                  }
-                },
               ),
             ],
           ),),
@@ -402,64 +757,83 @@ class _SignUp2State extends State<SignUp2> {
                 ),
               ),
               SizedBox(height: 8,),
-              DropdownButtonFormField<Gender>(
-                value: store.selectedGender,
-                onChanged: (Gender? newValue) {
-                  store.selectedGender = newValue;
-                },
-                validator: (value) {
-                  if (value == null) {
-                    return S.of(context).emptyGender;
-                  } else {
-                    return null;
-                  }
-                },
-                isExpanded: true,
-                isDense: false,
-                icon: Image.asset('assets/images/ic_pharmacy_location_expand.png'),
-                iconSize: 24,
-                elevation: 16,
-                style: GoogleFonts.rubik(color: AppColors.k5e5e5e),
-                decoration: InputDecoration(
-                  contentPadding: EdgeInsets.only(left: 16, right: 16),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: AppColors.k010101,
+              // 性别选择入口：点击打开底部单选弹窗；FormField 保留必填校验
+              FormField<Gender>(
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                validator: (_) => store.selectedGender == null
+                    ? S.of(context).emptyGender
+                    : null,
+                builder: (state) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Observer(
+                      builder: (_) {
+                        final gender = store.selectedGender;
+                        return InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: () async {
+                            await _showGenderPicker(store);
+                            state.didChange(store.selectedGender);
+                          },
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 13),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: state.hasError
+                                    ? AppColors.kfa0020
+                                    : AppColors.kb1b1b1,
+                                width: state.hasError ? 1 : 0.5,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.person_outline,
+                                  color: AppColors.k0cbcc5,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    gender == null
+                                        ? S.of(context).selectGender
+                                        : _genderLabel(gender),
+                                    style: GoogleFonts.rubik(
+                                      color: gender == null
+                                          ? AppColors.kb1b1b1
+                                          : AppColors.k010101,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.keyboard_arrow_down,
+                                  color: AppColors.kb1b1b1,
+                                  size: 20,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(
-                      color: AppColors.kb1b1b1,
-                      width: 0.5,
-                    ),
-                  ),
-                  errorBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: AppColors.kfa0020,
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  focusedErrorBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: AppColors.kfa0020,
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                items: store.genders.map<DropdownMenuItem<Gender>>((Gender value) {
-                  return DropdownMenuItem<Gender>(
-                    value: value,
-                    child: Text(
-                      value.name == 'Female' ? S.of(context).female : value.name == 'Male' ? S.of(context).male : S.of(context).selectGender,
-                      style: GoogleFonts.rubik(
-                        color: AppColors.k5e5e5e,
-                        fontSize: 14,
+                    if (state.hasError)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 12, top: 6),
+                        child: Text(
+                          state.errorText!,
+                          style: GoogleFonts.rubik(
+                            color: AppColors.kfa0020,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
-                    ),
-                  );
-                }).toList(),
+                  ],
+                ),
               ),
             ],
           ),),
