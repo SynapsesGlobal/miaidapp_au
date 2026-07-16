@@ -6,13 +6,12 @@ import 'package:miaid/api_utils/api_provider.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/component/progress_indicator.dart';
 import 'package:miaid/config/app_colors.dart';
+import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/generated_api_code/api_client.swagger.dart';
 import 'package:miaid/store/app/app_settings.dart';
 import 'package:miaid/store/e_shop/location_details_store.dart';
 import 'package:miaid/utils/geolocation.dart';
 import 'package:tap_debouncer/tap_debouncer.dart';
-
-import '../../../generated/l10n.dart';
 
 class LocationsParams {
   const LocationsParams(this.key);
@@ -116,7 +115,7 @@ class _LocationsState extends State<Locations> {
                     if (locationDetailsStore.countryList.isNotEmpty) ...[
                       _fieldLabel(S.of(context).country),
                       const SizedBox(height: 8),
-                      _countryDropDown(),
+                      _countryField(),
                     ],
                     if (locationDetailsStore.showNoLocationsInCountryError) ...[
                       const SizedBox(height: 12),
@@ -126,7 +125,7 @@ class _LocationsState extends State<Locations> {
                       const SizedBox(height: 20),
                       _fieldLabel(S.of(context).city),
                       const SizedBox(height: 8),
-                      _cityDropDown(),
+                      _cityField(),
                     ],
                     const SizedBox(height: 24),
                   ],
@@ -172,7 +171,8 @@ class _LocationsState extends State<Locations> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Image(
-                  image: const AssetImage('assets/images/ic_pharmacy_currentlocation.png'),
+                  image: const AssetImage(
+                      'assets/images/ic_pharmacy_currentlocation.png'),
                   height: 20,
                   width: 20,
                 ),
@@ -286,33 +286,26 @@ class _LocationsState extends State<Locations> {
     );
   }
 
-  DropdownButtonFormField<String> _cityDropDown() {
-    var cityList = locationDetailsStore.listLocationFilters[0].cities!;
-    return DropdownButtonFormField<String>(
-      hint: Text(
-        S.of(context).selectCity,
-        style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 14),
-      ),
-      isExpanded: true,
+  // 城市选择入口：点击打开底部单选弹窗
+  Widget _cityField() {
+    return _pickerField(
       value: locationDetailsStore.citySelected,
-      icon: Image.asset('assets/images/ic_support_dropdown_arrow_active.png'),
-      elevation: 4,
-      dropdownColor: AppColors.kffffff,
-      style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 14),
-      onChanged: (String? newValue) {
-        if (newValue != null) {
-          locationDetailsStore.changeSelectedCity(newValue);
-          Navigator.pop(context);
-        }
-      },
-      decoration: _dropdownDecoration(),
-      items: cityList.map<DropdownMenuItem<String>>((String value) {
-        return DropdownMenuItem<String>(
-          value: value,
-          child: Text(value),
-        );
-      }).toList(),
+      hint: S.of(context).selectCity,
+      onTap: _showCityPicker,
     );
+  }
+
+  Future<void> _showCityPicker() async {
+    final cityList = locationDetailsStore.listLocationFilters[0].cities!;
+    final selected = await _showSingleSelectPicker(
+      title: S.of(context).selectCity,
+      options: cityList,
+      selectedValue: locationDetailsStore.citySelected,
+    );
+    if (selected != null && mounted) {
+      locationDetailsStore.changeSelectedCity(selected);
+      Navigator.pop(context);
+    }
   }
 
   DropdownButtonFormField<String> _stateDropDown() {
@@ -344,37 +337,201 @@ class _LocationsState extends State<Locations> {
     );
   }
 
-  DropdownButtonFormField<String> _countryDropDown() {
-    return DropdownButtonFormField<String>(
-      hint: Text(
-        S.of(context).selectCountry,
-        style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 14),
-      ),
-      isExpanded: true,
+  // 国家选择入口：点击打开底部单选弹窗
+  Widget _countryField() {
+    return _pickerField(
       value: locationDetailsStore.countrySelected,
-      icon: Image.asset('assets/images/ic_support_dropdown_arrow_active.png'),
-      elevation: 4,
-      dropdownColor: AppColors.kffffff,
-      style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 14),
-      onChanged: (String? newValue) {
-        if (newValue != null) {
-          final countryId = locationDetailsStore.countryList
-              .firstWhere((e) => e.name == newValue, orElse: () => Country())
-              .id;
-          locationDetailsStore.changeSelectedCountry(newValue, countryId: countryId);
-          locationDetailsStore.changeSelectedState('miaid');
-          locationDetailsStore.fetchLocations(widget.services.api, newValue, countryId: countryId);
-        }
-      },
-      decoration: _dropdownDecoration(),
-      items: locationDetailsStore.countryList
+      hint: S.of(context).selectCountry,
+      onTap: _showCountryPicker,
+    );
+  }
+
+  Future<void> _showCountryPicker() async {
+    final selected = await _showSingleSelectPicker(
+      title: S.of(context).selectCountry,
+      options: locationDetailsStore.countryList
           .map((e) => e.name.toString())
-          .map<DropdownMenuItem<String>>((String value) {
-        return DropdownMenuItem<String>(
-          value: value,
-          child: Text(value),
-        );
-      }).toList(),
+          .toList(),
+      selectedValue: locationDetailsStore.countrySelected,
+    );
+    if (selected != null) {
+      final countryId = locationDetailsStore.countryList
+          .firstWhere((e) => e.name == selected, orElse: () => Country())
+          .id;
+      locationDetailsStore.changeSelectedCountry(selected,
+          countryId: countryId);
+      locationDetailsStore.changeSelectedState('miaid');
+      await locationDetailsStore.fetchLocations(widget.services.api, selected,
+          countryId: countryId);
+    }
+  }
+
+  // 选择入口字段：展示已选值或占位提示，点击打开底部弹窗
+  Widget _pickerField({
+    required String? value,
+    required String hint,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.kf4f4f4.withOpacity(0.6),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(width: 0.5, color: AppColors.kb1b1b1),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                value ?? hint,
+                style: GoogleFonts.rubik(
+                  color: value == null ? AppColors.k8f8e94 : AppColors.k010101,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            Icon(
+              Icons.keyboard_arrow_down,
+              color: AppColors.kb1b1b1,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 单选底部弹窗：选项卡片式，点选即返回；内容多时可滚动，少时高度自适应
+  Future<String?> _showSingleSelectPicker({
+    required String title,
+    required List<String> options,
+    String? selectedValue,
+  }) {
+    return showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      // 最高不超过屏幕高度的 60%：选项少时高度自适应，选项多时列表内部滚动
+      builder: (context) => ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.6,
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 顶部拖拽指示条
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 10),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 8, 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: GoogleFonts.rubik(
+                          color: AppColors.k010101,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => Navigator.of(context).pop(),
+                      borderRadius: BorderRadius.circular(20),
+                      child: const Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Icon(
+                          Icons.close,
+                          color: Colors.grey,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                  child: Column(
+                    children: [
+                      for (final option in options)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () => Navigator.of(context).pop(option),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 13,
+                              ),
+                              decoration: BoxDecoration(
+                                color: option == selectedValue
+                                    ? AppColors.keefeff
+                                    : AppColors.kf4f4f4,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: option == selectedValue
+                                      ? AppColors.k0cbcc5
+                                      : Colors.transparent,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      option,
+                                      style: GoogleFonts.rubik(
+                                        color: AppColors.k010101,
+                                        fontSize: 14,
+                                        fontWeight: option == selectedValue
+                                            ? FontWeight.w500
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ),
+                                  Icon(
+                                    option == selectedValue
+                                        ? Icons.check_circle
+                                        : Icons.radio_button_unchecked,
+                                    color: option == selectedValue
+                                        ? AppColors.k0cbcc5
+                                        : AppColors.kb1b1b1,
+                                    size: 20,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
