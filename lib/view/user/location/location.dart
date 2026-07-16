@@ -6,6 +6,7 @@ import 'package:miaid/api_utils/api_provider.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/component/progress_indicator.dart';
 import 'package:miaid/config/app_colors.dart';
+import 'package:miaid/generated_api_code/api_client.swagger.dart';
 import 'package:miaid/store/app/app_settings.dart';
 import 'package:miaid/store/e_shop/location_details_store.dart';
 import 'package:miaid/utils/geolocation.dart';
@@ -357,9 +358,12 @@ class _LocationsState extends State<Locations> {
       style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 14),
       onChanged: (String? newValue) {
         if (newValue != null) {
-          locationDetailsStore.changeSelectedCountry(newValue);
+          final countryId = locationDetailsStore.countryList
+              .firstWhere((e) => e.name == newValue, orElse: () => Country())
+              .id;
+          locationDetailsStore.changeSelectedCountry(newValue, countryId: countryId);
           locationDetailsStore.changeSelectedState('miaid');
-          locationDetailsStore.fetchLocations(widget.services.api, newValue);
+          locationDetailsStore.fetchLocations(widget.services.api, newValue, countryId: countryId);
         }
       },
       decoration: _dropdownDecoration(),

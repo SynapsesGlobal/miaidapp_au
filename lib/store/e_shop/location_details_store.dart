@@ -38,6 +38,9 @@ abstract class _LocationDetailsStore with Store {
   String? countrySelected;
 
   @observable
+  int? countryIdSelected;
+
+  @observable
   List<Country> countryList = [];
 
   @observable
@@ -47,8 +50,9 @@ abstract class _LocationDetailsStore with Store {
   bool showNoLocationsInCountryError = false;
 
   @action
-  void changeSelectedCountry(String value) {
+  void changeSelectedCountry(String value, {int? countryId}) {
     countrySelected = value;
+    countryIdSelected = countryId;
     isFilterSelected = false;
     citySelected = null;
     stateSelected = null;
@@ -82,6 +86,7 @@ abstract class _LocationDetailsStore with Store {
       citySelected = null;
       stateSelected = null;
       countrySelected = null;
+      countryIdSelected = null;
       countryList.clear();
       cityList.clear();
       fetchPharmaciesAgain();
@@ -89,14 +94,15 @@ abstract class _LocationDetailsStore with Store {
   }
 
   @action
-  dynamic fetchLocations(ApiProvider apiProvider, String country) async {
+  dynamic fetchLocations(ApiProvider apiProvider, String country, {int? countryId}) async {
     isLoading = true;
     listLocationFilters.clear();
     cityList.clear();
     citySelected = null;
     stateSelected = null;
     var locale = Intl.getCurrentLocale();
-    var locationsListResponse = await apiProvider.apiClient.eShopLocationsGetLocationList(country: country, lang: locale);
+    var locationsListResponse = await apiProvider.apiClient
+        .eShopLocationsGetLocationList(country: country, country_id: countryId, lang: locale);
     if (ApiSuccessParser.isSuccessfulWithPayload(locationsListResponse)) {
       final pharmacyLocation = await ApiSuccessParser.payloadOrThrowWithMessage(locationsListResponse);
       listLocationFilters.addAll(pharmacyLocation);
@@ -115,6 +121,7 @@ abstract class _LocationDetailsStore with Store {
       listLocationFilters.clear();
       countryList.clear();
       countrySelected = null;
+      countryIdSelected = null;
       citySelected = null;
       stateSelected = null;
       cityList.clear();
@@ -138,6 +145,7 @@ abstract class _LocationDetailsStore with Store {
     citySelected = null;
     stateSelected = null;
     countrySelected = null;
+    countryIdSelected = null;
     countryList.clear();
     cityList.clear();
   }

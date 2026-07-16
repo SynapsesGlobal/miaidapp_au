@@ -47,7 +47,7 @@ class _CategoryAirlineState extends State<CategoryAirline> {
         elevation: 0,
         backgroundColor: AppColors.kffffff,
         centerTitle: true,
-        title: Text('Airline', style: GoogleFonts.rubik(
+        title: Text('Airfare', style: GoogleFonts.rubik(
           color: AppColors.k010101,
           fontSize: 15,
           fontWeight: FontWeight.w500,

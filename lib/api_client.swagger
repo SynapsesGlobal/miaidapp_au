@@ -2592,6 +2592,13 @@
                         "type": "string"
                     },
                     {
+                        "name": "country_id",
+                        "in": "query",
+                        "required": false,
+                        "description": "Country id of the user",
+                        "type": "integer"
+                    },
+                    {
                         "name": "lang",
                         "in": "query",
                         "required": true,
