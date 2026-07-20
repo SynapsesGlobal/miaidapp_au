@@ -46,6 +46,11 @@ bool _initialURILinkHandled = false;
 StreamSubscription? _streamSubscription;
 GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+/// 全局路由观察者：首页借助它感知“上层页面 pop 回首页”（RouteAware.didPopNext），
+/// 用于购买套餐/加叫服务（Stripe 支付）后返回首页时自动刷新剩余次数。
+final RouteObserver<PageRoute<dynamic>> routeObserver =
+    RouteObserver<PageRoute<dynamic>>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await configureDependencies(prod.name);
@@ -138,6 +143,7 @@ Future<void> runAppFromEnvironment() async {
       ],
       navigatorObservers: [
         getIt<AnalyticsService>().getAnalyticsObserver(), // Firebase Analytics
+        routeObserver,
       ],
       locale: locale,
       initialRoute: '/',

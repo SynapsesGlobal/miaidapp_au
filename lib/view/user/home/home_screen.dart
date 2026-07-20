@@ -21,6 +21,7 @@ import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/dialogs/consultation_language_dialog.dart';
 import 'package:miaid/country/emergency_numbers.dart';
 import 'package:miaid/generated/l10n.dart';
+import 'package:miaid/main.dart';
 import 'package:miaid/notifications/notifications_handler.dart';
 import 'package:miaid/payment/additional_services.dart';
 import 'package:miaid/store/home/active_subscription_store.dart';
@@ -94,7 +95,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen>
-    with AfterLayoutMixin<HomeScreen>, WidgetsBindingObserver {
+    with AfterLayoutMixin<HomeScreen>, WidgetsBindingObserver, RouteAware {
 
   var emergency_number = '000';
   var remaining_consultations = '0';
@@ -117,6 +118,24 @@ class _HomeScreenState extends State<HomeScreen>
     _fetchRemainingConsultations();
 
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 订阅路由变化，感知上层页面 pop 回首页（didPopNext）。
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      routeObserver.subscribe(this, route);
+    }
+  }
+
+  /// 上层页面（旅行套餐、加叫服务、通话等）pop 回首页时刷新剩余次数。
+  /// Stripe 购买成功后返回首页，剩余次数才能实时更新，
+  /// 不需要再从抽屉重新进首页。
+  @override
+  void didPopNext() {
+    _fetchRemainingConsultations();
   }
 
   @override
@@ -218,6 +237,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void dispose() {
+    routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
