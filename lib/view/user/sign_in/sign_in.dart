@@ -566,10 +566,6 @@ class _SignInState extends State<SignIn> {
                             if (ApiSuccessParser.isSuccessfulWithPayload(loginResponse)) {
                               widget.services.api.userProvider.onLogIn(loginResponse.body!.payload!);
 
-                              // 登录接口在响应顶层返回 open_position_tracking（生成的
-                              // User 模型没有该字段，从原始 JSON 里取）：写入缓存后
-                              // 立即恢复定位上传服务，不必等首页的 position/index 查询。
-                              // restoreIfEnabled 内部会做客户角色检查并写入上传凭据。
                               try {
                                 final rawPayload = jsonDecode(loginResponse.bodyString)['payload'];
                                 final trackingOpened =
@@ -577,7 +573,7 @@ class _SignInState extends State<SignIn> {
                                 final prefs = await SharedPreferences.getInstance();
                                 await prefs.setBool('open_position_tracking', trackingOpened);
                                 if (trackingOpened) {
-                                  unawaited(LocationUploadSerhvice.restoreIfEnabled());
+                                  unawaited(LocationUploadService.restoreIfEnabled());
                                 }
                               } catch (e) {
                                 // 解析失败不影响登录流程；首页的后端同步会兜底启动服务。
