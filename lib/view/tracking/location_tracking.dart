@@ -91,6 +91,7 @@ class _LocationTrackingState extends State<LocationTracking> {
       'tracking_frequency': _open ? _frequency : 0,
       'latitude': position.latitude,
       'longitude': position.longitude,
+      'user_id': api.userProvider.user!.id.toString()
     };
 
     final headers = <String, String>{
