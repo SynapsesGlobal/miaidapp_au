@@ -13,20 +13,23 @@ import 'package:http/http.dart' as http;
 const String _channelId = 'location_upload_channel';
 const String _channelName = 'Location tracker';
 const int _notificationId = 888;
-const int kUploadIntervalSeconds = 600;
+// 与 CN 版一致：30 分钟上传一次（服务启动时会先立即上传一次）
+const int kUploadIntervalSeconds = 1800;
 
 /// 模拟后端接口 — 替换为真实 URL 和逻辑
 Future<void> uploadLocation(double latitude, double longitude) async {
   try {
-    final data = <String, dynamic>{
-      'latitude': latitude,
-      'longitude': longitude,
-    };
-
     final prefs = await SharedPreferences.getInstance();
     final baseUrl = prefs.getString('base_url') ?? '';
     final apiKey = prefs.getString('api_key') ?? '';
     final userId = prefs.getString('user_id') ?? '';
+
+    // 后端 savePosition 从请求体取 user_id（不读 header），缺了会直接 422。
+    final data = <String, dynamic>{
+      'user_id': userId,
+      'latitude': latitude,
+      'longitude': longitude,
+    };
     final headers = <String, String>{
       'x-user-id': userId,
       'x-api-key': apiKey,
@@ -154,7 +157,7 @@ Future<void> _doUpload(ServiceInstance service) async {
   if (service is AndroidServiceInstance && await service.isForegroundService()) {
     await service.setForegroundNotificationInfo(
       title: _channelName,
-      content: '上次上传: ${_fmtTime(DateTime.now())}',
+      content: 'Last upload: ${_fmtTime(DateTime.now())}',
     );
   }
 
@@ -193,7 +196,7 @@ Future<void> initializeAndroidService() async {
   const channel = AndroidNotificationChannel(
     _channelId,
     _channelName,
-    description: '后台定时上传位置信息',
+    description: 'Uploads your location periodically while tracking is on',
     importance: Importance.low,
   );
   await FlutterLocalNotificationsPlugin().resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()?.createNotificationChannel(channel);
@@ -205,7 +208,7 @@ Future<void> initializeAndroidService() async {
       isForegroundMode: true,
       notificationChannelId: _channelId,
       initialNotificationTitle: _channelName,
-      initialNotificationContent: '正在后台运行...',
+      initialNotificationContent: 'Location tracking is running',
       foregroundServiceNotificationId: _notificationId,
     ),
     // iOS 不使用此服务，关闭自动启动

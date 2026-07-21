@@ -12,7 +12,7 @@ import '../../api_utils/http_exception.dart';
 import '../../component/nav_bar_icons.dart';
 import '../../config/app_colors.dart';
 import '../../generated/l10n.dart';
-import '../../location/background_location_service.dart';
+import '../../services/location_upload_service.dart';
 import '../../store/home/home_screen_store.dart';
 import '../../utils/configure_dependencies.dart';
 
@@ -59,13 +59,14 @@ class _LocationTrackingState extends State<LocationTracking> {
 
       if (response.statusCode == 200) {
         var responseData = jsonDecode(response.body)['payload'];
-        var opened = responseData['open_position_tracking'].toString();
+        var opened = LocationUploadService.isTrackingOpen(responseData['open_position_tracking']);
+        // 缓存后端开关值，供 App 重启时恢复定位上传服务用。
         var sharedPreferences = await SharedPreferences.getInstance();
-        await sharedPreferences.setBool('open_position_tracking', _open);
+        await sharedPreferences.setBool('open_position_tracking', opened);
         setState(() {
-          _open = opened == '1' ? true : false;
-          _controller.text = opened == '1' ? responseData['tracking_email'] : '';
-          _frequency = opened == '1' ? int.parse(responseData['tracking_frequency']) : 5;
+          _open = opened;
+          _controller.text = opened ? responseData['tracking_email'] : '';
+          _frequency = opened ? int.parse(responseData['tracking_frequency']) : 5;
         });
       } else {
         await EasyLoading.dismiss();
@@ -114,7 +115,16 @@ class _LocationTrackingState extends State<LocationTracking> {
       await EasyLoading.dismiss();
 
       if (response.statusCode == 200 ) {
-        await BackgroundLocationService.sendPositionToBackend();
+        // 缓存开关值，供 App 重启时恢复定位上传服务用。
+        var sharedPreferences = await SharedPreferences.getInstance();
+        await sharedPreferences.setBool('open_position_tracking', _open);
+        // 设置保存成功后立即启动/停止追踪服务，不用等下次冷启动。
+        // （服务启动时会立即上传一次，替代原先的单次 sendPositionToBackend。）
+        if (_open) {
+          await LocationUploadService.start();
+        } else if (await LocationUploadService.isRunning) {
+          await LocationUploadService.stop();
+        }
         await HttpExceptionNotifyUser.showInfo(S.of(context).setup_success);
       } else {
         await HttpExceptionNotifyUser.showInfo(S.of(context).somethingWentWrong);

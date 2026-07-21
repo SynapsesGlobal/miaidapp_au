@@ -28,7 +28,6 @@ import 'package:miaid/view/user/user_profile_screen/user_profile_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api_utils/api_provider.dart';
-import '../services/location_upload_service.dart';
 import '../view/marketing/category.dart';
 import '../view/tracking/location_tracking.dart';
 import 'miaid_doctor_translator_drawer.dart';
@@ -550,12 +549,8 @@ DecorationImage profileDecorationImage(BuildContext context, User user, ApiSetti
 }
 
 Future<void> logout(BuildContext context, UserProvider user) async {
+  // logOut() 内部（_resetUserRelatedData）会统一停止定位上传服务并清缓存。
   await user.logOut();
-
-  var _isRunning = await LocationUploadService.isRunning;
-  if (_isRunning) {
-    await LocationUploadService.stop();
-  }
 
   while (Navigator.of(context).canPop()) {
     Navigator.of(context).pop();

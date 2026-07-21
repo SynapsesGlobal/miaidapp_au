@@ -94,9 +94,9 @@
 	<key>NSCameraUsageDescription</key>
 	<string>To place video consultations with our team members</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>This app needs access to the current location to see nearby Emergency department, clinics and pharmacies.</string>
+	<string>With Location Tracking turned on, MiAid periodically sends your location in the background to your designated emergency contact email for travel safety. This feature is off by default and can be turned off anytime in Location Tracking settings.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>This app needs access to the current location to see nearby Emergency department, clinics and pharmacies.</string>
+	<string>With Location Tracking turned on, MiAid periodically sends your location in the background to your designated emergency contact email for travel safety. This feature is off by default and can be turned off anytime in Location Tracking settings.</string>
 	<key>NSLocationUsageDescription</key>
 	<string>This app needs access to the current location to see nearby Emergency department, clinics and pharmacies.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
@@ -107,6 +107,10 @@
 	<string>To pick your profile picture and allow attachments in doctor's chat</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

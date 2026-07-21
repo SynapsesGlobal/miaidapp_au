@@ -1,6 +1,7 @@
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:injectable/injectable.dart';
 import 'package:miaid/generated_api_code/api_client.swagger.dart';
+import 'package:miaid/services/location_upload_service.dart';
 import 'package:miaid/store/home/active_subscription_store.dart';
 import 'package:miaid/store/home/user_info_store.dart';
 import 'package:miaid/store/user/calling/ongoing_call_store.dart';
@@ -161,6 +162,13 @@ class UserProvider {
   }
 
   Future<void> _resetUserRelatedData() async {
+    // 停止定位上传并清掉本地追踪开关缓存：在这里统一处理，
+    // 覆盖所有登出路径（抽屉登出、401 强制登出、注销账号）。
+    if (await LocationUploadService.isRunning) {
+      await LocationUploadService.stop();
+    }
+    await sharedPreferences.remove('open_position_tracking');
+
     await _setAccessToken(null);
     await _setLastLoginUserType(null);
     _user = null;

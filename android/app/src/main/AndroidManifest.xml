@@ -111,7 +111,7 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- 后台定位必须的服务声明 -->
+        <!-- 旧的自建原生定位服务保持停用（现用 flutter_background_service） -->
         <!--<service
             android:name=".LocationForegroundService"
             android:exported="false"
@@ -124,11 +124,13 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
             </intent-filter>
         </receiver>-->
-        <!--<service
+        <!-- 覆写 flutter_background_service 的服务声明：targetSdk 34+ 前台服务
+             必须声明 foregroundServiceType，插件自带的 manifest 没有声明 -->
+        <service
             android:name="id.flutter.flutter_background_service.BackgroundService"
             android:foregroundServiceType="location"
             android:exported="false"
-            tools:replace="android:exported" />-->
+            tools:replace="android:exported" />
     </application>
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -136,5 +138,10 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- 位置追踪：后台定位 + 前台服务（targetSdk 34+ 需按类型声明权限） -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
 </manifest>

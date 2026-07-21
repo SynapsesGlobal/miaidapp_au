@@ -16,6 +16,7 @@ import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/notifications/notifications_token_provider.dart';
 import 'package:miaid/services/analytics_service.dart';
 import 'package:miaid/services/facebook_service.dart';
+import 'package:miaid/services/location_upload_service.dart';
 import 'package:miaid/services/square_payment_backend_service.dart';
 import 'package:miaid/services/square_payment_service.dart';
 import 'package:miaid/store/app/app_settings.dart';
@@ -119,6 +120,11 @@ Future<void> runAppFromEnvironment() async {
       debugPrint('Error updating token: $e');
     }
   }
+
+  // 重启 App 后按本地缓存的追踪开关恢复定位上传。必须在 getHome() 之后：
+  // getHome() 里的 getUserOnAppStart() 才会加载持久化用户，早于它调用 user 恒为 null。
+  // 首页随后会用后端开关值纠正（不一致时停/启服务并更新缓存）。
+  unawaited(LocationUploadService.restoreIfEnabled());
 
   final localeSettings = getIt<AppSettings>();
 

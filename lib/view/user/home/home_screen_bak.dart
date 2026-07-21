@@ -53,7 +53,7 @@ import 'package:http/http.dart' as http;
 
 import '../../../dialogs/appoint_checkin.dart';
 import '../../../dialogs/package_redemption.dart';
-import '../../../location/background_location_service.dart';
+import '../../../services/location_upload_service.dart';
 
 class HomeScreenParams {
   const HomeScreenParams(this.key);
@@ -190,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen>
           var responseData = jsonDecode(response.body)['payload'];
           var _opened = responseData['open_position_tracking'].toString() == '1';
           if (_opened) {
-            await BackgroundLocationService.sendPositionToBackend();
+            await LocationUploadService.start();
           }
         }
       } catch (e) {

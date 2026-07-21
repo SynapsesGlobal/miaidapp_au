@@ -53,7 +53,6 @@ import 'package:http/http.dart' as http;
 
 import '../../../dialogs/appoint_checkin.dart';
 import '../../../dialogs/package_redemption.dart';
-import '../../../location/background_location_service.dart';
 
 class HomeScreenParams {
   const HomeScreenParams(this.key);
@@ -113,7 +112,6 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     WidgetsBinding.instance.addObserver(this);
-    initLocationListening();
     _fetchEmergencyNumber();
     _fetchRemainingConsultations();
 
@@ -200,37 +198,6 @@ class _HomeScreenState extends State<HomeScreen>
         }
       } catch (e) {
         debugPrint(e.toString());
-      }
-    }
-  }
-
-  Future<dynamic> initLocationListening() async {
-    final userProvider = getIt<UserProvider>();
-    if (userProvider.isLoggedIn && userProvider.user?.doctor == null && userProvider.user?.translator == null) {
-      final api = getIt<ApiProvider>();
-      final headers = <String, String>{
-        'x-user-id': api.userProvider.user!.id.toString(),
-        'x-api-key': api.apiKey,
-      };
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('base_url', api.baseUrl);
-      await prefs.setString('api_key', api.apiKey);
-      await prefs.setString('user_id', api.userProvider.user!.id.toString());
-
-      try {
-        final url = Uri.parse(api.baseUrl+'/api/v1/position/index');
-        final response = await http.post(url, headers: headers, body: {'source': 'au'});
-
-        if (response.statusCode == 200) {
-          var responseData = jsonDecode(response.body)['payload'];
-          var _opened = responseData['open_position_tracking'].toString() == '1';
-          if (_opened) {
-            await BackgroundLocationService.sendPositionToBackend();
-          }
-        }
-      } catch (e) {
-        print(e);
       }
     }
   }

@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:email_validator/email_validator.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
@@ -15,10 +18,12 @@ import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/notifications/notifications_token_provider.dart';
+import 'package:miaid/services/location_upload_service.dart';
 import 'package:miaid/store/user/sign_in/sign_in_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/password/forgot_password.dart';
 import 'package:miaid/view/user/sign_up/sign_up.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tap_debouncer/tap_debouncer.dart';
 
 import '../../../main.dart';
@@ -560,6 +565,25 @@ class _SignInState extends State<SignIn> {
 
                             if (ApiSuccessParser.isSuccessfulWithPayload(loginResponse)) {
                               widget.services.api.userProvider.onLogIn(loginResponse.body!.payload!);
+
+                              // 登录接口在响应顶层返回 open_position_tracking（生成的
+                              // User 模型没有该字段，从原始 JSON 里取）：写入缓存后
+                              // 立即恢复定位上传服务，不必等首页的 position/index 查询。
+                              // restoreIfEnabled 内部会做客户角色检查并写入上传凭据。
+                              try {
+                                final rawPayload = jsonDecode(loginResponse.bodyString)['payload'];
+                                final trackingOpened =
+                                    rawPayload?['open_position_tracking'] == true;
+                                final prefs = await SharedPreferences.getInstance();
+                                await prefs.setBool('open_position_tracking', trackingOpened);
+                                if (trackingOpened) {
+                                  unawaited(LocationUploadSerhvice.restoreIfEnabled());
+                                }
+                              } catch (e) {
+                                // 解析失败不影响登录流程；首页的后端同步会兜底启动服务。
+                                debugPrint('解析登录追踪开关失败: $e');
+                              }
+
                               final nextScreen = getHomeFromUser(loginResponse.body!.payload!);
                               await EasyLoading.dismiss();
                               await Navigator.pushAndRemoveUntil(context,

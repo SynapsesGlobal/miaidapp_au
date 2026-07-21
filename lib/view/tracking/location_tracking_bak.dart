@@ -11,7 +11,7 @@ import '../../api_utils/http_exception.dart';
 import '../../component/nav_bar_icons.dart';
 import '../../config/app_colors.dart';
 import '../../generated/l10n.dart';
-import '../../location/background_location_service.dart';
+import '../../services/location_upload_service.dart';
 import '../../store/home/home_screen_store.dart';
 import '../../utils/configure_dependencies.dart';
 
@@ -316,7 +316,7 @@ class _LocationTrackingState extends State<LocationTracking> {
                   await EasyLoading.dismiss();
 
                   if (response.statusCode == 200 ) {
-                    await BackgroundLocationService.sendPositionToBackend();
+                    await LocationUploadService.start();
                     await HttpExceptionNotifyUser.showInfo(S.of(context).setup_success);
                   } else {
                     var responseData = jsonDecode(response.body);
