@@ -967,7 +967,13 @@ class _HomeScreenState extends State<HomeScreen>
 
     if (!user.isLoggedIn) return;
 
-    if (widget.services.ongoingCallStore.hasOngoingCall) return;
+    // hasPendingCall is set synchronously at the start of initEngine: while a
+    // call is being established, any app resume (e.g. permission dialogs,
+    // lock screen) landing here would find the just-created active call and
+    // push a second CallScreen, whose second joinChannel gets rejected by
+    // Agora with -17 and tears down the whole call
+    if (widget.services.ongoingCallStore.hasPendingCall ||
+        widget.services.ongoingCallStore.hasOngoingCall) return;
 
     final response = await api.apiClientMain.callsPostCallActive();
     if (ApiSuccessParser.isSuccessfulWithPayload(response)) {

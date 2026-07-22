@@ -94,6 +94,12 @@ abstract class _CallScreenStore with Store {
 
   Future<void> dispose() async {
     localBuildContext = null;
+    // initEngine failures (catchError -> navigate home) never reach leaveCall,
+    // so reset here or the home screen's incoming-call check stays blocked
+    // by hasPendingCall for the rest of the session
+    if (ongoingCallStore.hasPendingCall) {
+      ongoingCallStore.setHasPendingCall(false);
+    }
     await _engine?.leaveChannel();
     await _engine?.stopPreview();
     await _engine?.disableVideo();
