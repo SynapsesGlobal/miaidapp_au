@@ -330,32 +330,61 @@ class _CallHistoryState extends State<CallHistory> with AfterLayoutMixin<CallHis
 
   Widget _listCalls(BuildContext context) {
     if (widget.services.store.calls.isEmpty) {
-      return Center(
-        child: Text(S.of(context).noCallsAvailable),
-      );
+      return _emptyState(context);
     }
 
-    // print("______" + "Setting name"+ "______");
-    // print(ModalRoute.of(context)!.settings.name);
-
-    return ListView.builder(
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       itemCount: widget.services.store.calls.length,
-      itemBuilder: (context, index) => _callHistoryItem(
-          widget.services.store.calls[index], context, widget.services.store),
+      separatorBuilder: (_, __) => const SizedBox(height: 14),
+      itemBuilder: (context, index) =>
+          _callHistoryItem(widget.services.store.calls[index], context),
     );
   }
 
-  Widget _callHistoryItem(
-      Call call, BuildContext context, CallHistoryStore store) {
-    return Padding(
-      padding: EdgeInsets.only(top: 20),
+  // 空状态：无通话记录时的占位提示
+  Widget _emptyState(BuildContext context) {
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Icon(Icons.history, size: 56, color: AppColors.kb1b1b1),
+          const SizedBox(height: 12),
+          Text(
+            S.of(context).noCallsAvailable,
+            style: GoogleFonts.rubik(
+              fontSize: 14,
+              color: AppColors.k8f8e94,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 通话记录卡片：头部为日期 + 时长，下方为参与人信息与查看收据按钮
+  Widget _callHistoryItem(Call call, BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.k010101.withOpacity(0.04),
+            offset: const Offset(0, 3),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           Container(
-            padding: EdgeInsets.only(top: 10, bottom: 10, left: 20, right: 20),
-            decoration: BoxDecoration(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: const BoxDecoration(
               color: Color.fromRGBO(90, 177, 255, 0.1),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -363,157 +392,137 @@ class _CallHistoryState extends State<CallHistory> with AfterLayoutMixin<CallHis
                 Text(
                   formatDate(DateTime.parse(call.createdAt ?? '').toLocal()),
                   style: GoogleFonts.rubik(
-                      fontSize: 12, fontWeight: FontWeight.w500),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.k010101,
+                  ),
                 ),
-                Text(
-                  callDuration(call, context),
-                  style: GoogleFonts.rubik(
-                      fontSize: 12, fontWeight: FontWeight.w500),
-                ),
+                _durationBadge(call, context),
               ],
             ),
           ),
-          SizedBox(
-            height: 10,
-          ),
-          Container(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
             child: Column(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      S.of(context).assistant,
-                      style: GoogleFonts.rubik(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w300,
-                        color: Color.fromRGBO(
-                          94,
-                          94,
-                          94,
-                          1,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      call.$Operator?.user?.fullName ?? '',
-                      style: GoogleFonts.rubik(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.k010101,
-                      ),
-                    ),
-                  ],
+                _infoRow(
+                  S.of(context).assistant,
+                  call.$Operator?.user?.fullName ?? '',
                 ),
-                SizedBox(
-                  height: 10,
-                ),
-                if (_shouldShowDoctorInCall())
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        S.of(context).doctor,
-                        style: GoogleFonts.rubik(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w300,
-                          color: Color.fromRGBO(
-                            94,
-                            94,
-                            94,
-                            1,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        doctorName(call),
-                        style: GoogleFonts.rubik(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.k010101,
-                        ),
-                      ),
-                    ],
-                  ),
-                SizedBox(
-                  height: 10,
-                ),
-                if (_shouldShowTranslatorInCall())
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        S.of(context).translator,
-                        style: GoogleFonts.rubik(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w300,
-                          color: Color.fromRGBO(
-                            94,
-                            94,
-                            94,
-                            1,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        translatorName(call),
-                        style: GoogleFonts.rubik(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.k010101,
-                        ),
-                      ),
-                    ],
-                  ),
-                if (_shouldShowViewReceiptButton(call))
-                  TextButton(
-                    style: ButtonStyle(
-                      backgroundColor:
-                          MaterialStateProperty.all(AppColors.kffffff),
-                      shape: MaterialStateProperty.all(
-                        RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(9),
-                        ),
-                      ),
-                      side: MaterialStateProperty.all(
-                        BorderSide(color: AppColors.k0cbcc5),
-                      ),
-                      overlayColor: MaterialStateProperty.all(
-                          AppColors.k0cbcc5.withOpacity(0.2)),
-                      minimumSize:
-                          MaterialStateProperty.all(Size(double.infinity, 30)),
-                    ),
-                    onPressed: () {
-                      final params = CallViewReceiptParams(
-                        user: widget.services.store.user,
-                        call: call,
-                      );
-                      final receipt = getIt<CallViewReceipt>(param1: params);
-
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute<void>(
-                          builder: (context) => receipt,
-                        ),
-                      );
-                    },
-                    child: Text(
-                      S.of(context).viewReceipt,
-                      style: GoogleFonts.rubik(
-                        color: Color.fromRGBO(12, 188, 197, 1),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
+                if (_shouldShowDoctorInCall()) ...[
+                  const SizedBox(height: 10),
+                  _infoRow(S.of(context).doctor, doctorName(call)),
+                ],
+                if (_shouldShowTranslatorInCall()) ...[
+                  const SizedBox(height: 10),
+                  _infoRow(S.of(context).translator, translatorName(call)),
+                ],
+                if (_shouldShowViewReceiptButton(call)) ...[
+                  const SizedBox(height: 12),
+                  _viewReceiptButton(call, context),
+                ],
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // 时长胶囊：主题色底 + 时钟图标
+  Widget _durationBadge(Call call, BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.k0cbcc5.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.schedule, size: 12, color: AppColors.k0cbcc5),
+          const SizedBox(width: 4),
+          Text(
+            callDuration(call, context),
+            style: GoogleFonts.rubik(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: AppColors.k0cbcc5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 信息行：左侧灰色标签，右侧加粗取值（超长省略）
+  Widget _infoRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.rubik(
+            fontSize: 14,
+            fontWeight: FontWeight.w300,
+            color: AppColors.k5e5e5e,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.rubik(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: AppColors.k010101,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _viewReceiptButton(Call call, BuildContext context) {
+    return TextButton(
+      style: ButtonStyle(
+        backgroundColor: MaterialStateProperty.all(AppColors.kffffff),
+        shape: MaterialStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(9),
+          ),
+        ),
+        side: MaterialStateProperty.all(
+          BorderSide(color: AppColors.k0cbcc5),
+        ),
+        overlayColor:
+            MaterialStateProperty.all(AppColors.k0cbcc5.withOpacity(0.2)),
+        minimumSize: MaterialStateProperty.all(Size(double.infinity, 36)),
+      ),
+      onPressed: () {
+        final params = CallViewReceiptParams(
+          user: widget.services.store.user,
+          call: call,
+        );
+        final receipt = getIt<CallViewReceipt>(param1: params);
+
+        Navigator.push(
+          context,
+          MaterialPageRoute<void>(
+            builder: (context) => receipt,
+          ),
+        );
+      },
+      child: Text(
+        S.of(context).viewReceipt,
+        style: GoogleFonts.rubik(
+          color: AppColors.k0cbcc5,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }
