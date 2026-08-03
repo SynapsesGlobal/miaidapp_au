@@ -138,8 +138,11 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
     <uses-permission android:name="android.permission.INTERNET"/>
-    <!-- 位置追踪：后台定位 + 前台服务（targetSdk 34+ 需按类型声明权限） -->
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <!-- 位置追踪：前台服务（targetSdk 34+ 需按类型声明权限）。
+         不申请 ACCESS_BACKGROUND_LOCATION：前台服务在前台启动后，
+         whileInUse 权限即可在后台继续定位，避免 Play 后台定位专项审核；
+         tools:node="remove" 防止插件 manifest 合并时把它带回来 -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" tools:node="remove" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
