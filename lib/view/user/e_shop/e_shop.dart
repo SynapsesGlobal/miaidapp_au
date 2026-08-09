@@ -327,6 +327,8 @@ class _EShopState extends State<EShop> with SingleTickerProviderStateMixin {
               context,
               country: locationDetailsStore.countrySelected,
               city: locationDetailsStore.citySelected,
+              countryId: locationDetailsStore.countryIdSelected,
+              cityId: locationDetailsStore.cityIdSelected,
             );
             await moveCameraToLocation();
           } catch (e) {

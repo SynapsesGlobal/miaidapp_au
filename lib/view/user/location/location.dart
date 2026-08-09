@@ -7,7 +7,6 @@ import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/component/progress_indicator.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
-import 'package:miaid/generated_api_code/api_client.swagger.dart';
 import 'package:miaid/store/app/app_settings.dart';
 import 'package:miaid/store/e_shop/location_details_store.dart';
 import 'package:miaid/utils/geolocation.dart';
@@ -117,11 +116,12 @@ class _LocationsState extends State<Locations> {
                       const SizedBox(height: 8),
                       _countryField(),
                     ],
-                    if (locationDetailsStore.showNoLocationsInCountryError) ...[
+                    if (locationDetailsStore.showNoLocationsInCountryError ||
+                        (locationDetailsStore.countrySelected != null &&
+                            locationDetailsStore.cityList.isEmpty)) ...[
                       const SizedBox(height: 12),
                       _errorCard(S.of(context).noLocationsInCountry),
-                    ],
-                    if (locationDetailsStore.countrySelected != null) ...[
+                    ] else if (locationDetailsStore.countrySelected != null) ...[
                       const SizedBox(height: 20),
                       _fieldLabel(S.of(context).city),
                       const SizedBox(height: 8),
@@ -266,26 +266,6 @@ class _LocationsState extends State<Locations> {
     );
   }
 
-  InputDecoration _dropdownDecoration() {
-    return InputDecoration(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      filled: true,
-      fillColor: AppColors.kf4f4f4.withOpacity(0.6),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(width: 0.5, color: AppColors.kb1b1b1),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(width: 0.5, color: AppColors.kb1b1b1),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(width: 1.5, color: AppColors.k0cbcc5),
-      ),
-    );
-  }
-
   // 城市选择入口：点击打开底部单选弹窗
   Widget _cityField() {
     return _pickerField(
@@ -296,45 +276,22 @@ class _LocationsState extends State<Locations> {
   }
 
   Future<void> _showCityPicker() async {
-    final cityList = locationDetailsStore.listLocationFilters[0].cities!;
-    final selected = await _showSingleSelectPicker(
+    final cities = locationDetailsStore.cityList;
+    if (cities.isEmpty) {
+      return;
+    }
+    final index = await _showSingleSelectPicker(
       title: S.of(context).selectCity,
-      options: cityList,
-      selectedValue: locationDetailsStore.citySelected,
+      options: cities.map((e) => e.name ?? '').toList(),
+      selectedIndex: cities.indexWhere((e) => e.id != null
+          ? e.id == locationDetailsStore.cityIdSelected
+          : e.name == locationDetailsStore.citySelected),
     );
-    if (selected != null && mounted) {
-      locationDetailsStore.changeSelectedCity(selected);
+    if (index != null && mounted) {
+      final city = cities[index];
+      locationDetailsStore.changeSelectedCity(city.name ?? '', cityId: city.id);
       Navigator.pop(context);
     }
-  }
-
-  DropdownButtonFormField<String> _stateDropDown() {
-    return DropdownButtonFormField<String>(
-      hint: Text(
-        S.of(context).selectState,
-        style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 14),
-      ),
-      isExpanded: true,
-      value: locationDetailsStore.stateSelected,
-      icon: Image.asset('assets/images/ic_support_dropdown_arrow_active.png'),
-      elevation: 4,
-      dropdownColor: AppColors.kffffff,
-      style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 14),
-      onChanged: (String? newValue) {
-        if (newValue != null) {
-          locationDetailsStore.changeSelectedState(newValue);
-        }
-      },
-      decoration: _dropdownDecoration(),
-      items: locationDetailsStore.listLocationFilters
-          .map((e) => e.state.toString())
-          .map<DropdownMenuItem<String>>((String value) {
-        return DropdownMenuItem<String>(
-          value: value,
-          child: Text(value),
-        );
-      }).toList(),
-    );
   }
 
   // 国家选择入口：点击打开底部单选弹窗
@@ -347,22 +304,20 @@ class _LocationsState extends State<Locations> {
   }
 
   Future<void> _showCountryPicker() async {
-    final selected = await _showSingleSelectPicker(
+    final countries = locationDetailsStore.countryList;
+    final index = await _showSingleSelectPicker(
       title: S.of(context).selectCountry,
-      options: locationDetailsStore.countryList
-          .map((e) => e.name.toString())
-          .toList(),
-      selectedValue: locationDetailsStore.countrySelected,
+      options: countries.map((e) => e.name ?? '').toList(),
+      selectedIndex: countries
+          .indexWhere((e) => e.id == locationDetailsStore.countryIdSelected),
     );
-    if (selected != null) {
-      final countryId = locationDetailsStore.countryList
-          .firstWhere((e) => e.name == selected, orElse: () => Country())
-          .id;
-      locationDetailsStore.changeSelectedCountry(selected,
-          countryId: countryId);
+    if (index != null) {
+      final country = countries[index];
+      final name = country.name ?? '';
+      locationDetailsStore.changeSelectedCountry(name, countryId: country.id);
       locationDetailsStore.changeSelectedState('miaid');
-      await locationDetailsStore.fetchLocations(widget.services.api, selected,
-          countryId: countryId);
+      await locationDetailsStore.fetchLocations(widget.services.api, name,
+          countryId: country.id);
     }
   }
 
@@ -406,12 +361,13 @@ class _LocationsState extends State<Locations> {
   }
 
   // 单选底部弹窗：选项卡片式，点选即返回；内容多时可滚动，少时高度自适应
-  Future<String?> _showSingleSelectPicker({
+  // 返回选中项的下标而非文本，避免同名选项（不同 id）无法区分
+  Future<int?> _showSingleSelectPicker({
     required String title,
     required List<String> options,
-    String? selectedValue,
+    required int selectedIndex,
   }) {
-    return showModalBottomSheet<String>(
+    return showModalBottomSheet<int>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
@@ -474,55 +430,58 @@ class _LocationsState extends State<Locations> {
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                   child: Column(
                     children: [
-                      for (final option in options)
+                      for (var i = 0; i < options.length; i++)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 10),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () => Navigator.of(context).pop(option),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 13,
-                              ),
-                              decoration: BoxDecoration(
-                                color: option == selectedValue
-                                    ? AppColors.keefeff
-                                    : AppColors.kf4f4f4,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: option == selectedValue
-                                      ? AppColors.k0cbcc5
-                                      : Colors.transparent,
+                          child: Builder(builder: (context) {
+                            final isSelected = i == selectedIndex;
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () => Navigator.of(context).pop(i),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 13,
                                 ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      option,
-                                      style: GoogleFonts.rubik(
-                                        color: AppColors.k010101,
-                                        fontSize: 14,
-                                        fontWeight: option == selectedValue
-                                            ? FontWeight.w500
-                                            : FontWeight.normal,
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? AppColors.keefeff
+                                      : AppColors.kf4f4f4,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? AppColors.k0cbcc5
+                                        : Colors.transparent,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        options[i],
+                                        style: GoogleFonts.rubik(
+                                          color: AppColors.k010101,
+                                          fontSize: 14,
+                                          fontWeight: isSelected
+                                              ? FontWeight.w500
+                                              : FontWeight.normal,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  Icon(
-                                    option == selectedValue
-                                        ? Icons.check_circle
-                                        : Icons.radio_button_unchecked,
-                                    color: option == selectedValue
-                                        ? AppColors.k0cbcc5
-                                        : AppColors.kb1b1b1,
-                                    size: 20,
-                                  ),
-                                ],
+                                    Icon(
+                                      isSelected
+                                          ? Icons.check_circle
+                                          : Icons.radio_button_unchecked,
+                                      color: isSelected
+                                          ? AppColors.k0cbcc5
+                                          : AppColors.kb1b1b1,
+                                      size: 20,
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ),
+                            );
+                          }),
                         ),
                     ],
                   ),
