@@ -100,8 +100,10 @@ class LocationUploadService {
       locationPerm = await Geolocator.requestPermission();
     }
 
-    // 后台位置（Android 10+ 需单独申请；iOS 需用户选择"始终允许"）
-    if (locationPerm == LocationPermission.whileInUse) {
+    // 后台位置：仅 iOS 申请"始终允许"（配合 UIBackgroundModes location）。
+    // Android 不申请 ACCESS_BACKGROUND_LOCATION——定位前台服务在前台启动后，
+    // whileInUse 权限即可在后台继续定位上传，还能避免 Play 后台定位专项审核。
+    if (Platform.isIOS && locationPerm == LocationPermission.whileInUse) {
       await Permission.locationAlways.request();
     }
 

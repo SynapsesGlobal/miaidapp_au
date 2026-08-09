@@ -597,6 +597,25 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  // 地点类型名称由后端返回（固定为英文），这里按名称翻译；
+  // 未知类型回落到后端原文，避免新增类型时显示空白
+  String _placeTypeLabel(BuildContext context, String? name) {
+    switch ((name ?? '').trim().toLowerCase()) {
+      case 'pharmacy':
+        return S.of(context).pharmacy;
+      case 'clinic':
+        return S.of(context).clinic;
+      case 'ed location':
+        return S.of(context).emergencys;
+      case 'dentist':
+        return S.of(context).dentist;
+      case 'physiotherapy':
+        return S.of(context).physiotherapy;
+      default:
+        return name ?? '';
+    }
+  }
+
   Widget _placeTypeFilter(BuildContext context, MapScreenStore store, PlaceType placeType) {
     var colour = AppColors.fromHex(placeType.hexColour) ?? AppColors.k0cbcc5;
     var backgroundColour = Colors.white;
@@ -655,7 +674,7 @@ class _MapScreenState extends State<MapScreen> {
                 ),
               ),
               SizedBox(width: 6),
-              Text(((placeType.name) ?? ''), style: GoogleFonts.rubik(
+              Text(_placeTypeLabel(context, placeType.name), style: GoogleFonts.rubik(
                 fontWeight: FontWeight.w500,
                 fontSize: 13,
                 color: fontColour,

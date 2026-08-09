@@ -32,6 +32,9 @@ abstract class _LocationDetailsStore with Store {
   String? citySelected;
 
   @observable
+  int? cityIdSelected;
+
+  @observable
   String? stateSelected;
 
   @observable
@@ -44,10 +47,14 @@ abstract class _LocationDetailsStore with Store {
   List<Country> countryList = [];
 
   @observable
-  List<String> cityList = [];
+  List<CityOption> cityList = [];
 
   @observable
   bool showNoLocationsInCountryError = false;
+
+  /// Locale the cached [countryList] was fetched for, so a language change
+  /// re-fetches instead of showing names in the previous language.
+  String? _loadedLocale;
 
   @action
   void changeSelectedCountry(String value, {int? countryId}) {
@@ -55,6 +62,7 @@ abstract class _LocationDetailsStore with Store {
     countryIdSelected = countryId;
     isFilterSelected = false;
     citySelected = null;
+    cityIdSelected = null;
     stateSelected = null;
     // fetchPharmaciesAgain();
   }
@@ -68,12 +76,14 @@ abstract class _LocationDetailsStore with Store {
   void changeSelectedState(String value) {
     isFilterSelected = false;
     citySelected = null;
+    cityIdSelected = null;
     stateSelected = value;
   }
 
   @action
-  void changeSelectedCity(String value) {
+  void changeSelectedCity(String value, {int? cityId}) {
     citySelected = value;
+    cityIdSelected = cityId;
     changeIsFilterSelected(true);
     fetchPharmaciesAgain();
   }
@@ -84,11 +94,13 @@ abstract class _LocationDetailsStore with Store {
     if (value == false) {
       // user has selected current location
       citySelected = null;
+      cityIdSelected = null;
       stateSelected = null;
       countrySelected = null;
       countryIdSelected = null;
       countryList.clear();
       cityList.clear();
+      _loadedLocale = null;
       fetchPharmaciesAgain();
     }
   }
@@ -97,8 +109,9 @@ abstract class _LocationDetailsStore with Store {
   dynamic fetchLocations(ApiProvider apiProvider, String country, {int? countryId}) async {
     isLoading = true;
     listLocationFilters.clear();
-    cityList.clear();
+    cityList = [];
     citySelected = null;
+    cityIdSelected = null;
     stateSelected = null;
     var locale = Intl.getCurrentLocale();
     var locationsListResponse = await apiProvider.apiClient
@@ -106,6 +119,7 @@ abstract class _LocationDetailsStore with Store {
     if (ApiSuccessParser.isSuccessfulWithPayload(locationsListResponse)) {
       final pharmacyLocation = await ApiSuccessParser.payloadOrThrowWithMessage(locationsListResponse);
       listLocationFilters.addAll(pharmacyLocation);
+      cityList = _cityOptionsFrom(listLocationFilters);
       showNoLocationsInCountryError = false;
       isLoading = false;
     } else {
@@ -114,24 +128,41 @@ abstract class _LocationDetailsStore with Store {
     }
   }
 
+  /// The backend returns `city_list` with ids; `cities` holds the same names
+  /// without them and is only there for clients older than that change.
+  List<CityOption> _cityOptionsFrom(List<LocationFilter> filters) {
+    final options = <CityOption>[];
+    for (final filter in filters) {
+      final withIds = filter.cityList ?? [];
+      if (withIds.isNotEmpty) {
+        options.addAll(withIds);
+      } else {
+        options.addAll((filter.cities ?? []).map((name) => CityOption(name: name)));
+      }
+    }
+    return options;
+  }
+
   @action
   dynamic fetchCountries(ApiProvider apiProvider) async {
-    if (countryList.isEmpty) {
+    var locale = Intl.getCurrentLocale();
+    if (countryList.isEmpty || _loadedLocale != locale) {
       isLoading = true;
       listLocationFilters.clear();
       countryList.clear();
       countrySelected = null;
       countryIdSelected = null;
       citySelected = null;
+      cityIdSelected = null;
       stateSelected = null;
-      cityList.clear();
+      cityList = [];
 
-      var locale = Intl.getCurrentLocale();
       var countriesListResponse = await apiProvider.apiClient.countriesGetCountriesList(lang: locale);
       isLoading = false;
       if (ApiSuccessParser.isSuccessfulWithPayload(countriesListResponse)) {
         final cList = await ApiSuccessParser.payloadOrThrowWithMessage(countriesListResponse);
         countryList.addAll(cList);
+        _loadedLocale = locale;
       } else {
         // parsing this here, it means it'll throw an error and display the error to the user
         await ApiSuccessParser.payloadOrThrowWithMessage(countriesListResponse);
@@ -143,10 +174,12 @@ abstract class _LocationDetailsStore with Store {
   void resetLocationDetailsStore() {
     isFilterSelected = false;
     citySelected = null;
+    cityIdSelected = null;
     stateSelected = null;
     countrySelected = null;
     countryIdSelected = null;
     countryList.clear();
-    cityList.clear();
+    cityList = [];
+    _loadedLocale = null;
   }
 }

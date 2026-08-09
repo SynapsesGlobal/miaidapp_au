@@ -99,35 +99,37 @@ abstract class _EShopStore with Store {
 
   @action
   dynamic fetchPharmacies(ApiProvider apiProvider, BuildContext context,
-      {String? country, String? city}) async {
-    currentLocation = await MyGeoLocation().determinePosition(context);
+      {String? country, String? city, int? countryId, int? cityId}) async {
     isLoading = true;
     Response<EShopLocationsFilterLocationsResponse> pharmacyListResponse;
     if (country != null && city != null) {
+      // Ids are what the backend matches on; the names travel along only so
+      // rows whose ids have not been backfilled are still found.
       pharmacyListResponse =
           await apiProvider.apiClient.eShopLocationsGetFilterLocations(
         country: country,
         city: city,
+        country_id: countryId,
+        city_id: cityId,
         per_page: itemsPerPage,
         page: page,
       );
-    } else if (currentLocation != null) {
-      pharmacyListResponse =
-          await apiProvider.apiClient.eShopLocationsGetFilterLocations(
-        latitude: currentLocation?.latitude,
-        longitude: currentLocation?.longitude,
-        per_page: itemsPerPage,
-        page: page,
-      );
-    } else {
-      pharmacyListResponse =
-          await apiProvider.apiClient.eShopLocationsGetFilterLocations(
-        latitude: currentLocation?.latitude,
-        longitude: currentLocation?.longitude,
-        per_page: itemsPerPage,
-        page: page,
-      );
+      if (ApiSuccessParser.isSuccessfulWithPayload(pharmacyListResponse)) {
+        updatePharmacyList(await ApiSuccessParser.payloadOrThrowWithMessage(
+            pharmacyListResponse));
+      }
+      isLoading = false;
+      return;
     }
+
+    currentLocation = await MyGeoLocation().determinePosition(context);
+    pharmacyListResponse =
+        await apiProvider.apiClient.eShopLocationsGetFilterLocations(
+      latitude: currentLocation?.latitude,
+      longitude: currentLocation?.longitude,
+      per_page: itemsPerPage,
+      page: page,
+    );
 
     if (ApiSuccessParser.isSuccessfulWithPayload(pharmacyListResponse)) {
       final pharmacyList = await ApiSuccessParser.payloadOrThrowWithMessage(

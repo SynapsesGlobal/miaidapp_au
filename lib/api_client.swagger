@@ -2680,6 +2680,20 @@
                         "type": "string"
                     },
                     {
+                        "name": "country_id",
+                        "in": "query",
+                        "required": false,
+                        "description": "Country id, preferred over the country name",
+                        "type": "integer"
+                    },
+                    {
+                        "name": "city_id",
+                        "in": "query",
+                        "required": false,
+                        "description": "City id, preferred over the city name",
+                        "type": "integer"
+                    },
+                    {
                         "name": "state",
                         "in": "query",
                         "required": false,
@@ -5244,6 +5258,15 @@
                         "type": "string"
                     }
                 },
+                "city_id": {
+                    "type": "integer"
+                },
+                "state_id": {
+                    "type": "integer"
+                },
+                "country_id": {
+                    "type": "integer"
+                },
                 "pharmacy": {
                     "$ref": "#\/definitions\/Pharmacy"
                 },
@@ -5278,11 +5301,31 @@
                 "state": {
                     "type": "string"
                 },
+                "country_id": {
+                    "type": "integer"
+                },
                 "cities": {
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
+                },
+                "city_list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#\/definitions\/CityOption"
+                    }
+                }
+            }
+        },
+        "CityOption": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },
