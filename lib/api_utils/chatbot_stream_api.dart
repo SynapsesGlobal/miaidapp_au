@@ -18,6 +18,9 @@ class ChatbotStreamApi {
     request.fields['history'] = jsonEncode({
       'id': chatId,
       'lang': lang,
+      // 告知服务端本客户端支持医院卡片：查询附近医院时返回结构化
+      // hospitals 数据（老服务端会忽略该字段并按纯文本返回，可平滑降级）
+      'hospitalCards': true,
       'chatContent': contents,
     });
 

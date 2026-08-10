@@ -477,5 +477,10 @@
   "refundUploadPhotos": "Upload photos (optional)",
   "refundDetailLabel": "Tell us more (optional)",
   "orderDeleted": "Order deleted",
-  "refundRequestRejected": "Refund request rejected"
+  "refundRequestRejected": "Refund request rejected",
+  "hospitalPublic": "Public",
+  "hospitalPrivate": "Private",
+  "hospitalHasEmergency": "Emergency",
+  "hospitalNoEmergency": "No emergency",
+  "phoneCopied": "Phone number copied"
 }

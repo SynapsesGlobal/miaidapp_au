@@ -7,6 +7,7 @@ import '../../../config/app_colors.dart';
 import '../../../generated/l10n.dart';
 import '../../../store/user/calling/call_screen_store.dart';
 import '../../user/calling/call_screen_helper.dart';
+import 'hospital_cards.dart';
 
 class DoctorMessage extends StatelessWidget {
   final dynamic message;
@@ -16,6 +17,10 @@ class DoctorMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 医院卡片消息：结构化数据渲染卡片，气泡放宽避免地址硬折行
+    final hospitals = message['hospitals'];
+    final hasHospitals = hospitals is List && hospitals.isNotEmpty;
+
     return message['content'].toString().isNotEmpty ? Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -25,9 +30,9 @@ class DoctorMessage extends StatelessWidget {
           child: Image.asset('assets/images/logo_auth.png'),
         ),
         SizedBox(width: 10,),
-        ConstrainedBox(
+        Flexible(child: ConstrainedBox(
           constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width*0.7
+              maxWidth: MediaQuery.of(context).size.width * (hasHospitals ? 0.85 : 0.7)
           ),
           child: Container(
             padding: EdgeInsets.all(10),
@@ -54,6 +59,10 @@ class DoctorMessage extends StatelessWidget {
                   fontSize: 15,
                 )
               ),
+              if (hasHospitals)
+                HospitalCards(
+                  hospitals: hospitals.whereType<Map<String, dynamic>>().toList(),
+                ),
               message.containsKey('video_consultation') ? InkWell(
                 onTap: () async {
                   showAlertDialog(context);
@@ -74,7 +83,7 @@ class DoctorMessage extends StatelessWidget {
               ) : Offstage()
             ],),
           ),
-        ),
+        )),
       ],
     ) : Offstage();
   }

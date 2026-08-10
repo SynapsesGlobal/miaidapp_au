@@ -139,10 +139,8 @@ class ChatBotViewModel extends ChangeNotifier {
       ));
       notifyListeners();
 
-      final streamingIndex = messages.length - 1;
-
       final paramContents = messages
-          .sublist(0, streamingIndex)
+          .sublist(0, messages.length - 1)
           .map((m) => m.toJson())
           .toList();
 
@@ -153,13 +151,14 @@ class ChatBotViewModel extends ChangeNotifier {
       );
 
       stream.listen(
-        (chunk) => _handleStreamChunk(chunk, streamingIndex),
+        _handleStreamChunk,
         onDone: () {
+          _removeStreamingMessage();
           isSending = false;
           notifyListeners();
         },
         onError: (error) {
-          _removeStreamingMessage(streamingIndex);
+          _removeStreamingMessage();
           isSending = false;
           notifyListeners();
         },
@@ -178,9 +177,7 @@ class ChatBotViewModel extends ChangeNotifier {
 
   // ─── Private Helpers ───────────────────────────────────────
 
-  void _handleStreamChunk(String chunk, int streamingIndex) {
-    if (streamingIndex >= messages.length) return;
-
+  void _handleStreamChunk(String chunk) {
     try {
       final data = jsonDecode(chunk) as Map<String, dynamic>;
       if (data['type'] == 'stream') {
@@ -193,9 +190,25 @@ class ChatBotViewModel extends ChangeNotifier {
           appointInterpreter: data['category'] == Consts.AIAppointInterpreter,
         );
         streamingContent.value = '';
-        messages.removeAt(streamingIndex);
+        // 移除当前 streaming 占位（按标记查找，同一流可能有多条完整消息，
+        // 不能按固定下标删，否则会误删上一条过渡消息）
+        _removeStreamingMessage();
         messages.add(finalMsg);
-        isSending = false;
+
+        // 医院查询的过渡消息：同一流稍后还有第二条（医院列表），
+        // 重新挂一个 streaming 占位继续显示输入中动画
+        final hasMore = data['more'] == true;
+        if (hasMore) {
+          messages.add(ChatMessage(
+            id: _uuid.v4(),
+            role: MessageRole.doctor,
+            content: '',
+            createdTime: DateTime.now(),
+            isStreaming: true,
+          ));
+        } else {
+          isSending = false;
+        }
         notifyListeners();
 
         if (data['category'] == Consts.AIBookHospitals) {
@@ -211,8 +224,8 @@ class ChatBotViewModel extends ChangeNotifier {
     }
   }
 
-  void _removeStreamingMessage(int index) {
-    if (index < messages.length) messages.removeAt(index);
+  void _removeStreamingMessage() {
+    messages.removeWhere((m) => m.isStreaming);
     streamingContent.value = '';
   }
 

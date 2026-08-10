@@ -473,5 +473,10 @@
   "refundUploadPhotos": "上傳憑證圖片（選填）",
   "refundDetailLabel": "詳細說明（選填）",
   "orderDeleted": "訂單已刪除",
-  "refundRequestRejected": "退款申請被拒絕"
+  "refundRequestRejected": "退款申請被拒絕",
+  "hospitalPublic": "公立",
+  "hospitalPrivate": "私立",
+  "hospitalHasEmergency": "有急診",
+  "hospitalNoEmergency": "無急診",
+  "phoneCopied": "電話號碼已複製"
 }

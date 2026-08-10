@@ -477,5 +477,10 @@
   "refundUploadPhotos": "Μεταφόρτωση φωτογραφιών (προαιρετικό)",
   "refundDetailLabel": "Περιγράψτε λεπτομερώς (προαιρετικό)",
   "orderDeleted": "Η παραγγελία διαγράφηκε",
-  "refundRequestRejected": "Το αίτημα επιστροφής χρημάτων απορρίφθηκε"
+  "refundRequestRejected": "Το αίτημα επιστροφής χρημάτων απορρίφθηκε",
+  "hospitalPublic": "Δημόσιο",
+  "hospitalPrivate": "Ιδιωτικό",
+  "hospitalHasEmergency": "Με επείγοντα",
+  "hospitalNoEmergency": "Χωρίς επείγοντα",
+  "phoneCopied": "Ο αριθμός τηλεφώνου αντιγράφηκε"
 }

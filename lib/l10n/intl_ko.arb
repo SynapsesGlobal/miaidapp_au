@@ -503,5 +503,10 @@
   "refundUploadPhotos": "사진 업로드 (선택)",
   "refundDetailLabel": "상세 설명 (선택)",
   "orderDeleted": "주문이 삭제되었습니다",
-  "refundRequestRejected": "환불 신청이 거절되었습니다"
+  "refundRequestRejected": "환불 신청이 거절되었습니다",
+  "hospitalPublic": "공립",
+  "hospitalPrivate": "사립",
+  "hospitalHasEmergency": "응급실 있음",
+  "hospitalNoEmergency": "응급실 없음",
+  "phoneCopied": "전화번호가 복사되었습니다"
 }

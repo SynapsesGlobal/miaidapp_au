@@ -478,5 +478,10 @@
   "refundUploadPhotos": "上传凭证图片（选填）",
   "refundDetailLabel": "详细说明（选填）",
   "orderDeleted": "订单已删除",
-  "refundRequestRejected": "退款申请被拒绝"
+  "refundRequestRejected": "退款申请被拒绝",
+  "hospitalPublic": "公立",
+  "hospitalPrivate": "私立",
+  "hospitalHasEmergency": "有急诊",
+  "hospitalNoEmergency": "无急诊",
+  "phoneCopied": "电话号码已复制"
 }

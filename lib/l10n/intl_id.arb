@@ -504,5 +504,10 @@
   "refundUploadPhotos": "Unggah foto (opsional)",
   "refundDetailLabel": "Jelaskan lebih detail (opsional)",
   "orderDeleted": "Pesanan telah dihapus",
-  "refundRequestRejected": "Permintaan pengembalian dana ditolak"
+  "refundRequestRejected": "Permintaan pengembalian dana ditolak",
+  "hospitalPublic": "Negeri",
+  "hospitalPrivate": "Swasta",
+  "hospitalHasEmergency": "Ada IGD",
+  "hospitalNoEmergency": "Tanpa IGD",
+  "phoneCopied": "Nomor telepon disalin"
 }
