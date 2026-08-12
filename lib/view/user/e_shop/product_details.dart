@@ -51,6 +51,7 @@ class ProductDetails extends StatefulWidget {
 
 class _ProductDetailsState extends State<ProductDetails> {
   late ProductDetailsStore productDetailsStore;
+  final PageController _imagePageController = PageController();
 
   @override
   void initState() {
@@ -63,6 +64,12 @@ class _ProductDetailsState extends State<ProductDetails> {
       widget.params!.locationId,
       widget.params!.currency,
     );
+  }
+
+  @override
+  void dispose() {
+    _imagePageController.dispose();
+    super.dispose();
   }
 
   @override
@@ -95,377 +102,345 @@ class _ProductDetailsState extends State<ProductDetails> {
           ),
         ),
         body: _body(),
+        bottomNavigationBar: _bottomActionBar(),
       ),
     );
   }
 
   Widget _body() {
-    return SingleChildScrollView(
-      child: Observer(builder: (context) {
-        return productDetailsStore.isLoading
-            ? Container(
-                height: MediaQuery.of(context).size.height,
-                child: Align(
-                  alignment: Alignment.center,
-                  child: progressIndicator(),
-                ),
-              )
-            : Column(
+    return Observer(builder: (context) {
+      if (productDetailsStore.isLoading) {
+        return Center(child: progressIndicator());
+      }
+
+      return SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: 8),
+            _imageCarousel(),
+            SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.max,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      TapDebouncer(
-                        onTap: () async {
-                          updatePreviousImageIndex();
-                        },
-                        builder: (context, onTap) => InkWell(
-                          onTap: onTap,
-                          child: Image(
-                            image: AssetImage(
-                                'assets/images/bnt_previous_next.png'),
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 30,
-                      ),
-                      Container(
-                        height: 160,
-                        width: 160,
-                        child: imageContainer(
-                          productPhotoUrl: productDetailsStore
-                                          .productDetails?.productImages ==
-                                      null ||
-                                  productDetailsStore
-                                      .productDetails!.productImages!.isEmpty
-                              ? Image.asset(
-                                  'assets/images/default_shop_image.png',
-                                  height: 160,
-                                  width: 160,
-                                )
-                              : ImageWidget(
-                                  imageUrl: productDetailsStore
-                                      .productDetails!
-                                      .productImages![
-                                          productDetailsStore.currentImageIndex]
-                                      .image!),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 30,
-                      ),
-                      TapDebouncer(
-                        onTap: () async {
-                          updateNextImageIndex();
-                        },
-                        builder: (context, onTap) => InkWell(
-                          onTap: onTap,
-                          child: Image(
-                            image: AssetImage(
-                                'assets/images/bnt_medicine_next.png'),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(
-                    height: 24,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
+                  Text(
+                    productDetailsStore.productDetails?.name ?? '',
+                    style: GoogleFonts.rubik(
+                      color: AppColors.k010101,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      height: 1.3,
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  ),
+                  if (productDetailsStore.productDetails?.pharmacy?.name !=
+                      null) ...[
+                    SizedBox(height: 6),
+                    Row(
                       children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(4),
-                            color: AppColors.k0cbcc5,
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 7,
-                              vertical: 6,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  '${widget.params?.currency} ',
-                                  style: TextStyle(
-                                    color: AppColors.kffffff,
-                                  ),
-                                ),
-                                Text(
-                                  productDetailsStore.productDetails!.unitPrice
-                                      .toString(),
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                    color: AppColors.kffffff,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                        Icon(
+                          Icons.storefront_outlined,
+                          size: 15,
+                          color: AppColors.k5e5e5e,
                         ),
-                        // Row(
-                        //   mainAxisSize: MainAxisSize.min,
-                        //   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        //   children: [
-                        //     InkWell(
-                        //       onTap: () {
-                        //         setState(() {
-                        //           if (productDetailsStore.quantity > 1) {
-                        //             productDetailsStore.decrementQuantity();
-                        //           }
-                        //         });
-                        //       },
-                        //       child: buttonContainer(
-                        //         Image.asset(productDetailsStore.quantity <= 1
-                        //             ? 'assets/images/btn_medicine_quantity_minus_disabled.png'
-                        //             : 'assets/images/btn_medicine_quantity_minus.png'),
-                        //       ),
-                        //     ),
-                        //     Padding(
-                        //       padding:
-                        //           const EdgeInsets.only(left: 15, right: 15),
-                        //       child: Observer(
-                        //         builder: (_) {
-                        //           return Text(
-                        //             productDetailsStore.quantity.toString(),
-                        //             style: TextStyle(
-                        //               color: AppColors.k010101,
-                        //               fontWeight: FontWeight.bold,
-                        //               fontSize: 14,
-                        //             ),
-                        //           );
-                        //         },
-                        //       ),
-                        //     ),
-                        //     InkWell(
-                        //       onTap: () {
-                        //         productDetailsStore.incrementQuantity();
-                        //       },
-                        //       child: buttonContainer(
-                        //         Image.asset(
-                        //             'assets/images/btn_medicine_quantity_add.png'),
-                        //       ),
-                        //     ),
-                        //   ],
-                        // )
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 17,
-                    ),
-                    child: Text(
-                      productDetailsStore.productDetails?.name ?? '',
-                      style: GoogleFonts.rubik(
-                        color: AppColors.k010101,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                    ),
-                    child: Text(
-                      productDetailsStore.productDetails!.pharmacy!.name!,
-                      style: GoogleFonts.rubik(
-                        color: AppColors.k5e5e5e,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    height: 10,
-                  ),
-                  Container(
-                    color: AppColors.k0cbcc5.withOpacity(0.1),
-                    child: TabBar(
-                      onTap: (index) {
-                        productDetailsStore.tabindex = index;
-                      },
-                      labelColor: AppColors.k0cbcc5,
-                      indicatorColor: AppColors.k0cbcc5,
-                      unselectedLabelColor: AppColors.k5e5e5e,
-                      labelStyle: GoogleFonts.rubik(
-                        fontSize: 12,
-                      ),
-                      labelPadding: EdgeInsets.zero,
-                      tabs: [
-                        Tab(
-                          text: S.of(context).general,
-                        ),
-                        Tab(
-                          text: S.of(context).warning,
-                        ),
-                        Tab(
-                          text: S.of(context).ingredient,
-                        ),
-                        Tab(
-                          text: S.of(context).direction,
-                        ),
-                      ],
-                    ),
-                  ),
-                  IndexedStack(
-                    index: productDetailsStore.tabindex,
-                    children: [
-                      generalTab(),
-                      warningTab(),
-                      ingredientTab(),
-                      directionTab(),
-                    ],
-                  ),
-                  SizedBox(
-                    height: 15,
-                  ),
-                  divider(),
-                  SizedBox(
-                    height: 15,
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    mainAxisSize: MainAxisSize.max,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      TapDebouncer(
-                        onTap: () async {
-                          if (!widget.services.api.userProvider.isLoggedIn) {
-                            showAlertDialog(context);
-
-                            return;
-                          }
-
-                          var cartEShopStore = getIt<CartEShopStore>();
-
-                          setState(() {
-                            cartEShopStore.addItem(
-                              productDetailsStore.productDetails!,
-                              curr: widget.params?.currency,
-                              quantity: productDetailsStore.quantity,
-                            );
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              backgroundColor: AppColors.k0cbcc5,
-                              content: Text(
-                                'Item added to Cart.',
-                              ),
-                            ),
-                          );
-                        },
-                        builder: (context, onTap) => InkWell(
-                          onTap: onTap,
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                                vertical: 16, horizontal: 30),
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(9),
-                                border: Border.all(
-                                  width: 0.5,
-                                  color: AppColors.k0cbcc5,
-                                )),
-                            child: Text(
-                              S.of(context).addToCart,
-                              style: GoogleFonts.rubik(
-                                color: AppColors.k0cbcc5,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      InkWell(
-                        onTap: () {
-                          if (!widget.services.api.userProvider.isLoggedIn) {
-                            showAlertDialog(context);
-
-                            return;
-                          }
-
-                          var cartEShopStore = getIt<CartEShopStore>();
-                          setState(() {
-                            cartEShopStore.addItem(
-                              productDetailsStore.productDetails!,
-                              curr: widget.params?.currency,
-                              quantity: productDetailsStore.quantity,
-                            );
-                          });
-
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute<void>(
-                              builder: (context) => getIt<CartEShop>(),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                              vertical: 16, horizontal: 40),
-                          decoration: BoxDecoration(
-                            color: AppColors.k0cbcc5,
-                            borderRadius: BorderRadius.circular(9),
-                          ),
+                        SizedBox(width: 5),
+                        Expanded(
                           child: Text(
-                            S.of(context).buyNow,
+                            productDetailsStore
+                                .productDetails!.pharmacy!.name!,
                             style: GoogleFonts.rubik(
-                              color: AppColors.kffffff,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
+                              color: AppColors.k5e5e5e,
+                              fontSize: 13,
                             ),
                           ),
                         ),
+                      ],
+                    ),
+                  ],
+                  SizedBox(height: 12),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        '${widget.params?.currency} ',
+                        style: GoogleFonts.rubik(
+                          color: AppColors.k5e5e5e,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        productDetailsStore.productDetails?.unitPrice
+                                .toString() ??
+                            '',
+                        style: GoogleFonts.rubik(
+                          color: AppColors.k0cbcc5,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
-                  ),
-                  SizedBox(
-                    height: 20,
                   ),
                 ],
-              );
-      }),
+              ),
+            ),
+            SizedBox(height: 16),
+            _tabBar(context),
+            IndexedStack(
+              index: productDetailsStore.tabindex,
+              children: [
+                generalTab(),
+                warningTab(),
+                ingredientTab(),
+                directionTab(),
+              ],
+            ),
+            SizedBox(height: 24),
+          ],
+        ),
+      );
+    });
+  }
+
+  // ── 图片轮播：滑动翻页 + 指示点（替代旧版左右箭头按钮） ──────────────────
+  Widget _imageCarousel() {
+    final images = productDetailsStore.productDetails?.productImages;
+    final hasImages = images != null && images.isNotEmpty;
+
+    return Column(
+      children: [
+        Container(
+          height: 260,
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: !hasImages
+              ? Image.asset(
+                  'assets/images/default_shop_image.png',
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                )
+              : PageView.builder(
+                  controller: _imagePageController,
+                  itemCount: images.length,
+                  onPageChanged: (index) {
+                    productDetailsStore.currentImageIndex = index;
+                  },
+                  itemBuilder: (context, index) => ImageWidget(
+                    imageUrl: images[index].image ?? '',
+                  ),
+                ),
+        ),
+        if (hasImages && images.length > 1) ...[
+          SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              images.length,
+              (index) => AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                height: 7,
+                width:
+                    productDetailsStore.currentImageIndex == index ? 18 : 7,
+                decoration: BoxDecoration(
+                  color: productDetailsStore.currentImageIndex == index
+                      ? AppColors.k0cbcc5
+                      : AppColors.k5e5e5e.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 
-  Widget buttonContainer(Widget child) {
+  // ── 分段式 Tab：选中项为主题色圆角胶囊 ─────────────────────────────────
+  Widget _tabBar(BuildContext context) {
     return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(4),
-        color: AppColors.kffffff,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.k003f51.withOpacity(0.1),
-            offset: Offset(
-              0,
-              4,
-            ),
-            blurRadius: 15,
-            spreadRadius: 0,
-          )
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: TabBar(
+        onTap: (index) {
+          productDetailsStore.tabindex = index;
+        },
+        indicator: BoxDecoration(
+          color: AppColors.k0cbcc5,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        labelColor: AppColors.kffffff,
+        unselectedLabelColor: AppColors.k5e5e5e,
+        labelStyle: GoogleFonts.rubik(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w500,
+        ),
+        labelPadding: EdgeInsets.zero,
+        tabs: [
+          Tab(
+            text: S.of(context).general,
+          ),
+          Tab(
+            text: S.of(context).warning,
+          ),
+          Tab(
+            text: S.of(context).ingredient,
+          ),
+          Tab(
+            text: S.of(context).direction,
+          ),
         ],
       ),
-      child: child,
     );
   }
 
-  Widget imageContainer({required Widget productPhotoUrl}) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(6),
-      child: productPhotoUrl,
-    );
+  // ── 底部吸底操作栏：加购 / 立即购买（替代旧版滚动内容里的按钮行） ────────
+  Widget _bottomActionBar() {
+    return Observer(builder: (context) {
+      if (productDetailsStore.isLoading ||
+          productDetailsStore.productDetails == null) {
+        return SizedBox.shrink();
+      }
+
+      return Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+        decoration: BoxDecoration(
+          color: AppColors.kffffff,
+          border: Border(
+            top: BorderSide(color: Colors.grey.shade200),
+          ),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Row(
+            children: [
+              Expanded(
+                child: TapDebouncer(
+                  onTap: () async {
+                    if (!widget.services.api.userProvider.isLoggedIn) {
+                      showAlertDialog(context);
+
+                      return;
+                    }
+
+                    var cartEShopStore = getIt<CartEShopStore>();
+
+                    setState(() {
+                      cartEShopStore.addItem(
+                        productDetailsStore.productDetails!,
+                        curr: widget.params?.currency,
+                        quantity: productDetailsStore.quantity,
+                      );
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        backgroundColor: AppColors.k0cbcc5,
+                        content: Text(
+                          'Item added to Cart.',
+                        ),
+                      ),
+                    );
+                  },
+                  builder: (context, onTap) => InkWell(
+                    onTap: onTap,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      height: 48,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          width: 1.2,
+                          color: AppColors.k0cbcc5,
+                        ),
+                      ),
+                      child: Text(
+                        S.of(context).addToCart,
+                        style: GoogleFonts.rubik(
+                          color: AppColors.k0cbcc5,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    if (!widget.services.api.userProvider.isLoggedIn) {
+                      showAlertDialog(context);
+
+                      return;
+                    }
+
+                    var cartEShopStore = getIt<CartEShopStore>();
+                    setState(() {
+                      cartEShopStore.addItem(
+                        productDetailsStore.productDetails!,
+                        curr: widget.params?.currency,
+                        quantity: productDetailsStore.quantity,
+                      );
+                    });
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (context) => getIt<CartEShop>(),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    height: 48,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppColors.k0cbcc5,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      S.of(context).buyNow,
+                      style: GoogleFonts.rubik(
+                        color: AppColors.kffffff,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  /// 后台商品说明两种格式混存：富文本编辑器存的是 HTML，也有直接粘贴的纯文本
+  /// （靠换行和 "-"/"•" 排版）。纯文本走 HTML 渲染时换行会被折叠成空格，
+  /// 段落全糊成一团；这里对无标签内容按纯文本转义并把换行转成 <br> 保留排版。
+  String _asRenderableHtml(String? data) {
+    final text = data ?? '';
+    if (RegExp(r'<[a-zA-Z!/]').hasMatch(text)) return text;
+    return text
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('\r\n', '\n')
+        .replaceAll('\n', '<br>');
   }
 
   Widget generalTab() {
@@ -477,16 +452,9 @@ class _ProductDetailsState extends State<ProductDetails> {
       child: Column(
         children: [
           Html(
-            data: productDetailsStore.productDetails?.generalInformation ?? '',
+            data: _asRenderableHtml(
+                productDetailsStore.productDetails?.generalInformation),
           ),
-          // Text(
-          //   productDetailsStore.productDetails?.generalInformation ?? '',
-          //   style: GoogleFonts.rubik(
-          //     letterSpacing: -0.09,
-          //     color: AppColors.k010101,
-          //     fontSize: 14,
-          //   ),
-          // ),
           SizedBox(
             height: 10,
           ),
@@ -504,16 +472,8 @@ class _ProductDetailsState extends State<ProductDetails> {
       child: Column(
         children: [
           Html(
-            data: productDetailsStore.productDetails?.warnings ?? '',
+            data: _asRenderableHtml(productDetailsStore.productDetails?.warnings),
           ),
-          // Text(
-          //   productDetailsStore.productDetails?.warnings ?? '',
-          //   style: GoogleFonts.rubik(
-          //     letterSpacing: -0.09,
-          //     color: AppColors.k010101,
-          //     fontSize: 14,
-          //   ),
-          // ),
           SizedBox(
             height: 10,
           ),
@@ -531,16 +491,9 @@ class _ProductDetailsState extends State<ProductDetails> {
       child: Column(
         children: [
           Html(
-            data: productDetailsStore.productDetails?.ingredients ?? '',
+            data:
+                _asRenderableHtml(productDetailsStore.productDetails?.ingredients),
           ),
-          // Text(
-          //   productDetailsStore.productDetails?.ingredients ?? '',
-          //   style: GoogleFonts.rubik(
-          //     letterSpacing: -0.09,
-          //     color: AppColors.k010101,
-          //     fontSize: 14,
-          //   ),
-          // ),
           SizedBox(
             height: 5,
           ),
@@ -558,52 +511,15 @@ class _ProductDetailsState extends State<ProductDetails> {
       child: Column(
         children: [
           Html(
-            data: productDetailsStore.productDetails?.directions ?? '',
+            data:
+                _asRenderableHtml(productDetailsStore.productDetails?.directions),
           ),
-          // Text(
-          //   productDetailsStore.productDetails?.directions ?? '',
-          //   style: GoogleFonts.rubik(
-          //     letterSpacing: -0.09,
-          //     color: AppColors.k010101,
-          //     fontSize: 14,
-          //   ),
-          // ),
           SizedBox(
             height: 5,
           ),
         ],
       ),
     );
-  }
-
-  Widget divider() {
-    return Container(
-      height: 0.5,
-      width: MediaQuery.of(context).size.width,
-      color: AppColors.k5e5e5e.withOpacity(0.3),
-    );
-  }
-
-  void updateNextImageIndex() {
-    if (productDetailsStore.currentImageIndex <
-        productDetailsStore.productDetails!.productImages!.length - 1) {
-      // ++currentImageIndex;
-      productDetailsStore.incrementImageIndex();
-    } else if (productDetailsStore.currentImageIndex ==
-        productDetailsStore.productDetails!.productImages!.length - 1) {
-      productDetailsStore.resetImageIndex();
-      // setState(() {
-      //   currentImageIndex = 0;
-      // });
-    }
-  }
-
-  void updatePreviousImageIndex() {
-    if (productDetailsStore.currentImageIndex > 0) {
-      productDetailsStore.decrementImageIndex();
-    } else if (productDetailsStore.currentImageIndex == 0) {
-      productDetailsStore.lastImageIndex();
-    }
   }
 
   void showAlertDialog(BuildContext context) {
