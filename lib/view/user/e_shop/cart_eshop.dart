@@ -3,7 +3,6 @@ import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -22,8 +21,6 @@ import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/drawer/terms_and_cond.dart';
 import 'package:miaid/widget/image_widget.dart';
 import 'package:mobx/mobx.dart';
-import 'package:flutter_mapbox_autocomplete/flutter_mapbox_autocomplete.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart' as pick;
 
 class CartEShopParams {
@@ -1151,50 +1148,6 @@ class _CartEShopState extends State<CartEShop> {
                       ),
                       errorBorder: kErrorOutlineInputBorder,
                       focusedErrorBorder: kErrorFocusedOutlineInputBorder,
-                    ),
-                  ),
-                  Container(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        TextButton(
-                          style: ButtonStyle(
-                            backgroundColor: MaterialStateProperty.all(AppColors.k0cbcc5),
-                            shape: MaterialStateProperty.all(
-                              RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(9),
-                              ),
-                            ),
-                          ),
-                          onPressed: () async {
-                            var sharedPreferences = await SharedPreferences.getInstance();
-                            var countryCode = sharedPreferences.getString('countryCode');
-                            countryCode ??= 'AU';
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => MapBoxAutoCompleteWidget(
-                                  apiKey: dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '',
-                                  hint: 'Select starting point',
-                                  onSelect: (place) {
-                                    cartStore.deliveryAddressController.text = place.placeName!;
-                                  },
-                                  limit: 10,
-                                  country: countryCode,
-                                ),
-                              ),
-                            );
-                          },
-                          child: Text(
-                            S.of(context).findAddress,
-                            style: GoogleFonts.rubik(
-                              color: AppColors.kffffff,
-                              fontSize: 14,
-                            ),
-                          ),
-                        )
-                      ],
                     ),
                   ),
                 ],
