@@ -153,6 +153,7 @@
   "cartProducts": "商品",
   "remove": "移除",
   "deliveryOption": "配送方式",
+  "noDeliveryOptions": "该药店暂未开通任何配送方式",
   "delivery": "配送",
   "inStore": "药房自取",
   "orderSummary": "订单详情",

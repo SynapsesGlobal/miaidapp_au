@@ -6151,6 +6151,9 @@
                 "status": {
                     "type": "boolean"
                 },
+                "pickup_status": {
+                    "type": "boolean"
+                },
                 "message": {
                     "type": "string"
                 }

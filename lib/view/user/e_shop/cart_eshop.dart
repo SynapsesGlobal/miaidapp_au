@@ -61,6 +61,11 @@ class _CartEShopState extends State<CartEShop> {
   late bool showNearCloseAlert;
   late IsDeliveryAvailableResponse? deliveryAvailableResponse;
 
+  // 药店级配送方式开关（后台药店管理页配置，checkDeliveryAvailable 接口返回）。
+  // 旧后端没有 pickup_status 字段时默认支持到店取货，保持升级前行为。
+  bool get _pickupAvailable => deliveryAvailableResponse?.pickupStatus ?? true;
+  bool get _deliveryAvailable => deliveryAvailableResponse?.status == true;
+
   @override
   void initState() {
     cartStore = widget.services.store;
@@ -103,6 +108,7 @@ class _CartEShopState extends State<CartEShop> {
         setState(() {
           deliveryAvailableResponse = value.body!;
         });
+        _syncDeliveryOptionWithAvailability();
       });
 
       LogEventService.viewCart(
@@ -489,14 +495,25 @@ class _CartEShopState extends State<CartEShop> {
     );
   }
 
-  Widget _deliveryOptionAndOrderSummary(BuildContext context) {
-    final radioList = <Widget>[
-      _deliveryOptionTile(1, S.of(context).inStore, Icons.storefront_outlined),
-      if (deliveryAvailableResponse?.status == true)
-        _deliveryOptionTile(
-            2, S.of(context).deliver, Icons.local_shipping_outlined),
-    ];
+  /// 配送方式标志加载后校正当前选择：
+  /// - 选中的方式不可用则清空，避免带着不可用选项去下单；
+  /// - 仅剩一种可用方式时自动选中，省一次点击。
+  void _syncDeliveryOptionWithAvailability() {
+    final option = cartStore.deliveryOption;
+    if ((option == 1 && !_pickupAvailable) ||
+        (option == 2 && !_deliveryAvailable)) {
+      cartStore.changeDeliveryOption(0);
+    }
+    if (cartStore.deliveryOption == 0) {
+      if (_pickupAvailable && !_deliveryAvailable) {
+        cartStore.changeDeliveryOption(1);
+      } else if (_deliveryAvailable && !_pickupAvailable) {
+        cartStore.changeDeliveryOption(2);
+      }
+    }
+  }
 
+  Widget _deliveryOptionAndOrderSummary(BuildContext context) {
     var containsPrescription = false;
     // to change here
 
@@ -517,10 +534,29 @@ class _CartEShopState extends State<CartEShop> {
       children: [
         _sectionTitle(S.of(context).deliveryOption),
         const SizedBox(height: 16),
-        radioList.first,
-        cartStore.deliveryOption == 1 ? collectInstructions() : SizedBox.shrink(),
-        (deliveryAvailableResponse?.status == true) ? radioList.last : SizedBox.shrink(),
-        (cartStore.deliveryOption == 2 && deliveryAvailableResponse?.status == true) ? delivery() : SizedBox.shrink(),
+        // 按药店后台配置动态展示可用的配送方式
+        if (_pickupAvailable) ...[
+          _deliveryOptionTile(
+              1, S.of(context).inStore, Icons.storefront_outlined),
+          cartStore.deliveryOption == 1
+              ? collectInstructions()
+              : SizedBox.shrink(),
+        ],
+        if (_deliveryAvailable) ...[
+          _deliveryOptionTile(
+              2, S.of(context).deliver, Icons.local_shipping_outlined),
+          cartStore.deliveryOption == 2 ? delivery() : SizedBox.shrink(),
+        ],
+        if (deliveryAvailableResponse != null &&
+            !_pickupAvailable &&
+            !_deliveryAvailable)
+          Text(
+            S.of(context).noDeliveryOptions,
+            style: GoogleFonts.rubik(
+              color: AppColors.k5e5e5e,
+              fontSize: 13,
+            ),
+          ),
         if (containsPrescription) ...[
           const SizedBox(height: 16),
           _sectionCard(

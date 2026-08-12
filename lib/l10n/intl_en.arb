@@ -153,6 +153,7 @@
   "cartProducts": "Products",
   "remove": "Remove",
   "deliveryOption": "Delivery Option",
+  "noDeliveryOptions": "This pharmacy currently has no delivery options available.",
   "delivery": "Delivery",
   "inStore": "Collect From the Pharmacy",
   "orderSummary": "Order Summary",
