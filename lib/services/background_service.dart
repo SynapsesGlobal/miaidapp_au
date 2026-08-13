@@ -157,7 +157,8 @@ Future<void> _doUpload(ServiceInstance service) async {
   if (service is AndroidServiceInstance && await service.isForegroundService()) {
     await service.setForegroundNotificationInfo(
       title: _channelName,
-      content: 'Last upload: ${_fmtTime(DateTime.now())}',
+      //content: 'Last upload: ${_fmtTime(DateTime.now())}',
+      content: '',
     );
   }
 
