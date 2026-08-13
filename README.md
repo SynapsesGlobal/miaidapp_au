@@ -154,23 +154,23 @@ tools:replace="android:exported" />
 中国：xcrun simctl location booted set 39.9042,116.4074
 
 启动命令（连上模拟器或真机后）：
-启动测试：
-flutter run --flavor google_sandbox -t lib/main_sandbox.dart
+android启动测试：
+flutter run --flavor google_sandbox -t lib/main_sandbox.dart -d <设备ID>
 
-打包测试：
+android打包测试：
 flutter build apk -t lib/main_sandbox.dart --flavor google_sandbox
 
-启动正式：
-flutter run --flavor google_prod-d emulator-5554
+android启动正式：
+flutter run --flavor google_prod -d <设备ID>
 
-打包正式：
+android打包正式：
 flutter build apk --flavor google_prod
 
 ios启动测试
-flutter run --flavor sandbox -t lib/main_sandbox.dart -d 1E5B09C8-43C3-418A-8D06-81A4D38FE329
+flutter run --flavor sandbox -t lib/main_sandbox.dart -d <设备ID>
 
 ios启动正式
-flutter run --flavor prod -d  flutter run --flavor google_prod-d emulator-5554
+flutter run --flavor prod -d  flutter run --flavor google_prod -d <设备ID>
 ```
 
 
