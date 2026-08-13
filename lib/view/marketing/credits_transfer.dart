@@ -7,12 +7,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 
 import '../../api_utils/api_provider.dart';
-import '../../api_utils/consts.dart';
 import '../../api_utils/http_exception.dart';
 import '../../component/nav_bar_icons.dart';
 import '../../config/app_colors.dart';
 import '../../generated/l10n.dart';
 import '../../utils/configure_dependencies.dart';
+import 'package:miaid/config/api_settings.dart';
 
 class CreditsTransfer extends StatefulWidget {
   const CreditsTransfer({super.key});
@@ -44,7 +44,7 @@ class _CreditsTransferState extends State<CreditsTransfer> {
   Future<void> _getCreditPoints() async {
     final headers = <String, String>{
       'Content-Type': 'application/json',
-      'x-api-key': Consts.marketingApiKey,
+      'x-api-key': getIt<ApiSettings>().marketingApiKey,
     };
 
     await EasyLoading.show(
@@ -54,7 +54,7 @@ class _CreditsTransferState extends State<CreditsTransfer> {
 
     try {
       final api = getIt<ApiProvider>();
-      final url = Uri.parse(Consts.marketingApiHost+'/credits/total').replace(queryParameters: {
+      final url = Uri.parse(getIt<ApiSettings>().marketingApiHost+'/credits/total').replace(queryParameters: {
         'userId': api.userProvider.user!.id.toString(),
       });
       final response = await http.get(url, headers: headers);
@@ -80,7 +80,7 @@ class _CreditsTransferState extends State<CreditsTransfer> {
   Future<void> _transferCredit() async {
     final headers = <String, String>{
       'Content-Type': 'application/json',
-      'x-api-key': Consts.marketingApiKey,
+      'x-api-key': getIt<ApiSettings>().marketingApiKey,
     };
 
     await EasyLoading.show(
@@ -90,7 +90,7 @@ class _CreditsTransferState extends State<CreditsTransfer> {
 
     try {
       final api = getIt<ApiProvider>();
-      final url = Uri.parse(Consts.marketingApiHost+'/credits/transfer').replace(queryParameters: {
+      final url = Uri.parse(getIt<ApiSettings>().marketingApiHost+'/credits/transfer').replace(queryParameters: {
         'userId': api.userProvider.user!.id.toString(),
         'email': _emailController.text,
         'quantity': _quantityController.text

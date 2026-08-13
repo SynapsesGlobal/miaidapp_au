@@ -6,12 +6,12 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:http/http.dart' as http;
 
 import '../api_utils/api_provider.dart';
-import '../api_utils/consts.dart';
 import '../api_utils/http_exception.dart';
 import '../config/app_colors.dart';
 import '../utils/configure_dependencies.dart';
 import '../generated/l10n.dart';
 import '../view/marketing/orders.dart';
+import 'package:miaid/config/api_settings.dart';
 
 class MarketingPaymentService {
   MarketingPaymentService._();
@@ -25,14 +25,14 @@ class MarketingPaymentService {
   }) async {
     final headers = {
       'Content-Type': 'application/json',
-      'x-api-key': Consts.marketingApiKey,
+      'x-api-key': getIt<ApiSettings>().marketingApiKey,
     };
 
     try {
       await EasyLoading.show(status: 'Loading');
 
       final api = getIt<ApiProvider>();
-      final url = Uri.parse('${Consts.marketingApiHost}/order/payment/intent');
+      final url = Uri.parse('${getIt<ApiSettings>().marketingApiHost}/order/payment/intent');
 
       final body = jsonEncode({
         'companyId': companyId,

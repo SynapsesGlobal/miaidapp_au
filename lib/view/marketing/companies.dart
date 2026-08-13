@@ -9,7 +9,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:miaid/view/marketing/company_products.dart';
 
-import '../../api_utils/consts.dart';
 import '../../api_utils/http_exception.dart';
 import '../../component/nav_bar_icons.dart';
 import '../../config/app_colors.dart';
@@ -17,6 +16,8 @@ import 'package:http/http.dart' as http;
 
 import '../../generated/l10n.dart';
 import '../../store/home/home_screen_store.dart';
+import 'package:miaid/config/api_settings.dart';
+import 'package:miaid/utils/configure_dependencies.dart';
 
 class Companies extends StatefulWidget {
   final int categoryId;
@@ -39,7 +40,7 @@ class _CompaniesState extends State<Companies> {
   Future<void> _getCompanies({bool showLoading = true}) async {
     final headers = <String, String>{
       'Content-Type': 'application/json',
-      'x-api-key': Consts.marketingApiKey,
+      'x-api-key': getIt<ApiSettings>().marketingApiKey,
     };
 
     if (showLoading) {
@@ -52,7 +53,7 @@ class _CompaniesState extends State<Companies> {
     try {
       final position = await determinePosition(desiredAccuracy: LocationAccuracy.medium);
       _position = position;
-      final url = Uri.parse(Consts.marketingApiHost+'/companies').replace(queryParameters: {
+      final url = Uri.parse(getIt<ApiSettings>().marketingApiHost+'/companies').replace(queryParameters: {
         'mainCateId': widget.categoryId.toString(),
         'latitude': position.latitude.toString(),
         'longitude': position.longitude.toString(),

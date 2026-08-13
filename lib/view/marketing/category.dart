@@ -15,6 +15,8 @@ import '../../api_utils/http_exception.dart';
 import '../../component/nav_bar_icons.dart';
 import '../../config/app_colors.dart';
 import '../../generated/l10n.dart';
+import 'package:miaid/config/api_settings.dart';
+import 'package:miaid/utils/configure_dependencies.dart';
 
 class MarketingCategory extends StatefulWidget {
   const MarketingCategory({super.key});
@@ -29,7 +31,7 @@ class _MarketingCategoryState extends State<MarketingCategory> {
   Future<void> _getMarketingCategories() async {
     final headers = <String, String>{
       'Content-Type': 'application/json',
-      'x-api-key': Consts.marketingApiKey,
+      'x-api-key': getIt<ApiSettings>().marketingApiKey,
     };
 
     await EasyLoading.show(
@@ -38,7 +40,7 @@ class _MarketingCategoryState extends State<MarketingCategory> {
     );
 
     try {
-      final url = Uri.parse(Consts.marketingApiHost+'/categories/main');
+      final url = Uri.parse(getIt<ApiSettings>().marketingApiHost+'/categories/main');
       final response = await http.get(url, headers: headers,);
 
       await EasyLoading.dismiss();

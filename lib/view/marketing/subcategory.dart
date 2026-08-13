@@ -7,11 +7,12 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 
-import '../../api_utils/consts.dart';
 import '../../api_utils/http_exception.dart';
 import '../../component/nav_bar_icons.dart';
 import '../../config/app_colors.dart';
 import '../../generated/l10n.dart';
+import 'package:miaid/config/api_settings.dart';
+import 'package:miaid/utils/configure_dependencies.dart';
 
 class SubCategories extends StatefulWidget {
   final String mainCateId;
@@ -29,7 +30,7 @@ class _SubCategoriesState extends State<SubCategories> {
   Future<void> _getSubCategories() async {
     final headers = <String, String>{
       'Content-Type': 'application/json',
-      'x-api-key': Consts.marketingApiKey,
+      'x-api-key': getIt<ApiSettings>().marketingApiKey,
     };
 
     await EasyLoading.show(
@@ -38,7 +39,7 @@ class _SubCategoriesState extends State<SubCategories> {
     );
 
     try {
-      final url = Uri.parse(Consts.marketingApiHost+'/categories/sub').replace(queryParameters: {
+      final url = Uri.parse(getIt<ApiSettings>().marketingApiHost+'/categories/sub').replace(queryParameters: {
         'mainCateId': widget.mainCateId.toString(),
       });;
       final response = await http.get(url, headers: headers,);

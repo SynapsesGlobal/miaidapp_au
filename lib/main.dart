@@ -53,8 +53,15 @@ final RouteObserver<PageRoute<dynamic>> routeObserver =
     RouteObserver<PageRoute<dynamic>>();
 
 void main() async {
+  await bootstrap(prod.name);
+}
+
+/// 所有入口（main / main_prod / main_dev / main_sandbox）共用的启动流程。
+/// 环境差异只允许体现在 envName 注入的配置上；不要在单个入口里追加启动逻辑，
+/// 否则测试包与正式包的行为会出现分叉。
+Future<void> bootstrap(String envName) async {
   WidgetsFlutterBinding.ensureInitialized();
-  await configureDependencies(prod.name);
+  await configureDependencies(envName);
   await initFirebase();
 
   /// square payment: 先挂队列监听器，再 init —— 顺序保证冷启动 URI
@@ -65,6 +72,12 @@ void main() async {
   unawaited(PaymentBackend.reconcilePendingPayments());
 
   await runAppFromEnvironment();
+
+  setupFlutterLocalNotifications();
+
+  setLoggingLevelAll();
+
+  incomingLinkHandler();
 }
 
 Future<void> runAppFromEnvironment() async {

@@ -11,7 +11,6 @@ import 'package:miaid/view/marketing/product_detail.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../api_utils/api_provider.dart';
-import '../../api_utils/consts.dart';
 import '../../api_utils/http_exception.dart';
 import '../../component/nav_bar_icons.dart';
 import '../../config/app_colors.dart';
@@ -20,6 +19,7 @@ import 'package:http/http.dart' as http;
 import '../../generated/l10n.dart';
 import '../../utils/configure_dependencies.dart';
 import '../../widget/quantity_dialog.dart';
+import 'package:miaid/config/api_settings.dart';
 
 class CompanyProducts extends StatefulWidget {
   final dynamic company;
@@ -74,7 +74,7 @@ class _CompanyProductsState extends State<CompanyProducts> {
 
     final headers = <String, String>{
       'Content-Type': 'application/json',
-      'x-api-key': Consts.marketingApiKey,
+      'x-api-key': getIt<ApiSettings>().marketingApiKey,
     };
 
     final showMask = page == 1 && showLoading;
@@ -86,7 +86,7 @@ class _CompanyProductsState extends State<CompanyProducts> {
     }
 
     try {
-      final url = Uri.parse(Consts.marketingApiHost+'/company/products').replace(queryParameters: {
+      final url = Uri.parse(getIt<ApiSettings>().marketingApiHost+'/company/products').replace(queryParameters: {
         'cateId': cateId.toString(),
         'companyId': companyId.toString(),
         'keywords': keywords,

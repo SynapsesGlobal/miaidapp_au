@@ -87,7 +87,8 @@ android {
     productFlavors {
         google_sandbox {
             dimension "app"
-            applicationId "com.em.bright.miaid"
+            applicationId "com.em.bright.miaid.test"
+            resValue "string", "app_name", "MiAid(Test)"
             versionCode flutterVersionCode.toInteger()
             versionName flutterVersionName
         }
@@ -95,6 +96,7 @@ android {
         google_prod {
             dimension "app"
             applicationId "com.em.bright.miaid"
+            resValue "string", "app_name", "MiAid"
             versionCode flutterVersionCode.toInteger()
             versionName flutterVersionName
         }

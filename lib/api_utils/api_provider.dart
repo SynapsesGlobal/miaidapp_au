@@ -12,6 +12,8 @@ class ApiProvider {
     required this.apiSettings,
     required this.userProvider,
   }) {
+    // ignore: avoid_print
+    print('[ENV-CHECK] ApiSettings=${apiSettings.runtimeType} endpoint=${apiSettings.endpoint} sub=${apiSettings.endpointSub}');
     apiClientMain = _createApiClient(apiSettings.endpoint, apiSettings.apiKey);
     apiClientSub =
         _createApiClient(apiSettings.endpointSub, apiSettings.apiKeySub);

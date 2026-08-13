@@ -81,12 +81,12 @@ class MiAidDrawer extends StatelessWidget {
   /*Future<String> _getCreditPoints() async {
     final headers = <String, String>{
       'Content-Type': 'application/json',
-      'x-api-key': Consts.marketingApiKey,
+      'x-api-key': getIt<ApiSettings>().marketingApiKey,
     };
 
     try {
       final api = getIt<ApiProvider>();
-      final url = Uri.parse(Consts.marketingApiHost+'/credits/total').replace(queryParameters: {
+      final url = Uri.parse(getIt<ApiSettings>().marketingApiHost+'/credits/total').replace(queryParameters: {
         'userId': api.userProvider.user!.id.toString(),
       });
       final response = await http.get(url, headers: headers);

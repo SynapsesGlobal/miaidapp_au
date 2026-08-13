@@ -8,7 +8,6 @@ import 'package:http/http.dart' as http;
 import 'package:miaid/widget/count_down.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../api_utils/api_provider.dart';
-import '../../api_utils/consts.dart';
 import '../../api_utils/http_exception.dart';
 import '../../generated/l10n.dart';
 import '../../services/marketing_payment_service.dart';
@@ -16,6 +15,7 @@ import '../../utils/configure_dependencies.dart';
 import '../../config/app_colors.dart';
 import '../../component/nav_bar_icons.dart';
 import 'package:map_launcher/map_launcher.dart' as ml;
+import 'package:miaid/config/api_settings.dart';
 
 class ProductDetail extends StatefulWidget {
   final String productId;
@@ -58,7 +58,7 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
   Future<void> _getProductDtl() async {
     final headers = {
       'Content-Type': 'application/json',
-      'x-api-key': Consts.marketingApiKey,
+      'x-api-key': getIt<ApiSettings>().marketingApiKey,
     };
 
     try {
@@ -68,7 +68,7 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
       );
 
       final api = getIt<ApiProvider>();
-      final url = Uri.parse(Consts.marketingApiHost + '/product/detail').replace(queryParameters: {
+      final url = Uri.parse(getIt<ApiSettings>().marketingApiHost + '/product/detail').replace(queryParameters: {
         'productId': widget.productId,
         'userId': api.userProvider.user!.id.toString(),
         'source': 'au'
@@ -96,7 +96,7 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
   Future<void> _addToWishlist() async {
     final headers = {
       'Content-Type': 'application/json',
-      'x-api-key': Consts.marketingApiKey,
+      'x-api-key': getIt<ApiSettings>().marketingApiKey,
     };
 
     try {
@@ -106,7 +106,7 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
       );
 
       final api = getIt<ApiProvider>();
-      final url = Uri.parse('${Consts.marketingApiHost}/product/wish');
+      final url = Uri.parse('${getIt<ApiSettings>().marketingApiHost}/product/wish');
 
       final body = jsonEncode({
         'productId': widget.productId,
@@ -138,7 +138,7 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
   Future<void> _removeFromWishlist() async {
     final headers = {
       'Content-Type': 'application/json',
-      'x-api-key': Consts.marketingApiKey,
+      'x-api-key': getIt<ApiSettings>().marketingApiKey,
     };
 
     try {
@@ -148,7 +148,7 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
       );
 
       final api = getIt<ApiProvider>();
-      final url = Uri.parse('${Consts.marketingApiHost}/product/remove/wish');
+      final url = Uri.parse('${getIt<ApiSettings>().marketingApiHost}/product/remove/wish');
 
       final body = jsonEncode({
         'productId': widget.productId,
@@ -177,12 +177,12 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
   Future<void> _getCreditRewards() async {
     final headers = {
       'Content-Type': 'application/json',
-      'x-api-key': Consts.marketingApiKey,
+      'x-api-key': getIt<ApiSettings>().marketingApiKey,
     };
 
     try {
       final api = getIt<ApiProvider>();
-      final url = Uri.parse(Consts.marketingApiHost + '/credits/product').replace(queryParameters: {
+      final url = Uri.parse(getIt<ApiSettings>().marketingApiHost + '/credits/product').replace(queryParameters: {
         'productId': widget.productId,
         'userId': api.userProvider.user!.id.toString(),
         'source': 'au'

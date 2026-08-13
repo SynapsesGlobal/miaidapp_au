@@ -25,8 +25,18 @@ flutter pub run intl_utils:generate
 
 ## Build APK for sandbox
 
+Sandbox (test) builds install as a separate app: package `com.em.bright.miaid.test`, named "MiAid(Test)".
+
 ```SH
 flutter build apk -t lib/main_sandbox.dart --flavor google_sandbox
+```
+
+## Build IPA for sandbox
+
+Sandbox (test) builds use bundle ID `com.em.bright.ios.dev.miaid` (shared with dev), named "MiAid(Test)".
+
+```SH
+flutter build ipa -t lib/main_sandbox.dart --flavor sandbox
 ```
 
 ## Build APK for Huawei sandbox
@@ -58,7 +68,7 @@ open /Applications/Xcode_13.4.1.app/Contents/MacOS/Xcode
 
 open ios/Runner.xcworkspace
 xcodebuild -version
-flutter build ipa
+flutter build ipa -t lib/main_prod.dart --flavor prod
 
 open build/ios/archive/Runner.xcarchive/
 ```
@@ -137,3 +147,30 @@ android:exported="false"
 tools:replace="android:exported" />
 
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
+```
+设置位置
+澳大利亚：xcrun simctl loccation booted set -33.8688,151.2093
+中国：xcrun simctl location booted set 39.9042,116.4074
+
+启动命令（连上模拟器或真机后）：
+启动测试：
+flutter run --flavor google_sandbox -t lib/main_sandbox.dart
+
+打包测试：
+flutter build apk -t lib/main_sandbox.dart --flavor google_sandbox
+
+启动正式：
+flutter run --flavor google_prod-d emulator-5554
+
+打包正式：
+flutter build apk --flavor google_prod
+
+ios启动测试
+flutter run --flavor sandbox -t lib/main_sandbox.dart -d 1E5B09C8-43C3-418A-8D06-81A4D38FE329
+
+ios启动正式
+flutter run --flavor prod -d  flutter run --flavor google_prod-d emulator-5554
+```
+
+

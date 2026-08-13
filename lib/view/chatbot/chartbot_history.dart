@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:miaid/api_utils/consts.dart';
 import 'package:miaid/view/chatbot/chartbot.dart';
 import 'package:miaid/view/chatbot/chatbot_history_dtl.dart';
 
@@ -16,6 +15,7 @@ import '../../generated/l10n.dart';
 import 'package:http/http.dart' as http;
 
 import '../../utils/configure_dependencies.dart';
+import 'package:miaid/config/api_settings.dart';
 
 class ChatbotHistory extends StatefulWidget {
   final dynamic services;
@@ -38,7 +38,7 @@ class _ChatbotHistoryState extends State<ChatbotHistory> {
 
   Future<void> _getHistoryChats() async {
     final headers = <String, String>{
-      'X-Custom-Token': Consts.chatBotApiToken
+      'X-Custom-Token': getIt<ApiSettings>().chatBotApiToken
     };
 
     final api = getIt<ApiProvider>();
@@ -54,7 +54,7 @@ class _ChatbotHistoryState extends State<ChatbotHistory> {
         maskType: EasyLoadingMaskType.black,
       );
 
-      final url = Uri.parse(Consts.chatBotApiHost + '/app/chat_history');
+      final url = Uri.parse(getIt<ApiSettings>().chatBotApiHost + '/app/chat_history');
       final response = await http.post(url, headers: headers, body: requestBody);
 
       if (response.statusCode == 200) {
@@ -95,7 +95,7 @@ class _ChatbotHistoryState extends State<ChatbotHistory> {
 
   Future<void> _deleteHistoryChat(String historyId) async {
     final headers = <String, String>{
-      'X-Custom-Token': Consts.chatBotApiToken
+      'X-Custom-Token': getIt<ApiSettings>().chatBotApiToken
     };
 
     final requestBody = <String, dynamic>{
@@ -108,7 +108,7 @@ class _ChatbotHistoryState extends State<ChatbotHistory> {
         maskType: EasyLoadingMaskType.black,
       );
 
-      var url_path = Consts.chatBotApiHost+'/app/del_history/$historyId';
+      var url_path = getIt<ApiSettings>().chatBotApiHost+'/app/del_history/$historyId';
       final url = Uri.parse(url_path);
       final response = await http.delete(url, headers: headers, body: requestBody);
       await EasyLoading.dismiss();

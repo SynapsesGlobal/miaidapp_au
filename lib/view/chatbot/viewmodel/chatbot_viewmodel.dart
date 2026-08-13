@@ -13,6 +13,7 @@ import '../../../country/translations.dart';
 import '../../../store/home/home_screen_store.dart';
 import '../../../utils/configure_dependencies.dart';
 import '../models/chat_message.dart';
+import 'package:miaid/config/api_settings.dart';
 
 class ChatBotViewModel extends ChangeNotifier {
   final _api = getIt<ApiProvider>();
@@ -88,8 +89,8 @@ class ChatBotViewModel extends ChangeNotifier {
       };
 
       final response = await http.post(
-        Uri.parse('${Consts.chatBotApiHost}/app/create_chat'),
-        headers: {'X-Custom-Token': Consts.chatBotApiToken},
+        Uri.parse('${getIt<ApiSettings>().chatBotApiHost}/app/create_chat'),
+        headers: {'X-Custom-Token': getIt<ApiSettings>().chatBotApiToken},
         body: {'newChat': jsonEncode(requestBody)},
       );
 

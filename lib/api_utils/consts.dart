@@ -1,9 +1,6 @@
 class Consts {
-  static String marketingApiHost = 'https://admin.miaidpartners.com/api';
-  static String marketingApiKey = 'MNQZMEIOo52S1fdnWDSzTSRhH8ekQPNn';
-
-  static String chatBotApiHost = 'https://ai.miaidpartners.com/api/v1';
-  static String chatBotApiToken = '6P6M7ciBXN8eMAyLsva8HOAKSyagfkfH';
+  // marketing / chatbot 的 host 和 key 按环境区分，已移入 ApiSettings
+  //（lib/config/api_settings.dart），通过 getIt<ApiSettings>() 获取。
   static String AIVideoConsultation = 'mcp_video_consultation';
   static String AIBookHospitals = 'mcp_appoint_hospital';
   static String AIAppointInterpreter = 'mcp_appoint_interpreter';

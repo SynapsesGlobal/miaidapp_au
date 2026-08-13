@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../utils/sse_parser.dart';
-import '../api_utils/consts.dart';
+import 'package:miaid/config/api_settings.dart';
+import 'package:miaid/utils/configure_dependencies.dart';
 
 class ChatbotStreamApi {
   static Future<Stream<String>> sendMessage({
@@ -9,10 +10,10 @@ class ChatbotStreamApi {
     required String lang,
     required List contents,
   }) async {
-    final url = Uri.parse(Consts.chatBotApiHost + '/app/current_chat_stream');
+    final url = Uri.parse(getIt<ApiSettings>().chatBotApiHost + '/app/current_chat_stream');
     final request = http.MultipartRequest('POST', url);
 
-    request.headers['X-Custom-Token'] = Consts.chatBotApiToken;
+    request.headers['X-Custom-Token'] = getIt<ApiSettings>().chatBotApiToken;
     request.headers['Accept'] = 'text/event-stream';
 
     request.fields['history'] = jsonEncode({

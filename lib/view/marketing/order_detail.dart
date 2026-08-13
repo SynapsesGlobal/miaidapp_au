@@ -8,7 +8,6 @@ import 'package:miaid/view/marketing/product_detail.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../api_utils/api_provider.dart';
-import '../../api_utils/consts.dart';
 import '../../api_utils/http_exception.dart';
 import '../../component/nav_bar_icons.dart';
 import '../../config/app_colors.dart';
@@ -16,6 +15,7 @@ import '../../generated/l10n.dart';
 import '../../utils/configure_dependencies.dart';
 import 'package:http/http.dart' as http;
 import 'package:map_launcher/map_launcher.dart' as ml;
+import 'package:miaid/config/api_settings.dart';
 
 class OrderDetail extends StatefulWidget {
   final String orderId;
@@ -32,7 +32,7 @@ class _OrderDetailState extends State<OrderDetail> {
   Future<void> _getOrderDtl() async {
     final headers = <String, String>{
       'Content-Type': 'application/json',
-      'x-api-key': Consts.marketingApiKey,
+      'x-api-key': getIt<ApiSettings>().marketingApiKey,
     };
 
     await EasyLoading.show(
@@ -42,7 +42,7 @@ class _OrderDetailState extends State<OrderDetail> {
 
     try {
       final api = getIt<ApiProvider>();
-      final url = Uri.parse(Consts.marketingApiHost+'/order/detail').replace(queryParameters: {
+      final url = Uri.parse(getIt<ApiSettings>().marketingApiHost+'/order/detail').replace(queryParameters: {
         'userId': api.userProvider.user?.id.toString(),
         'orderId': widget.orderId
       });

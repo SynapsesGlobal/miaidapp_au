@@ -8,12 +8,12 @@ import 'package:http/http.dart' as http;
 import 'package:miaid/view/marketing/credits_transfer.dart';
 
 import '../../api_utils/api_provider.dart';
-import '../../api_utils/consts.dart';
 import '../../api_utils/http_exception.dart';
 import '../../component/nav_bar_icons.dart';
 import '../../config/app_colors.dart';
 import '../../generated/l10n.dart';
 import '../../utils/configure_dependencies.dart';
+import 'package:miaid/config/api_settings.dart';
 
 class Credits extends StatefulWidget {
   const Credits({super.key});
@@ -59,7 +59,7 @@ class _CreditsState extends State<Credits> {
 
     final headers = <String, String>{
       'Content-Type': 'application/json',
-      'x-api-key': Consts.marketingApiKey,
+      'x-api-key': getIt<ApiSettings>().marketingApiKey,
     };
 
     if (_currentPage == 1) {
@@ -71,7 +71,7 @@ class _CreditsState extends State<Credits> {
 
     try {
       final api = getIt<ApiProvider>();
-      final url = Uri.parse(Consts.marketingApiHost+'/credits').replace(queryParameters: {
+      final url = Uri.parse(getIt<ApiSettings>().marketingApiHost+'/credits').replace(queryParameters: {
         'userId': api.userProvider.user!.id.toString(),
         'page': _currentPage.toString(),
         'pageSize': _pageSize.toString()
@@ -99,11 +99,11 @@ class _CreditsState extends State<Credits> {
   Future<void> _getCreditsRules() async {
     final headers = <String, String>{
       'Content-Type': 'application/json',
-      'x-api-key': Consts.marketingApiKey,
+      'x-api-key': getIt<ApiSettings>().marketingApiKey,
     };
 
     try {
-      final url = Uri.parse(Consts.marketingApiHost+'/credit/rules');
+      final url = Uri.parse(getIt<ApiSettings>().marketingApiHost+'/credit/rules');
       final response = await http.get(url, headers: headers);
 
       if (response.statusCode == 200) {

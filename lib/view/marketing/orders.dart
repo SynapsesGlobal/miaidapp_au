@@ -7,7 +7,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:miaid/view/marketing/order_detail.dart';
 
 import '../../api_utils/api_provider.dart';
-import '../../api_utils/consts.dart';
 import '../../api_utils/http_exception.dart';
 import '../../component/nav_bar_icons.dart';
 import '../../config/app_colors.dart';
@@ -16,6 +15,7 @@ import '../../utils/configure_dependencies.dart';
 import 'package:http/http.dart' as http;
 
 import 'company_products.dart';
+import 'package:miaid/config/api_settings.dart';
 
 class Orders extends StatefulWidget {
   const Orders({super.key});
@@ -41,7 +41,7 @@ class _OrdersState extends State<Orders> {
 
     final headers = <String, String>{
       'Content-Type': 'application/json',
-      'x-api-key': Consts.marketingApiKey,
+      'x-api-key': getIt<ApiSettings>().marketingApiKey,
     };
 
     if (page == 1) {
@@ -54,7 +54,7 @@ class _OrdersState extends State<Orders> {
     try {
       final api = getIt<ApiProvider>();
 
-      final url = Uri.parse('${Consts.marketingApiHost}/orders').replace(
+      final url = Uri.parse('${getIt<ApiSettings>().marketingApiHost}/orders').replace(
         queryParameters: {
           'userId': api.userProvider.user?.id.toString(),
           'source': 'au',
@@ -89,11 +89,11 @@ class _OrdersState extends State<Orders> {
   Future<void> _cancelOrder(String orderId, String reason) async {
     final headers = {
       'Content-Type': 'application/json',
-      'x-api-key': Consts.marketingApiKey,
+      'x-api-key': getIt<ApiSettings>().marketingApiKey,
     };
 
     try {
-      final url = Uri.parse('${Consts.marketingApiHost}/order/refund');
+      final url = Uri.parse('${getIt<ApiSettings>().marketingApiHost}/order/refund');
 
       final body = jsonEncode({
         'orderId': orderId,
@@ -509,11 +509,11 @@ class _OrdersState extends State<Orders> {
   Future<void> _deleteOrder(String orderId) async {
     final headers = {
       'Content-Type': 'application/json',
-      'x-api-key': Consts.marketingApiKey,
+      'x-api-key': getIt<ApiSettings>().marketingApiKey,
     };
 
     try {
-      final url = Uri.parse('${Consts.marketingApiHost}/order/delete');
+      final url = Uri.parse('${getIt<ApiSettings>().marketingApiHost}/order/delete');
       final body = jsonEncode({
         'orderId': orderId,
       });
