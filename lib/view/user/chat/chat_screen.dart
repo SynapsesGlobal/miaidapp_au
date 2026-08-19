@@ -1,6 +1,5 @@
-// ignore: library_prefixes
 import 'dart:io';
-import 'package:agora_rtc_engine/rtc_remote_view.dart' as RtcRemoteView;
+import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
@@ -742,12 +741,18 @@ class _ChatScreenState extends State<ChatScreen> {
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(15),
-          child: remoteUserId != null
-              ? RtcRemoteView.SurfaceView(
+          child: remoteUserId != null &&
+                  widget.services.ongoingCallStore.rtcEngine != null
+              ? AgoraVideoView(
                   key: UniqueKey(),
-                  uid: remoteUserId,
-                  channelId: widget
-                      .services.ongoingCallStore.ongoingCall!.channelName!)
+                  controller: VideoViewController.remote(
+                    rtcEngine: widget.services.ongoingCallStore.rtcEngine!,
+                    canvas: VideoCanvas(uid: remoteUserId),
+                    connection: RtcConnection(
+                        channelId: widget.services.ongoingCallStore
+                            .ongoingCall!.channelName!),
+                  ),
+                )
               : Image(
                   fit: BoxFit.cover,
                   image: AssetImage('assets/images/ic_call_operator.png'),

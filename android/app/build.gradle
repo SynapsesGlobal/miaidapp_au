@@ -41,7 +41,8 @@ apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
     namespace 'com.em.bright.miaid'
-    compileSdkVersion 35
+    compileSdkVersion 36
+    ndkVersion "27.0.12077973"
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
@@ -74,8 +75,8 @@ android {
 
     defaultConfig {
         applicationId "com.em.bright.miaid"
-        minSdkVersion 21
-        targetSdkVersion 35
+        minSdkVersion 23 // flutter_zxing 2.2+（16KB 支持）要求 minSdk 23
+        targetSdkVersion 36
         versionCode 106
         versionName flutterVersionName
         ndk {
@@ -132,6 +133,27 @@ android {
     packagingOptions {
         jniLibs {
             useLegacyPackaging false
+            // 排除 App 未使用的 Agora 可选扩展库（约 43MB/ABI）。
+            // 引擎只在调用对应功能 API（enableExtension/美颜/虚拟背景等）时才加载这些库，
+            // 基础音视频通话不依赖它们；若未来用到某个功能，从这里删掉对应一行即可。
+            excludes += [
+                '**/libagora_ai_echo_cancellation_extension.so',    // AI 回声消除（标准 AEC 在核心库内）
+                '**/libagora_ai_echo_cancellation_ll_extension.so',
+                '**/libagora_ai_noise_suppression_extension.so',    // AI 降噪
+                '**/libagora_ai_noise_suppression_ll_extension.so',
+                '**/libagora_audio_beauty_extension.so',            // 美声
+                '**/libagora_clear_vision_extension.so',            // 视频增强/美颜/暗光
+                '**/libagora_content_inspect_extension.so',         // 内容审核
+                '**/libagora_face_capture_extension.so',            // 面部捕捉
+                '**/libagora_face_detection_extension.so',          // 人脸检测
+                '**/libagora_lip_sync_extension.so',                // 唇形同步
+                '**/libagora_screen_capture_extension.so',          // 屏幕共享
+                '**/libagora_segmentation_extension.so',            // 虚拟背景
+                '**/libagora_spatial_audio_extension.so',           // 空间音频
+                '**/libagora_video_av1_encoder_extension.so',       // AV1 编码
+                '**/libagora_video_quality_analyzer_extension.so',  // 视频质量分析
+                '**/libagora_ffmpeg.so',                            // 全格式媒体解码（audioMixing/媒体播放器用，通话不需要）
+            ]
         }
     }
 

@@ -1,6 +1,7 @@
 import 'dart:core';
 import 'dart:io';
 
+import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:geolocator/geolocator.dart';
@@ -58,6 +59,10 @@ abstract class _OngoingCallStore with Store {
 
   final ApiProvider api;
   final UserProvider user;
+
+  /// 当前通话的 RtcEngine 实例，由 CallScreenStore 创建/销毁，
+  /// 供 ChatScreen 等共享 OngoingCallStore 的页面渲染远端视频。
+  RtcEngine? rtcEngine;
 
   @observable
   int? incomingCallId;

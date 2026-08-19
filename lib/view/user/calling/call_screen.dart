@@ -1,11 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-// ignore: library_prefixes
-import 'package:agora_rtc_engine/rtc_local_view.dart' as RtcLocalView;
-
-// ignore: library_prefixes
-import 'package:agora_rtc_engine/rtc_remote_view.dart' as RtcRemoteView;
+import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -489,11 +485,13 @@ class _CallScreenState extends State<CallScreen> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(15),
-              child: isLocal || widget.services.store.ongoingCallStore.ongoingCall == null ? RtcLocalView.SurfaceView() : RtcRemoteView.SurfaceView(
-                key: Key(userId.toString()),
-                uid: userId,
-                channelId: widget.services.store.ongoingCallStore.ongoingCall!.channelName!,
-              ),
+              child: isLocal || widget.services.store.ongoingCallStore.ongoingCall == null
+                  ? _localVideoView()
+                  : _remoteVideoView(
+                      key: Key(userId.toString()),
+                      uid: userId,
+                      channelId: widget.services.store.ongoingCallStore.ongoingCall!.channelName!,
+                    ),
             ),
           ),
           Positioned(bottom: 10, left: 10, child: FutureBuilder(
@@ -577,7 +575,7 @@ class _CallScreenState extends State<CallScreen> {
 
     if (store.isLocalFullScreen) {
       return Stack(children: [
-        RtcLocalView.SurfaceView(),
+        _localVideoView(),
         Positioned(top: 100, left: 20, child: FutureBuilder(
           future: fetchCallUserRole(9999999999),
           builder: (context, snapshot) {
@@ -597,10 +595,10 @@ class _CallScreenState extends State<CallScreen> {
 
     try {
       return Stack(children: [
-        RtcRemoteView.SurfaceView(
+        _remoteVideoView(
           key: UniqueKey(),
           uid: store.fullScreenVideoUserId!,
-          channelId: store.ongoingCallStore.ongoingCall!.channelName!
+          channelId: store.ongoingCallStore.ongoingCall!.channelName!,
         ),
         Positioned(top: 100, left: 20, child: FutureBuilder(
           future: fetchCallUserRole(store.fullScreenVideoUserId!),
@@ -625,6 +623,38 @@ class _CallScreenState extends State<CallScreen> {
 
   Widget _videoPlaceHolder(BuildContext context, CallScreenStore store) {
     return Image(image: AssetImage('assets/images/ph_call_user.png'),);
+  }
+
+  Widget _localVideoView() {
+    final engine = widget.services.store.engine;
+    if (engine == null) {
+      return Image(image: AssetImage('assets/images/ph_call_user.png'));
+    }
+    return AgoraVideoView(
+      controller: VideoViewController(
+        rtcEngine: engine,
+        canvas: const VideoCanvas(uid: 0),
+      ),
+    );
+  }
+
+  Widget _remoteVideoView({
+    Key? key,
+    required int uid,
+    required String channelId,
+  }) {
+    final engine = widget.services.store.engine;
+    if (engine == null) {
+      return Image(image: AssetImage('assets/images/ph_call_user.png'));
+    }
+    return AgoraVideoView(
+      key: key,
+      controller: VideoViewController.remote(
+        rtcEngine: engine,
+        canvas: VideoCanvas(uid: uid),
+        connection: RtcConnection(channelId: channelId),
+      ),
+    );
   }
 
   void endPhoneCallAlert(BuildContext context, CallScreenStore store) {

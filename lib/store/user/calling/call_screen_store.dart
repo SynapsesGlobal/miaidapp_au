@@ -1,6 +1,6 @@
 import 'dart:core';
 
-import 'package:agora_rtc_engine/rtc_engine.dart';
+import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
@@ -50,6 +50,9 @@ abstract class _CallScreenStore with Store {
   final ChatScreenStore chatScreenStore;
 
   RtcEngine? _engine;
+
+  /// 供视图层（AgoraVideoView 的 controller）访问引擎实例
+  RtcEngine? get engine => _engine;
 
   BuildContext? localBuildContext;
 
@@ -104,7 +107,9 @@ abstract class _CallScreenStore with Store {
     await _engine?.stopPreview();
     await _engine?.disableVideo();
     await _engine?.disableAudio();
-    await _engine?.destroy();
+    await _engine?.release();
+    ongoingCallStore.rtcEngine = null;
+    _engine = null;
   }
 
   //Gavin add here
@@ -185,19 +190,25 @@ abstract class _CallScreenStore with Store {
       maskType: EasyLoadingMaskType.clear,
     );
 
-    _engine = await RtcEngine.create(agoraSettings.appId);
+    _engine = createAgoraRtcEngine();
+    await _engine!.initialize(RtcEngineContext(
+      appId: agoraSettings.appId,
+      channelProfile: ChannelProfileType.channelProfileCommunication,
+    ));
+    ongoingCallStore.rtcEngine = _engine;
 
     ongoingCallStore.setHasPendingCall(true);
     await _engine!.enableVideo();
     await _engine!.enableAudio();
     await _engine!.startPreview();
-    await _engine!.setChannelProfile(ChannelProfile.Communication);
-    // await _engine!.setClientRole(ClientRole.Broadcaster);
     await _engine!.muteLocalAudioStream(!hasMicrophone);
     await _engine!.muteLocalVideoStream(!hasVideo);
     _addListeners();
 
     hasVideo = true;
+    // 6.x 里 muteLocalVideoStream 的状态在入会后仍然生效，需显式解除上面按初始
+    // hasVideo=false 设置的视频静音，与 hasVideo=true 的 UI 状态保持一致
+    await _engine!.muteLocalVideoStream(false);
     // await toggleCamera();
 
     //developer.log('Get active call');
@@ -223,43 +234,43 @@ abstract class _CallScreenStore with Store {
 
   void _addListeners() {
     //developer.log('AGORAD Adding listeners to engine $_engine');
-    _engine?.setEventHandler(
+    _engine?.registerEventHandler(
       RtcEngineEventHandler(
-        joinChannelSuccess: (channel, uid, elapsed) {
-          // developer.log('AGORAD joinChannelSuccess $channel $uid $elapsed');
+        onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
+          // developer.log('AGORAD joinChannelSuccess $connection $elapsed');
           _refreshOngoingCall();
           hasJoinedChannel = true;
         },
-        userJoined: (uid, elapsed) async {
-          // developer.log('AGORAD userJoined  $uid $elapsed');
+        onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) async {
+          // developer.log('AGORAD userJoined  $remoteUid $elapsed');
           _refreshOngoingCall();
-          thumbnailUserIds.add(uid);
+          thumbnailUserIds.add(remoteUid);
           isCallConnected = true;
           if (fullScreenVideoUserId == null) {
-            setFullScreenUserId(uid);
+            setFullScreenUserId(remoteUid);
           }
         },
-        userOffline: (uid, reason) {
-          //developer.log('AGORAD userOffline  $uid $reason');
+        onUserOffline: (RtcConnection connection, int remoteUid, UserOfflineReasonType reason) {
+          //developer.log('AGORAD userOffline  $remoteUid $reason');
           _refreshOngoingCall();
           // if the offline user is the full screen user, set full screen user to another user in the list if available
           // otherwise, set full screen user to the local user
-          if (fullScreenVideoUserId == uid) {
+          if (fullScreenVideoUserId == remoteUid) {
             if (thumbnailUserIds.isNotEmpty) {
               setFullScreenUserId(thumbnailUserIds.first);
             } else {
               setFullScreenUserId(user.user!.id!);
             }
           }
-          thumbnailUserIds.remove(uid);
+          thumbnailUserIds.remove(remoteUid);
         },
-        leaveChannel: (stats) {
+        onLeaveChannel: (RtcConnection connection, RtcStats stats) {
           //developer.log('AGORAD leaveChannel ${stats.toJson()}');
           hasJoinedChannel = false;
           thumbnailUserIds.clear();
         },
-        error: (errorCode) {
-          //developer.log('AGORAD error $errorCode');
+        onError: (ErrorCodeType err, String msg) {
+          //developer.log('AGORAD error $err $msg');
         },
       ),
     );
@@ -308,16 +319,18 @@ abstract class _CallScreenStore with Store {
         'Joining Channel [1] _joinChannel: agoraToken${agoraToken} -- channelName${channelName} -- userId${userId}');
 
     final options = ChannelMediaOptions(
-      publishLocalAudio: hasMicrophone,
-      publishLocalVideo: hasVideo,
+      channelProfile: ChannelProfileType.channelProfileCommunication,
+      publishMicrophoneTrack: hasMicrophone,
+      publishCameraTrack: hasVideo,
+      autoSubscribeAudio: true,
+      autoSubscribeVideo: true,
     );
 
     await _engine?.joinChannel(
-      agoraToken,
-      channelName,
-      null,
-      userId,
-      options,
+      token: agoraToken,
+      channelId: channelName,
+      uid: userId,
+      options: options,
     );
   }
 
