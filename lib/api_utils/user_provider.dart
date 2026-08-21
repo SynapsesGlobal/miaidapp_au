@@ -169,6 +169,10 @@ class UserProvider {
     }
     await sharedPreferences.remove('open_position_tracking');
 
+    // 首页剩余问诊次数缓存与账号绑定，登出时必须清掉，
+    // 否则下个登录账号（或未登录状态）会短暂显示上个账号的次数。
+    await sharedPreferences.remove('remaining_consultations');
+
     await _setAccessToken(null);
     await _setLastLoginUserType(null);
     _user = null;

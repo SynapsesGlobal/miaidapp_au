@@ -148,9 +148,12 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _initEmergencyAndConsultationData() async {
     final prefs = await SharedPreferences.getInstance();
+    // 剩余次数缓存只对已登录用户有效，未登录一律显示 0。
+    final isLoggedIn = getIt<UserProvider>().isLoggedIn;
     setState(() {
       emergency_number = prefs.getString('current_emergency_number') ?? '000';
-      remaining_consultations = prefs.getString('remaining_consultations') ?? '0';
+      remaining_consultations =
+          isLoggedIn ? (prefs.getString('remaining_consultations') ?? '0') : '0';
     });
   }
 
@@ -199,6 +202,10 @@ class _HomeScreenState extends State<HomeScreen>
       } catch (e) {
         debugPrint(e.toString());
       }
+    } else {
+      // 未登录（或医生/翻译端）没有剩余次数概念，显示重置为 0，
+      // 防止登出后首页实例复用时残留上个账号的数字。
+      if (mounted) setState(() => remaining_consultations = '0');
     }
   }
 
