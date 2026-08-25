@@ -22,14 +22,14 @@ Future<void> navigateToCallScreen(
   ActiveSubscriptionStore store,
   VIDEO_CALL_TYPE video_call_type,
 ) async {
-  if (store.remainingConsultations == null) {
+  /*if (store.remainingConsultations == null) {
     // TODO show an error to the user
     // debugPrint('There are no remaining consultations');
     await HttpExceptionNotifyUser.showInfo(
       S.of(context).noAvailableConsultation,
     );
     return;
-  }
+  }*/
 
   /// 给客服打电话不受限制
   /*if (video_call_type == VIDEO_CALL_TYPE.ASSISTANCE) {
