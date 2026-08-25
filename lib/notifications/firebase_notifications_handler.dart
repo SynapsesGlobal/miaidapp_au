@@ -94,18 +94,28 @@ class FirebaseNotificationHandler extends NotificationHandler {
       }
     });
 
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      String? eventName;
-      if (message.data.containsKey('event_name')) {
-        eventName = message.data['event_name'];
-      }
-      if (eventName == 'emergency_follow_up') {
-        var taskId = message.data['notificationId'].toString();
-        ArrivalHospitalDialog.show(taskId: taskId);
-      }
-    });
-
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageTap);
 
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+    // App 完全退出时点击通知冷启动：消息不会走上面两个 stream，
+    // 只能通过 getInitialMessage 取回（同一条消息只返回一次，不会重复弹框）
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _handleMessageTap(initialMessage);
+      });
+    }
+  }
+
+  void _handleMessageTap(RemoteMessage message) {
+    String? eventName;
+    if (message.data.containsKey('event_name')) {
+      eventName = message.data['event_name'];
+    }
+    if (eventName == 'emergency_follow_up') {
+      var taskId = message.data['notificationId'].toString();
+      ArrivalHospitalDialog.show(taskId: taskId);
+    }
   }
 }
