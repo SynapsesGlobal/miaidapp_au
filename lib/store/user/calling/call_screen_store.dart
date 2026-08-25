@@ -190,46 +190,51 @@ abstract class _CallScreenStore with Store {
       maskType: EasyLoadingMaskType.clear,
     );
 
-    _engine = createAgoraRtcEngine();
-    await _engine!.initialize(RtcEngineContext(
-      appId: agoraSettings.appId,
-      channelProfile: ChannelProfileType.channelProfileCommunication,
-    ));
-    ongoingCallStore.rtcEngine = _engine;
+    // EasyLoading 是挂在 MaterialApp 上的全局遮罩，跨页面存活且拦截点击；
+    // 任何失败路径（定位被拒/超时、接口异常）都必须收掉它，
+    // 否则错误处理导航回首页后界面仍停留在 Connecting 且无法操作
+    try {
+      _engine = createAgoraRtcEngine();
+      await _engine!.initialize(RtcEngineContext(
+        appId: agoraSettings.appId,
+        channelProfile: ChannelProfileType.channelProfileCommunication,
+      ));
+      ongoingCallStore.rtcEngine = _engine;
 
-    ongoingCallStore.setHasPendingCall(true);
-    await _engine!.enableVideo();
-    await _engine!.enableAudio();
-    await _engine!.startPreview();
-    await _engine!.muteLocalAudioStream(!hasMicrophone);
-    await _engine!.muteLocalVideoStream(!hasVideo);
-    _addListeners();
+      ongoingCallStore.setHasPendingCall(true);
+      await _engine!.enableVideo();
+      await _engine!.enableAudio();
+      await _engine!.startPreview();
+      await _engine!.muteLocalAudioStream(!hasMicrophone);
+      await _engine!.muteLocalVideoStream(!hasVideo);
+      _addListeners();
 
-    hasVideo = true;
-    // 6.x 里 muteLocalVideoStream 的状态在入会后仍然生效，需显式解除上面按初始
-    // hasVideo=false 设置的视频静音，与 hasVideo=true 的 UI 状态保持一致
-    await _engine!.muteLocalVideoStream(false);
-    // await toggleCamera();
+      hasVideo = true;
+      // 6.x 里 muteLocalVideoStream 的状态在入会后仍然生效，需显式解除上面按初始
+      // hasVideo=false 设置的视频静音，与 hasVideo=true 的 UI 状态保持一致
+      await _engine!.muteLocalVideoStream(false);
+      // await toggleCamera();
 
-    //developer.log('Get active call');
+      //developer.log('Get active call');
 
-    final response = await api.apiClientMain.callsPostCallActive();
-    developer.log('response: ${response}');
-    await ApiSuccessParser.isSuccessfulOrThrowWithMessage(response);
+      final response = await api.apiClientMain.callsPostCallActive();
+      developer.log('response: ${response}');
+      await ApiSuccessParser.isSuccessfulOrThrowWithMessage(response);
 
-    final existingCall = response.body?.payload;
-    if (existingCall == null) {
-      developer.log('START new call');
-      await startNewCall(video_call_type: video_call_type);
-    } else {
-      developer.log('EXISTING call');
-      final response =
-          await api.apiClientMain.callsPostCallAccept(call_id: existingCall.id);
-      await ApiSuccessParser.payloadOrThrowWithMessage(response);
-      await startFromExistingCall(existingCall);
+      final existingCall = response.body?.payload;
+      if (existingCall == null) {
+        developer.log('START new call');
+        await startNewCall(video_call_type: video_call_type);
+      } else {
+        developer.log('EXISTING call');
+        final response = await api.apiClientMain
+            .callsPostCallAccept(call_id: existingCall.id);
+        await ApiSuccessParser.payloadOrThrowWithMessage(response);
+        await startFromExistingCall(existingCall);
+      }
+    } finally {
+      await EasyLoading.dismiss();
     }
-
-    await EasyLoading.dismiss();
   }
 
   void _addListeners() {

@@ -68,7 +68,13 @@ class _CallScreenState extends State<CallScreen> {
   void initState() {
     Wakelock.enable();
 
-    widget.services.store.initEngine().then((_) {
+    // 90s 是最后防线：initEngine 内部各请求已有 10-30s 超时，正常流程
+    // 远早于此完成；这里只兜原生层（Agora/定位插件）等未知挂起，
+    // 避免发出请求前的卡死让下方 60s 无应答计时器永远没机会启动
+    widget.services.store
+        .initEngine()
+        .timeout(const Duration(seconds: 90))
+        .then((_) {
       debugPrint('Going to call');
       timer = Timer.periodic(Duration(seconds: 1), (timer) async {
         widget.services.store.updateTimerText();
@@ -98,6 +104,9 @@ class _CallScreenState extends State<CallScreen> {
         }
       });
     }).catchError((e) {
+      // 看门狗超时时 initEngine 仍在挂起、其 finally 尚未执行，
+      // 这里需要主动收掉全局 Connecting 遮罩（重复 dismiss 无副作用）
+      EasyLoading.dismiss();
       // on error go to homepage
       if (e is HttpException && e.statusCode == 401) {
         widget.services.store.user.logOut();

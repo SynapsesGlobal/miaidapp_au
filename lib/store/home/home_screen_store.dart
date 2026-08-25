@@ -159,8 +159,12 @@ Future<String?> getCountryCodeFromLocation(Position position) async {
   var url = 'https://api.mapbox.com/geocoding/v5/mapbox.places/$longitude,$latitude.json?access_token=$accessToken';
 
   var country_code = 'AU';
-  final response = await http.get(Uri.parse(url));
   try {
+    // 这次请求发生在 create-call 之前，挂起会让通话页永远停在 Connecting，
+    // 且原先 http.get 在 try 外，网络异常会直接抛给上层；
+    // 超时或失败一律退回默认 'AU'
+    final response =
+        await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
     if (response.statusCode != 200) return country_code;
     final data = jsonDecode(response.body);
     for (var feature in data['features']) {

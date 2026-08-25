@@ -1,4 +1,8 @@
+import 'dart:io';
+
 import 'package:chopper/chopper.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
 import 'package:miaid/config/api_settings.dart';
 import 'package:miaid/api_utils/user_provider.dart';
 import 'package:miaid/generated_api_code/api_client.swagger.dart';
@@ -28,6 +32,7 @@ class ApiProvider {
   ApiClient _createApiClient(String endpoint, String apiKey) {
     return ApiClient.create(
       ChopperClient(
+        client: _TimeoutHttpClient(),
         interceptors: [
           AuthenticationInterceptor(
             apiKey,
@@ -65,4 +70,25 @@ class ApiProvider {
       return apiSettings.apiKeySub;
     }
   }
+}
+
+/// 弱网或 Wi-Fi/蜂窝切换后复用已死的 TCP 连接时，默认 HttpClient 没有任何
+/// 超时，请求会无限挂起（后端收不到请求，界面停在 Connecting）。
+/// 这里统一限制建立连接和等待响应头的时间；响应体的下载不受此限制。
+class _TimeoutHttpClient extends http.BaseClient {
+  _TimeoutHttpClient()
+      : _inner = IOClient(
+          HttpClient()..connectionTimeout = const Duration(seconds: 10),
+        );
+
+  final http.Client _inner;
+
+  static const Duration _responseTimeout = Duration(seconds: 30);
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) =>
+      _inner.send(request).timeout(_responseTimeout);
+
+  @override
+  void close() => _inner.close();
 }
