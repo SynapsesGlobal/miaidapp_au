@@ -24,6 +24,7 @@ abstract class SharedPreferencesModule {
 class UserProvider {
   static const String _kUserAccessToken = 'accessToken';
   static const String _kUserLoginType = 'lastLoginUserType';
+  static const String _kLastLoginAt = 'lastLoginAt';
 
   UserProvider(this.sharedPreferences, DeviceIdProvider deviceIdProvider)
       : deviceId = deviceIdProvider.deviceId;
@@ -58,6 +59,10 @@ class UserProvider {
   void onLogIn(User user) async {
     _user = user;
     await _setAccessToken(_user!.accessToken);
+    // 记录登录时间：token 固定 90 天有效期，SessionRevokedHandler 据此
+    // 区分"被其他设备登录顶掉"和"自然过期"（旧后端无 error_code 时）
+    await sharedPreferences.setInt(
+        _kLastLoginAt, DateTime.now().millisecondsSinceEpoch);
     await _setLastLoginUserType(_user?.doctor != null
         ? 'doctor'
         : _user?.translator != null
@@ -96,6 +101,19 @@ class UserProvider {
     await _resetUserRelatedData();
 
     await EasyLoading.dismiss();
+  }
+
+  /// 本次登录的时间；仅用于判断 token 失效是被踢还是自然过期
+  DateTime? get lastLoginAt {
+    final millis = sharedPreferences.getInt(_kLastLoginAt);
+    return millis == null ? null : DateTime.fromMillisecondsSinceEpoch(millis);
+  }
+
+  /// 会话已在服务端失效（账号在其他设备登录被顶掉）时的本地清理。
+  /// 与 logOut() 的区别：不调用 logout 接口——token 已失效，调用只会
+  /// 再触发一次 401。
+  Future<void> onSessionRevoked() async {
+    await _resetUserRelatedData();
   }
 
   Future<void> deleteAccount() async {

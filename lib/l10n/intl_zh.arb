@@ -306,6 +306,7 @@
   "notificationList": "通知列表",
   "noNotification": "没有通知",
   "relogin": "身份验证已过期，请重新登陆",
+  "accountLoggedInElsewhere": "您的账号已在其他设备上登录，本设备已退出。如非本人操作，请修改密码后重新登录。",
   "somethingWentWrong": "抱歉，有地方出错了。请稍后再试。",
   "role": "用户类型",
   "customerType": "普通用户",

@@ -272,6 +272,7 @@
   "notificationList": "通知列表",
   "noNotification": "沒有通知",
   "relogin": "身份驗證已過期，請重新登入",
+  "accountLoggedInElsewhere": "您的帳號已在其他裝置上登入，本裝置已登出。如非本人操作，請修改密碼後重新登入。",
   "somethingWentWrong": "抱歉，有地方出錯了。請稍後再試。",
   "role": "用戶類型",
   "customerType": "普通用戶",

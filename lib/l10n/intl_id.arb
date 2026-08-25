@@ -306,6 +306,7 @@
   "aboutSlogan": "Pelopor Keamanan Kesehatan - Health WayFinder",
   "clickMiaid": "Klik 'MiAid' untuk menjelajahi lebih lanjut di situs web kami!",
   "relogin": "Autentikasi gagal. Silakan login kembali.",
+  "accountLoggedInElsewhere": "Akun Anda telah masuk di perangkat lain dan perangkat ini telah keluar. Jika ini bukan Anda, silakan ubah kata sandi lalu masuk kembali.",
   "somethingWentWrong": "Terjadi kesalahan. Silakan coba lagi nanti.",
   "role": "Masuk sebagai",
   "customerType": "Pengguna Biasa",

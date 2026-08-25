@@ -9,6 +9,7 @@ import 'package:miaid/generated_api_code/api_client.swagger.dart';
 import 'package:injectable/injectable.dart';
 
 import 'authentication_interceptor.dart';
+import 'session_revoked_interceptor.dart';
 
 @singleton
 class ApiProvider {
@@ -38,6 +39,7 @@ class ApiProvider {
             apiKey,
             () => userProvider.user?.accessToken ?? '',
           ),
+          SessionRevokedInterceptor(),
           HttpLoggingInterceptor(),
         ],
         converter: $JsonSerializableConverter(),

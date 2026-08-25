@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:miaid/api_utils/session_revoked_handler.dart';
 import 'package:miaid/dialogs/arrival_hospital.dart';
 import 'package:miaid/store/user/calling/ongoing_call_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
@@ -38,6 +39,12 @@ class FirebaseNotificationHandler extends NotificationHandler {
       if (eventName == 'emergency_follow_up') {
         var taskId = message.data['notificationId'].toString();
         ArrivalHospitalDialog.show(taskId: taskId);
+      }
+
+      // 账号在其他设备登录，本设备被踢下线（后端登录踢出时实时推送）
+      if (eventName == 'logged-in-elsewhere') {
+        SessionRevokedHandler.handleKickedPush();
+        return;
       }
 
       if (eventName == 'incoming-call') {
@@ -94,18 +101,32 @@ class FirebaseNotificationHandler extends NotificationHandler {
       }
     });
 
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      String? eventName;
-      if (message.data.containsKey('event_name')) {
-        eventName = message.data['event_name'];
-      }
-      if (eventName == 'emergency_follow_up') {
-        var taskId = message.data['notificationId'].toString();
-        ArrivalHospitalDialog.show(taskId: taskId);
-      }
-    });
-
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageTap);
 
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+    // App 完全退出时点击通知冷启动：消息不会走上面两个 stream，
+    // 只能通过 getInitialMessage 取回（同一条消息只返回一次，不会重复弹框）
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _handleMessageTap(initialMessage);
+      });
+    }
+  }
+
+  void _handleMessageTap(RemoteMessage message) {
+    String? eventName;
+    if (message.data.containsKey('event_name')) {
+      eventName = message.data['event_name'];
+    }
+    if (eventName == 'emergency_follow_up') {
+      var taskId = message.data['notificationId'].toString();
+      ArrivalHospitalDialog.show(taskId: taskId);
+    }
+    // 后台收到踢出推送后点通知进入 App：此时补做本地登出和提示
+    if (eventName == 'logged-in-elsewhere') {
+      SessionRevokedHandler.handleKickedPush();
+    }
   }
 }
