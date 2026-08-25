@@ -28,6 +28,11 @@ abstract class _LocationDetailsStore with Store {
   @observable
   bool isLoading = false;
 
+  /// 选国家后拉取城市列表的独立 loading：不复用 [isLoading]，
+  /// 否则整页表单（含已显示的国家选择框）会被整体替换成 loading
+  @observable
+  bool isCityLoading = false;
+
   @observable
   String? citySelected;
 
@@ -107,24 +112,30 @@ abstract class _LocationDetailsStore with Store {
 
   @action
   dynamic fetchLocations(ApiProvider apiProvider, String country, {int? countryId}) async {
-    isLoading = true;
+    isCityLoading = true;
     listLocationFilters.clear();
     cityList = [];
     citySelected = null;
     cityIdSelected = null;
     stateSelected = null;
-    var locale = Intl.getCurrentLocale();
-    var locationsListResponse = await apiProvider.apiClient
-        .eShopLocationsGetLocationList(country: country, country_id: countryId, lang: locale);
-    if (ApiSuccessParser.isSuccessfulWithPayload(locationsListResponse)) {
-      final pharmacyLocation = await ApiSuccessParser.payloadOrThrowWithMessage(locationsListResponse);
-      listLocationFilters.addAll(pharmacyLocation);
-      cityList = _cityOptionsFrom(listLocationFilters);
-      showNoLocationsInCountryError = false;
-      isLoading = false;
-    } else {
+    showNoLocationsInCountryError = false;
+    try {
+      var locale = Intl.getCurrentLocale();
+      var locationsListResponse = await apiProvider.apiClient
+          .eShopLocationsGetLocationList(country: country, country_id: countryId, lang: locale);
+      if (ApiSuccessParser.isSuccessfulWithPayload(locationsListResponse)) {
+        final pharmacyLocation = await ApiSuccessParser.payloadOrThrowWithMessage(locationsListResponse);
+        listLocationFilters.addAll(pharmacyLocation);
+        cityList = _cityOptionsFrom(listLocationFilters);
+      } else {
+        showNoLocationsInCountryError = true;
+      }
+    } catch (e) {
+      // 网络异常/超时也走错误卡片，用户可重选国家重试；
+      // 不能让 loading 标志卡在 true（否则城市区域永远转圈）
       showNoLocationsInCountryError = true;
-      isLoading = false;
+    } finally {
+      isCityLoading = false;
     }
   }
 
@@ -157,15 +168,19 @@ abstract class _LocationDetailsStore with Store {
       stateSelected = null;
       cityList = [];
 
-      var countriesListResponse = await apiProvider.apiClient.countriesGetCountriesList(lang: locale);
-      isLoading = false;
-      if (ApiSuccessParser.isSuccessfulWithPayload(countriesListResponse)) {
-        final cList = await ApiSuccessParser.payloadOrThrowWithMessage(countriesListResponse);
-        countryList.addAll(cList);
-        _loadedLocale = locale;
-      } else {
-        // parsing this here, it means it'll throw an error and display the error to the user
-        await ApiSuccessParser.payloadOrThrowWithMessage(countriesListResponse);
+      try {
+        var countriesListResponse = await apiProvider.apiClient.countriesGetCountriesList(lang: locale);
+        if (ApiSuccessParser.isSuccessfulWithPayload(countriesListResponse)) {
+          final cList = await ApiSuccessParser.payloadOrThrowWithMessage(countriesListResponse);
+          countryList.addAll(cList);
+          _loadedLocale = locale;
+        } else {
+          // parsing this here, it means it'll throw an error and display the error to the user
+          await ApiSuccessParser.payloadOrThrowWithMessage(countriesListResponse);
+        }
+      } finally {
+        // 请求本身抛异常（如超时）时也要复位，避免整页永远 loading
+        isLoading = false;
       }
     }
   }

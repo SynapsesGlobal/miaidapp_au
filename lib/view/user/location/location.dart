@@ -116,7 +116,17 @@ class _LocationsState extends State<Locations> {
                       const SizedBox(height: 8),
                       _countryField(),
                     ],
-                    if (locationDetailsStore.showNoLocationsInCountryError ||
+                    // 城市列表加载中：国家选择框保持可见，仅城市区域显示 loading
+                    if (locationDetailsStore.isCityLoading) ...[
+                      const SizedBox(height: 28),
+                      Center(
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: progressIndicator(),
+                        ),
+                      ),
+                    ] else if (locationDetailsStore.showNoLocationsInCountryError ||
                         (locationDetailsStore.countrySelected != null &&
                             locationDetailsStore.cityList.isEmpty)) ...[
                       const SizedBox(height: 12),
