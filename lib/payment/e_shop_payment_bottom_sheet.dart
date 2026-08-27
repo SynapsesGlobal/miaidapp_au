@@ -119,16 +119,20 @@ class EShopPaymentBottomSheet extends StatelessWidget {
               }
               return Column(
                 children: [
+                  // 与上方 Credit or Debit 行保持一致的列表项样式（支付方式列表中
+                  // 苹果允许用 Apple Pay 标识的列表项代替官方 PKPaymentButton）
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    padding: const EdgeInsets.only(top: 10, bottom: 10),
                     child: TapDebouncer(
                       onTap: () async => await _startApplePayProcess(context),
-                      builder: (context, onTap) => PlatformPayButton(
-                        type: PlatformButtonType.buy,
-                        appearance: PlatformButtonStyle.black,
-                        borderRadius: 8,
-                        constraints: const BoxConstraints.tightFor(height: 44),
-                        onPressed: () => onTap?.call(),
+                      builder: (context, onTap) => ListTile(
+                        leading: const Icon(Icons.apple, color: Colors.black, size: 30),
+                        title: Text('Apple Pay', style: GoogleFonts.rubik(
+                          color: AppColors.k010101,
+                          fontSize: 14,
+                        )),
+                        dense: true,
+                        onTap: onTap,
                       ),
                     ),
                   ),

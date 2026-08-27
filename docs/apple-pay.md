@@ -39,7 +39,7 @@ Apple Pay 走现有 Stripe 通道（Platform Pay），不引入新 SDK：
 - `Stripe.merchantIdentifier`（`lib/main.dart`）已由公司显示名改为
   `merchant.au.com.mi-aid`，此值仅用于 Apple Pay，不影响刷卡。
 - 金额展示：Apple Pay 面板金额取 `order.orderTotal`（元），实际扣款以后端
-  PaymentIntent（分）为准。
+  PaymentIntent（分）为准。s
 - 已知历史缺口（本分支未改，避免影响现网行为）：刷卡支付的药房订单在 webhook 中
   从不发确认邮件、不扣库存，仅 Apple Pay/支付宝/微信会触发。如需统一，把
   `StripeWebhookController` 中 pharmacy 分支的 `APPLE_PAY` 限制去掉即可。
