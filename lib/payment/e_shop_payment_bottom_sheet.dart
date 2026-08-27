@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -92,8 +94,81 @@ class EShopPaymentBottomSheet extends StatelessWidget {
           color: Colors.black12,
           height: 0,
         ),
+        // Apple Pay 走 Stripe Platform Pay，仅 iOS 且设备支持时展示，
+        // 不影响原有刷卡（PaymentSheet）流程
+        if (Platform.isIOS)
+          FutureBuilder<bool>(
+            future: Stripe.instance.isPlatformPaySupported(),
+            builder: (context, snapshot) {
+              if (snapshot.data != true) {
+                return const SizedBox.shrink();
+              }
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    child: TapDebouncer(
+                      onTap: () async => await _startApplePayProcess(context),
+                      builder: (context, onTap) => PlatformPayButton(
+                        type: PlatformButtonType.buy,
+                        appearance: PlatformButtonStyle.black,
+                        borderRadius: 8,
+                        constraints: const BoxConstraints.tightFor(height: 44),
+                        onPressed: () => onTap?.call(),
+                      ),
+                    ),
+                  ),
+                  Divider(
+                    color: Colors.black12,
+                    height: 0,
+                  ),
+                ],
+              );
+            },
+          ),
       ],
     );
+  }
+
+  Future<void> _startApplePayProcess(BuildContext context) async {
+    try {
+      final order = params!.order;
+      final paymentIntent = await services.store.createApplePayPaymentIntent(order);
+      Navigator.pop(context);
+      await Stripe.instance.confirmPlatformPayPaymentIntent(
+        clientSecret: paymentIntent.paymentIntentClientSecret!,
+        confirmParams: PlatformPayConfirmParams.applePay(
+          applePay: ApplePayParams(
+            merchantCountryCode: 'AU',
+            currencyCode: order.pharmacyCurrency ?? 'AUD',
+            cartItems: [
+              // 实际扣款金额以后端创建的 PaymentIntent（分）为准，这里仅为 Apple Pay 面板展示
+              ApplePayCartSummaryItem.immediate(
+                label: 'Synapses Global Assist Pty Ltd',
+                amount: (order.orderTotal ?? 0).toStringAsFixed(2),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      await LogEventService.purchase(
+        orderItems: order.products ?? <Product>[],
+        currency: order.pharmacyCurrency ?? '',
+        total: order.subTotal ?? 0,
+        orderId: order.id?.toString() ?? '',
+      );
+
+      params?.cartStore?.closeCart();
+    } on StripeException catch (e) {
+      if (e.error.code != FailureCode.Canceled) {
+        await HttpExceptionNotifyUser.showError('Could not complete payment [12]: ' + e.toString());
+        rethrow;
+      }
+    } catch (e) {
+      await HttpExceptionNotifyUser.showError('Could not complete payment [13]: ' + e.toString());
+      rethrow;
+    }
   }
 
   Future<void> _startCardPaymentProcess(BuildContext context) async {
@@ -101,12 +176,6 @@ class EShopPaymentBottomSheet extends StatelessWidget {
     Navigator.pop(context);
     try {
       await Stripe.instance.initPaymentSheet(paymentSheetParameters: SetupPaymentSheetParameters(
-        /*applePay: PaymentSheetApplePay(
-          merchantCountryCode: 'AU',
-        ),
-        googlePay: PaymentSheetGooglePay(
-          merchantCountryCode: 'AU',
-        ),*/
         applePay: null,
         googlePay: null,
         style: ThemeMode.light,

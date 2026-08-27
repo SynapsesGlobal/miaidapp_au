@@ -95,7 +95,9 @@ Future<void> runAppFromEnvironment() async {
   );
 
   Stripe.publishableKey = getIt<StripeSettings>().publishableKey;
-  Stripe.merchantIdentifier = 'Synapses Global Assist Pty Ltd';
+  // 必须与 entitlements 里 com.apple.developer.in-app-payments 的 merchant ID 一致，
+  // 否则 Apple Pay 按钮不会出现（此值仅用于 Apple Pay，不影响刷卡支付）。
+  Stripe.merchantIdentifier = 'merchant.au.com.mi-aid';
 
   final streamSettings = getIt<StreamSettings>();
   var appSettings = (cometchat.AppSettingsBuilder()
