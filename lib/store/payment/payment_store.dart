@@ -78,6 +78,23 @@ abstract class _PaymentStore with Store {
     return await ApiSuccessParser.payloadOrThrowWithMessage(response);
   }
 
+  // Apple Pay 在 Stripe 侧仍是 card 类型的 PaymentIntent，后端用 apple_pay
+  // 标记 payment_type。不加 @action（无 observable 变更），避免必须跑
+  // build_runner（会抹掉 generated_api_code 里的手工补丁）。
+  Future<StripePaymentIntent> createApplePayPaymentIntent(
+      PurchaseRequest purchaseRequest) async {
+    final countryCode = await getCountryCode();
+
+    final response =
+        await api.apiClient.subscriptionsPostStripePaymentIntentCreate(
+      item_id: purchaseRequest.itemId,
+      purchase_type: purchaseTypeToString(purchaseRequest.purchaseType),
+      payment_method_type: 'apple_pay',
+      country_code: countryCode,
+    );
+    return await ApiSuccessParser.payloadOrThrowWithMessage(response);
+  }
+
   @action
   Future<BraintreePayment> createBraintreePayment(
     PurchaseRequest purchaseRequest,

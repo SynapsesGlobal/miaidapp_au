@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
@@ -106,8 +108,113 @@ class PaymentBottomSheet extends StatelessWidget {
           color: Colors.grey[300],
           height: 0,
         ),
+        // Apple Pay 走 Stripe Platform Pay，仅 iOS 且 Wallet 已添加受支持的卡时展示，
+        // 与 e_shop_payment_bottom_sheet 保持一致；原刷卡/Square 流程不受影响
+        if (Platform.isIOS)
+          FutureBuilder<bool>(
+            future: Stripe.instance.isPlatformPaySupported(),
+            builder: (context, snapshot) {
+              if (snapshot.data != true) {
+                // isPlatformPaySupported 只检查 Wallet 里是否已添加
+                // Visa/Mastercard/Amex 等 Stripe 支持的卡（银联不算），
+                // debug 构建把原因显示出来方便真机排查
+                if (kDebugMode && snapshot.connectionState == ConnectionState.done) {
+                  return Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Text(
+                      'Apple Pay 不可用：Wallet 未添加 Visa/Mastercard/Amex 卡'
+                      '（isPlatformPaySupported=${snapshot.data}）',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              }
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10, bottom: 10),
+                    child: TapDebouncer(
+                      onTap: () async {
+                        var state = await _startApplePayProcess(context);
+                        Navigator.pop(params!.context, state);
+                      },
+                      builder: (context, onTap) => ListTile(
+                        leading: const Icon(Icons.apple, color: Colors.black, size: 30),
+                        title: Text('Apple Pay', style: GoogleFonts.rubik(
+                          color: AppColors.k010101,
+                          fontSize: 14,
+                        )),
+                        dense: true,
+                        onTap: onTap,
+                      ),
+                    ),
+                  ),
+                  Divider(
+                    color: Colors.grey[300],
+                    height: 0,
+                  ),
+                ],
+              );
+            },
+          ),
       ],
     );
+  }
+
+  Future<bool> _startApplePayProcess(BuildContext context) async {
+    Navigator.pop(context);
+
+    await EasyLoading.show(
+      status: S.of(context).loading,
+      maskType: EasyLoadingMaskType.clear,
+    );
+
+    await LogEventService.beginCheckout(
+      numItems: 1,
+      currency: params!.purchaseRequest.currency.currency ?? '',
+      total: params!.purchaseRequest.amount.toDouble(),
+    );
+
+    try {
+      final paymentIntent = await services.store.createApplePayPaymentIntent(params!.purchaseRequest);
+
+      // 与后端建 intent 的映射保持一致：Stripe/Apple Pay 面板不认 RMB，需转 CNY
+      final rawCurrency = params!.purchaseRequest.currency.currency ?? 'AUD';
+      final currencyCode = rawCurrency.toUpperCase() == 'RMB' ? 'CNY' : rawCurrency;
+
+      await Stripe.instance.confirmPlatformPayPaymentIntent(
+        clientSecret: paymentIntent.paymentIntentClientSecret!,
+        confirmParams: PlatformPayConfirmParams.applePay(
+          applePay: ApplePayParams(
+            merchantCountryCode: 'AU',
+            currencyCode: currencyCode,
+            cartItems: [
+              // 实际扣款金额以后端创建的 PaymentIntent（分）为准，这里仅为 Apple Pay 面板展示
+              ApplePayCartSummaryItem.immediate(
+                label: 'Synapses Global Assist Pty Ltd',
+                amount: params!.purchaseRequest.amountStringFormat,
+              ),
+            ],
+          ),
+        ),
+      );
+      await EasyLoading.dismiss();
+
+      // Payment is complete
+      await recheckActiveSubscription(context, paymentIntent.paymentId);
+      return true;
+    } on StripeException catch (e, stacktrace) {
+      await EasyLoading.dismiss();
+      if (e.error.code != FailureCode.Canceled) {
+        await HttpExceptionNotifyUser.showError('Could not complete payment [5]: ' + e.toString() + ' -- ' + stacktrace.toString());
+      }
+      return false;
+    } catch (e, stacktrace) {
+      await EasyLoading.dismiss();
+      await HttpExceptionNotifyUser.showError('Could not complete payment [6]: ' + e.toString() + ' -- ' + stacktrace.toString());
+      return false;
+    }
   }
 
   Future<bool> _startCardPaymentProcess(BuildContext context) async {
