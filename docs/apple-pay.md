@@ -30,7 +30,7 @@ Apple Pay 走现有 Stripe 通道（Platform Pay），不引入新 SDK：
    重新生成 Provisioning Profile。entitlements（6 个文件）已包含
    `com.apple.developer.in-app-payments = merchant.au.com.mi-aid`。
 2. Stripe Dashboard → Settings → Payment methods → Apple Pay：为该 Merchant ID 生成 CSR、
-   在 Apple 后台创建 Payment Processing Certificate 并回传给 Stripe（dev/prod 两套 Stripe
+   在 Apple 后台创建 Payment _Processing_ Certificate 并回传给 Stripe（dev/prod 两套 Stripe
    账号都要配）。
 3. 真机测试：iOS 需已在 Wallet 添加卡片；沙箱可用 Apple sandbox tester 账号。
 

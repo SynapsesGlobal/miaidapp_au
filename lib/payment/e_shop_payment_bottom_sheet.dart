@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -101,6 +102,19 @@ class EShopPaymentBottomSheet extends StatelessWidget {
             future: Stripe.instance.isPlatformPaySupported(),
             builder: (context, snapshot) {
               if (snapshot.data != true) {
+                // isPlatformPaySupported 只检查 Wallet 里是否已添加
+                // Visa/Mastercard/Amex 等 Stripe 支持的卡（银联不算），
+                // debug 构建把原因显示出来方便真机排查
+                if (kDebugMode && snapshot.connectionState == ConnectionState.done) {
+                  return Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Text(
+                      'Apple Pay 不可用：Wallet 未添加 Visa/Mastercard/Amex 卡'
+                      '（isPlatformPaySupported=${snapshot.data}）',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  );
+                }
                 return const SizedBox.shrink();
               }
               return Column(
