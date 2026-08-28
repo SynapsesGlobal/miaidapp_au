@@ -170,12 +170,17 @@ class EShopPaymentBottomSheet extends StatelessWidget {
         ),
       );
 
-      await LogEventService.purchase(
-        orderItems: order.products ?? <Product>[],
-        currency: order.pharmacyCurrency ?? '',
-        total: order.subTotal ?? 0,
-        orderId: order.id?.toString() ?? '',
-      );
+      // 此时已扣款成功，埋点失败不能再走 Could not complete payment 提示
+      try {
+        await LogEventService.purchase(
+          orderItems: order.products ?? <Product>[],
+          currency: order.pharmacyCurrency ?? '',
+          total: order.subTotal ?? 0,
+          orderId: order.id?.toString() ?? '',
+        );
+      } catch (e) {
+        debugPrint('LogPurchase failed: $e');
+      }
 
       params?.cartStore?.closeCart();
     } on StripeException catch (e) {
@@ -204,12 +209,17 @@ class EShopPaymentBottomSheet extends StatelessWidget {
       ));
       await Stripe.instance.presentPaymentSheet();
 
-      await LogEventService.purchase(
-        orderItems: params!.order.products ?? <Product>[],
-        currency: params!.order.pharmacyCurrency ?? '',
-        total: params!.order.subTotal ?? 0,
-        orderId: params!.order.id?.toString() ?? '',
-      );
+      // 此时已扣款成功，埋点失败不能再走 Could not complete payment 提示
+      try {
+        await LogEventService.purchase(
+          orderItems: params!.order.products ?? <Product>[],
+          currency: params!.order.pharmacyCurrency ?? '',
+          total: params!.order.subTotal ?? 0,
+          orderId: params!.order.id?.toString() ?? '',
+        );
+      } catch (e) {
+        debugPrint('LogPurchase failed: $e');
+      }
 
       params?.cartStore?.closeCart();
     } on StripeException catch (e) {
