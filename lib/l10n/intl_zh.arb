@@ -190,6 +190,7 @@
   "alipayPaymentSuccessful": "支付成功",
   "alipayPaymentPending": "支付处理中，请稍后在订单中查看支付状态",
   "alipayOverseasCardFeeNotice": "境外银行卡：单笔超过 200 元支付宝收取 3% 手续费",
+  "applePay": "苹果钱包",
   "creditOrDebit": "银行卡支付",
   "payment": "支付",
   "addCardDetails": "添加银行卡信息",

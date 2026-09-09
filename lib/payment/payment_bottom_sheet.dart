@@ -141,7 +141,7 @@ class PaymentBottomSheet extends StatelessWidget {
                       },
                       builder: (context, onTap) => ListTile(
                         leading: const Icon(Icons.apple, color: Colors.black, size: 30),
-                        title: Text('Apple Pay', style: GoogleFonts.rubik(
+                        title: Text(S.of(context).applePay, style: GoogleFonts.rubik(
                           color: AppColors.k010101,
                           fontSize: 14,
                         )),

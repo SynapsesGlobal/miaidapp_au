@@ -187,6 +187,7 @@
   "alipayPaymentSuccessful": "Η πληρωμή ολοκληρώθηκε",
   "alipayPaymentPending": "Η πληρωμή βρίσκεται σε επεξεργασία. Ελέγξτε αργότερα την κατάσταση της παραγγελίας.",
   "alipayOverseasCardFeeNotice": "Κάρτες εξωτερικού: το Alipay χρεώνει 3% για πληρωμές άνω των ¥200",
+  "applePay": "Apple Pay",
   "creditOrDebit": "Πιστωτική ή Χρεωστική Κάρτα",
   "payment": "Πληρωμή",
   "addCardDetails": "Προσθήκη Στοιχείων Κάρτας",

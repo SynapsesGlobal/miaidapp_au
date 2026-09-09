@@ -188,6 +188,7 @@
   "alipayPaymentSuccessful": "Pembayaran berhasil",
   "alipayPaymentPending": "Pembayaran sedang diproses. Silakan periksa status pesanan nanti.",
   "alipayOverseasCardFeeNotice": "Kartu luar negeri: Alipay mengenakan biaya 3% untuk pembayaran di atas ¥200",
+  "applePay": "Apple Pay",
   "creditOrDebit": "Kartu Kredit atau Debit",
   "payment": "Pembayaran",
   "addCardDetails": "Tambahkan Detail Kartu",
