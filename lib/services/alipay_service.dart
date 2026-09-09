@@ -5,9 +5,9 @@ import 'package:miaid/api_utils/api_provider.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:tobias/tobias.dart';
 
-/// 支付宝 App 支付（境内商户号）。目前只接药房订单。
+/// 支付宝 App 支付（境内商户号）。药房订单走 createPharmacyOrder，旅行套餐 / 加购问诊走 createPackageOrder。
 ///
-/// 流程与 CN 版一致：后端 `POST /api/v1/alipay/createPharmacyOrder` 生成签名后的
+/// 流程：后端生成签名后的
 /// orderString → tobias 唤起支付宝 App → 拿到 resultStatus →
 /// `GET /api/v1/alipay/query` 向后端（后端再向支付宝 trade.query）确认是否已支付。
 /// 后端另有 notify 异步回调兜底落库，客户端查询只用来决定当下的 UI 反馈。
@@ -76,6 +76,51 @@ class AlipayService {
       throw AlipayException('create order failed: invalid response ${createResp.body}');
     }
 
+    return _payAndVerify(orderString, outTradeNo);
+  }
+
+  /// 为旅行套餐 / 加购问诊发起支付宝支付。
+  /// [packageType] 与 Stripe 路径一致：travel-packages / calls；[currency] 必须是人民币，后端会再校验。
+  /// 成功时 [AlipayPayOutcome.paymentId] 为后端 payments.id，可交给 recheckActiveSubscription 轮询。
+  Future<AlipayPayOutcome> payPackage({
+    required String packageId,
+    required String packageType,
+    required String currency,
+    required String countryCode,
+  }) async {
+    if (!await isInstalled) {
+      return const AlipayPayOutcome(AlipayPayStatus.notInstalled);
+    }
+
+    final createResp = await _client
+        .post(
+          Uri.parse('${_api.baseUrl}/api/v1/alipay/createPackageOrder'),
+          headers: _headers,
+          body: jsonEncode({
+            'packageId': packageId,
+            'packageType': packageType,
+            'currency': currency,
+            'countryCode': countryCode,
+          }),
+        )
+        .timeout(_timeout);
+    if (createResp.statusCode != 200) {
+      throw AlipayException('create package order failed: ${createResp.statusCode} ${createResp.body}');
+    }
+    final data = jsonDecode(createResp.body) as Map<String, dynamic>;
+    final orderString = data['orderString'] as String?;
+    final outTradeNo = data['outTradeNo'] as String?;
+    final paymentId = (data['paymentId'] as num?)?.toInt();
+    if (orderString == null || orderString.isEmpty || outTradeNo == null || outTradeNo.isEmpty) {
+      throw AlipayException('create package order failed: invalid response ${createResp.body}');
+    }
+
+    final outcome = await _payAndVerify(orderString, outTradeNo);
+    return outcome.copyWith(paymentId: paymentId);
+  }
+
+  /// 唤起支付宝并把 SDK 结果映射为统一状态；9000/8000/6004 都向后端确认一次实际支付状态
+  Future<AlipayPayOutcome> _payAndVerify(String orderString, String outTradeNo) async {
     final payResult = await _tobias.pay(orderString);
     final resultStatus = payResult['resultStatus']?.toString() ?? '';
     final memo = payResult['memo']?.toString() ?? '';
@@ -133,9 +178,12 @@ enum AlipayPayStatus {
 }
 
 class AlipayPayOutcome {
-  const AlipayPayOutcome(this.status, {this.resultStatus = '', this.memo = '', this.outTradeNo = ''});
+  const AlipayPayOutcome(this.status, {this.resultStatus = '', this.memo = '', this.outTradeNo = '', this.paymentId});
 
   final AlipayPayStatus status;
+
+  /// 后端 payments.id（套餐 / 服务支付时由 createPackageOrder 返回），用于轮询支付状态；药房订单为 null
+  final int? paymentId;
 
   /// 支付宝 SDK 原始 resultStatus（9000/8000/4000/5000/6001/6002/6004）
   final String resultStatus;
@@ -143,6 +191,14 @@ class AlipayPayOutcome {
   final String outTradeNo;
 
   bool get success => status == AlipayPayStatus.success;
+
+  AlipayPayOutcome copyWith({int? paymentId}) => AlipayPayOutcome(
+        status,
+        resultStatus: resultStatus,
+        memo: memo,
+        outTradeNo: outTradeNo,
+        paymentId: paymentId ?? this.paymentId,
+      );
 }
 
 class AlipayException implements Exception {

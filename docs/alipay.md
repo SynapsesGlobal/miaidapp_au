@@ -1,6 +1,7 @@
-# 支付宝 App 支付（药房订单）
+# 支付宝 App 支付（药房订单、旅行套餐、加购问诊）
 
-分支 `feature/alipay-pharmacy`。在 AU 版 App 的药房支付弹窗里增加"支付宝"入口，
+分支 `feature/alipay-pharmacy`（药房）与 `feature/alipay-packages`（套餐 / 加购问诊，含后端同名分支）。
+在 AU 版 App 的支付弹窗里增加"支付宝"入口，
 走后端已有的境内支付宝接口（`openapi.alipay.com`，`alipay.trade.app.pay`），
 不经过 Stripe，刷卡与 Apple Pay 流程不变。实现参考 CN 版 `miaidapp_cn`。
 
@@ -15,6 +16,7 @@
 | `pubspec.yaml` | 新增 `tobias: 5.2.0`（支付宝官方 SDK 的 Flutter 封装）及 `tobias:` 配置段 |
 | `lib/services/alipay_service.dart` | 创建支付宝订单 → 唤起支付宝 → 向后端确认支付状态 |
 | `lib/payment/e_shop_payment_bottom_sheet.dart` | 支付方式列表新增支付宝一行（仅药房币种为人民币 RMB/CNY 且设备已安装支付宝时显示，其他币种或未安装时不显示任何内容）及 `_startAlipayProcess` |
+| `lib/payment/payment_bottom_sheet.dart` | 旅行套餐与加购问诊共用的支付弹窗，同样规则新增支付宝一行；成功后复用 `recheckActiveSubscription` 轮询后端 payment 状态 |
 | `lib/l10n/intl_*.arb` | 4 个新文案：未安装提示、支付成功、处理中、境外卡手续费说明 |
 | `ios/Runner/Info.plist` | URL type `alipay`（scheme `com.em.bright.miaid.alipay`），`LSApplicationQueriesSchemes` 加 `alipay`/`alipays` |
 | `ios/Podfile.lock` | `pod install` 后新增 tobias |
@@ -24,6 +26,8 @@ Android 端除上述 jvmTarget 外不需要改：tobias 自带的 manifest 已�
 不使用 `QUERY_ALL_PACKAGES`。
 
 ## 支付流程
+
+### 药房订单
 
 ```
 用户点"支付宝"
@@ -37,6 +41,32 @@ Android 端除上述 jvmTarget 外不需要改：tobias 自带的 manifest 已�
 
 resultStatus 对应：9000 成功；8000 处理中；6004 结果未知；6001 用户取消（不提示）；
 4000/5000/6002 失败（`Could not complete payment [14]`）；接口异常 `[15]`。
+
+### 旅行套餐 / 加购问诊（后端分支 `feature/alipay-packages`）
+
+```
+用户点"支付宝"
+→ POST /api/v1/alipay/createPackageOrder {packageId, packageType, currency, countryCode}
+   packageType 与 Stripe 路径一致：travel-packages / calls
+   后端：resolvePurchaseContext 按用户所在国家取价（必须是人民币，否则 422）
+        → persistPendingPurchase 落库（与 Stripe 完全同一套：customer_subscription_details / call_purchases / payments）
+        → 返回 orderString + outTradeNo + paymentId
+→ tobias.pay(orderString) 唤起支付宝，回跳后向后端 /alipay/query 确认
+   已支付 → recheckActiveSubscription(paymentId)：轮询 /subscriptions/payments/{id}，刷新订阅、弹成功提示、埋点
+   未确认 → 提示"处理中，稍后查看"
+→ 支付宝异步 notify 打到 /alipay/travePackageOrder/notify 或 /alipay/servicePackageOrder/notify
+   后端：验签 → 锁定 payment → 幂等标记 PAID → SubscriptionPaymentFulfillment（激活订阅、发票邮件、免费问诊）
+```
+
+失败码：`Could not complete payment [16]`（支付宝返回失败）、`[17]`（接口异常或定位失败）。
+
+后端改造要点（miaid.com 分支 `feature/alipay-packages`）：
+
+- `SubscriptionsController` 抽出 `resolvePurchaseContext()` 与 `persistPendingPurchase()`，Stripe 路径行为不变。
+- `AlipaySubscriptionController` 继承 `SubscriptionsController` 复用上述方法，旧的复制代码全部删除；
+  `out_trade_no` 在落库前生成（`TORD`/`SORD` + 时间戳 + 随机数），作为 `PresentFreeSubscription.payment_intent_key`。
+- `SubscriptionPaymentFulfillment` 统一了 Stripe webhook 与支付宝 notify 的支付成功履约。
+- 药房接口的收银台标题不再写死"测试商品"，改用 App 传的 subject。
 
 ## tobias 的 pod install 副作用（已规避）
 
@@ -83,10 +113,10 @@ ALIPAY_NOTIFY_URL   （notify 实际用 config('app.url') + /alipay/pharmacyOrde
 AUD_RMB             （ExchangeService 用的固定汇率）
 ```
 
-两个已知的后端问题，与本分支无关但会影响体验：
+一个已知的后端问题，与本分支无关但会影响药房订单体验：
 
-- `createAlipayPharmacyOrder` 把收银台标题写死为"测试商品"，未读取客户端传的 `subject`。
-- 汇率是 `.env` 固定值，AUD 波动会造成每单人民币金额与实际汇率偏差，退款按同一固定汇率退。
+- 药房订单的汇率是 `.env` 固定值，AUD 波动会造成每单人民币金额与实际汇率偏差，退款按同一固定汇率退。
+  套餐 / 加购问诊不受影响，因为只允许人民币计价的套餐用支付宝，不做换算。
 
 ### App Store 审核
 
@@ -106,6 +136,8 @@ AUD_RMB             （ExchangeService 用的固定汇率）
 3. 在支付宝收银台取消，App 无提示，订单可重新支付。
 4. 后端在药房后台批准退款，确认 `alipay.trade.refund` 原路退回。
 5. 刷卡和 Apple Pay 回归：两条路径不受影响。
+6. 套餐 / 加购问诊：定位在中国、套餐以人民币计价时支付弹窗出现支付宝；付款后应弹出与刷卡相同的成功提示，
+   "我的套餐"里出现新套餐，附赠免费问诊次数正确；AUD 计价的套餐不出现支付宝。
 
 沙箱环境：`ALIPAY_GATEWAY_URL` 指向 `https://openapi-sandbox.dl.alipaydev.com/gateway.do`，
 Android 需安装支付宝沙箱版（包名 `com.eg.android.AlipayGphoneRC`，tobias 的 `<queries>` 已包含）。
