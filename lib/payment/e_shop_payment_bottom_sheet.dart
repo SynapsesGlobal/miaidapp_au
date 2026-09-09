@@ -146,8 +146,9 @@ class EShopPaymentBottomSheet extends StatelessWidget {
             },
           ),
         // 支付宝 App 支付：走后端 /alipay/createPharmacyOrder（境内商户号，人民币结算）+ tobias 唤起支付宝，
-        // 不经过 Stripe，不影响上方刷卡与 Apple Pay。只在设备已安装支付宝时展示，
+        // 不经过 Stripe，不影响上方刷卡与 Apple Pay。只在药房以人民币结算且设备已安装支付宝时展示，
         // 各平台一致（Android 通过插件 manifest 的 <queries> 检测，iOS 通过 LSApplicationQueriesSchemes）
+        if (_isRmbOrder(params!.order))
         FutureBuilder<bool>(
           future: AlipayService().isInstalled,
           builder: (context, snapshot) {
@@ -199,7 +200,7 @@ class EShopPaymentBottomSheet extends StatelessWidget {
     try {
       final outcome = await AlipayService().payPharmacyOrder(
         orderId: '${order.id}',
-        currency: order.pharmacyCurrency ?? 'AUD',
+        currency: order.pharmacyCurrency ?? 'RMB',
         subject: _alipaySubject(order),
       );
       switch (outcome.status) {
@@ -238,6 +239,12 @@ class EShopPaymentBottomSheet extends StatelessWidget {
     } catch (e) {
       await HttpExceptionNotifyUser.showError('Could not complete payment [15]: ' + e.toString());
     }
+  }
+
+  /// 药房币种是否为人民币。后端 currencies 表里人民币记作 RMB，个别地方也用 CNY，两者都算
+  bool _isRmbOrder(Order order) {
+    final currency = (order.pharmacyCurrency ?? '').toUpperCase();
+    return currency == 'RMB' || currency == 'CNY';
   }
 
   /// 支付宝收银台展示的商品标题：药房名 + 商品名。支付宝 subject 上限 256 字节，这里保守截断。
