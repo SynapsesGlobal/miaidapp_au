@@ -151,16 +151,8 @@ class EShopPaymentBottomSheet extends StatelessWidget {
         FutureBuilder<bool>(
           future: AlipayService().isInstalled,
           builder: (context, snapshot) {
+            // 未安装支付宝时不显示任何内容（debug 构建也不显示提示）
             if (snapshot.data != true) {
-              if (kDebugMode && snapshot.connectionState == ConnectionState.done) {
-                return Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Text(
-                    '支付宝不可用：设备未安装支付宝 App（isAliPayInstalled=${snapshot.data}）',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                );
-              }
               return const SizedBox.shrink();
             }
             return Column(

@@ -14,7 +14,7 @@
 | --- | --- |
 | `pubspec.yaml` | 新增 `tobias: 5.2.0`（支付宝官方 SDK 的 Flutter 封装）及 `tobias:` 配置段 |
 | `lib/services/alipay_service.dart` | 创建支付宝订单 → 唤起支付宝 → 向后端确认支付状态 |
-| `lib/payment/e_shop_payment_bottom_sheet.dart` | 支付方式列表新增支付宝一行（仅设备已安装支付宝时显示）及 `_startAlipayProcess` |
+| `lib/payment/e_shop_payment_bottom_sheet.dart` | 支付方式列表新增支付宝一行（仅设备已安装支付宝时显示，未安装时不显示任何内容）及 `_startAlipayProcess` |
 | `lib/l10n/intl_*.arb` | 4 个新文案：未安装提示、支付成功、处理中、境外卡手续费说明 |
 | `ios/Runner/Info.plist` | URL type `alipay`（scheme `com.em.bright.miaid.alipay`），`LSApplicationQueriesSchemes` 加 `alipay`/`alipays` |
 | `ios/Podfile.lock` | `pod install` 后新增 tobias |
@@ -100,7 +100,7 @@ AUD_RMB             （ExchangeService 用的固定汇率）
 
 支付宝没有可用的沙箱 App 支付账号时，用真实小额订单验证：
 
-1. 设备安装支付宝，支付弹窗出现"支付宝"行；卸载后不出现（debug 构建会显示原因文字）。
+1. 设备安装支付宝，支付弹窗出现"支付宝"行；卸载后整行不出现，也没有提示文字。
 2. 用境外手机号注册、只绑 Visa/Mastercard 的支付宝账号，下单 ≤ ¥200 和 > ¥200 各一笔，
    后者收银台应显示 3% 手续费；两笔后端 `payments.status` 都应为 PAID。
 3. 在支付宝收银台取消，App 无提示，订单可重新支付。
