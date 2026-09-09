@@ -50,6 +50,16 @@
                 <string>miaidsquare</string>
             </array>
         </dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>alipay</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.em.bright.miaid.alipay</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
@@ -65,6 +75,8 @@
 	<false/>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
+		<string>alipay</string>
+		<string>alipays</string>
 		<string>https</string>
 		<string>http</string>
 		<string>comgooglemaps</string>

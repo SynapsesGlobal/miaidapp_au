@@ -101,6 +101,20 @@ dependencies:
   flutter_zxing: '>=2.2.0 <2.3.0'
   app_links: ^6.4.0
   flutter_dotenv: ^6.0.1
+  # 支付宝 App 支付（境内商户号，唤起支付宝 App），目前仅药房订单使用；iOS 回跳 scheme 见下方 tobias 配置
+  tobias: 5.2.0
+
+# tobias（支付宝）配置：pod install 时插件的 tobias_setup.rb 会读取这里的值去改 Info.plist / entitlements：
+# - url_scheme：支付宝付款完成后回跳本 App 的 scheme。Info.plist 里已预先登记（CFBundleURLName=alipay，
+#   并在 LSApplicationQueriesSchemes 加了 alipay/alipays），脚本检测到已存在就不会重写整个 plist
+# - ios.universal_link：脚本会把其 host 作为 applinks 写进 6 个 entitlements；这里填已存在的
+#   admin.mi-aid.com.au，避免脚本新增无效域名（留空时脚本会写入一个空的 "applinks:"）
+# - ios.ignore_security：禁止脚本把 NSAllowsArbitraryLoads 改成 true（会影响 App Store 审核）
+tobias:
+  url_scheme: com.em.bright.miaid.alipay
+  ios:
+    universal_link: https://admin.mi-aid.com.au/app/
+    ignore_security: true
 
 dependency_overrides:
   intl: ^0.18.1

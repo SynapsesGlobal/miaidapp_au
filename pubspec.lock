@@ -1867,6 +1867,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.0.1"
+  tobias:
+    dependency: "direct main"
+    description:
+      name: tobias
+      sha256: "73208e6c575e85e8a66fec95505cd700cbb7e6dd58a05f08d64aa4d2c37cb103"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "5.2.0"
   toggle_switch:
     dependency: "direct main"
     description:
