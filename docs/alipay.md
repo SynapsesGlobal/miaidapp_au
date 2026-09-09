@@ -67,6 +67,12 @@ resultStatus 对应：9000 成功；8000 处理中；6004 结果未知；6001 �
   `out_trade_no` 在落库前生成（`TORD`/`SORD` + 时间戳 + 随机数），作为 `PresentFreeSubscription.payment_intent_key`。
 - `SubscriptionPaymentFulfillment` 统一了 Stripe webhook 与支付宝 notify 的支付成功履约。
 - 药房接口的收银台标题不再写死"测试商品"，改用 App 传的 subject。
+- 新增迁移 `2026_09_09_000000_normalize_alipay_trade_no_columns_on_payments`：把 `payments.alipay_out_trade_no` /
+  `alipay_trade_no` 统一成 varchar(64) 并加索引（本地开发库里这两列是 decimal(10,2)，存不下订单号，支付宝下单会直接失败；
+  线上若已是字符串类型则迁移不做改动）。部署时按 README 执行 `php artisan migrate --database migrations`。
+
+后端回归方式：本地库用事务回滚的方式实际执行了重构后的 Stripe 下单逻辑（旅行套餐、加购问诊）与支付宝接口，
+落库记录与库里真实的 Stripe 支付记录形态一致；AUD 套餐调用支付宝接口返回 422，人民币套餐返回 orderString / outTradeNo / paymentId。
 
 ## tobias 的 pod install 副作用（已规避）
 
