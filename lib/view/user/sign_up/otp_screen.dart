@@ -149,55 +149,62 @@ class _OtpScreenState extends State<OtpScreen> {
               key: formKey,
               child: Padding(
                 padding: const EdgeInsets.only(top: 40, left: 43, right: 42),
-                child: PinCodeTextField(
-                  appContext: context,
-                  pastedTextStyle: TextStyle(
-                    color: AppColors.k0cbcc5,
-                    fontWeight: FontWeight.bold,
+                // iPad 上 PinCodeTextField 默认按整行宽度 spaceBetween 排布，四个格子会被拉到
+                // 屏幕两端；限制最大宽度并居中，手机上可用宽度本来就不到 360，布局不变
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 360),
+                    child: PinCodeTextField(
+                      appContext: context,
+                      pastedTextStyle: TextStyle(
+                        color: AppColors.k0cbcc5,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      length: 4,
+                      animationType: AnimationType.scale,
+                      // validator: (v) {
+                      //   if (v.length < 3) {
+                      //     return 'Invalid OTP';
+                      //   } else {
+                      //     return null;
+                      //   }
+                      // },
+                      pinTheme: PinTheme(
+                        shape: PinCodeFieldShape.box,
+                        borderRadius: BorderRadius.circular(10),
+                        fieldHeight: 70,
+                        fieldWidth: 70,
+                        inactiveColor: AppColors.k0cbcc5,
+                        inactiveFillColor: AppColors.k0cbcc5.withOpacity(0.1),
+                        activeColor: AppColors.k0cbcc5.withOpacity(0.1),
+                        activeFillColor: AppColors.k0cbcc5.withOpacity(0.1),
+                        selectedColor: AppColors.k0cbcc5.withOpacity(0.1),
+                        selectedFillColor: AppColors.k0cbcc5.withOpacity(0.1),
+                      ),
+                      cursorColor: AppColors.k0cbcc5,
+                      animationDuration: Duration(milliseconds: 300),
+                      textStyle: TextStyle(
+                        fontSize: 20,
+                        height: 1.6,
+                        color: AppColors.k0cbcc5,
+                      ),
+                      enableActiveFill: true,
+                      errorAnimationController: errorController,
+                      controller: otpController,
+                      keyboardType: TextInputType.number,
+                      onCompleted: (v) async {
+                        await verifyOtp();
+                      },
+                      beforeTextPaste: (text) {
+                        //if you return true then it will show the paste confirmation dialog. Otherwise if false, then nothing will happen.
+                        //but you can show anything you want here, like your pop up saying wrong paste format or etc
+                        return true;
+                      },
+                      onChanged: (String value) {
+                        //NOP
+                      },
+                    ),
                   ),
-                  length: 4,
-                  animationType: AnimationType.scale,
-                  // validator: (v) {
-                  //   if (v.length < 3) {
-                  //     return 'Invalid OTP';
-                  //   } else {
-                  //     return null;
-                  //   }
-                  // },
-                  pinTheme: PinTheme(
-                    shape: PinCodeFieldShape.box,
-                    borderRadius: BorderRadius.circular(10),
-                    fieldHeight: 70,
-                    fieldWidth: 50,
-                    inactiveColor: AppColors.k0cbcc5,
-                    inactiveFillColor: AppColors.k0cbcc5.withOpacity(0.1),
-                    activeColor: AppColors.k0cbcc5.withOpacity(0.1),
-                    activeFillColor: AppColors.k0cbcc5.withOpacity(0.1),
-                    selectedColor: AppColors.k0cbcc5.withOpacity(0.1),
-                    selectedFillColor: AppColors.k0cbcc5.withOpacity(0.1),
-                  ),
-                  cursorColor: AppColors.k0cbcc5,
-                  animationDuration: Duration(milliseconds: 300),
-                  textStyle: TextStyle(
-                    fontSize: 20,
-                    height: 1.6,
-                    color: AppColors.k0cbcc5,
-                  ),
-                  enableActiveFill: true,
-                  errorAnimationController: errorController,
-                  controller: otpController,
-                  keyboardType: TextInputType.number,
-                  onCompleted: (v) async {
-                    await verifyOtp();
-                  },
-                  beforeTextPaste: (text) {
-                    //if you return true then it will show the paste confirmation dialog. Otherwise if false, then nothing will happen.
-                    //but you can show anything you want here, like your pop up saying wrong paste format or etc
-                    return true;
-                  },
-                  onChanged: (String value) {
-                    //NOP
-                  },
                 ),
               ),
             ),
