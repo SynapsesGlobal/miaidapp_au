@@ -172,8 +172,8 @@ class _OtpScreenState extends State<OtpScreen> {
                       pinTheme: PinTheme(
                         shape: PinCodeFieldShape.box,
                         borderRadius: BorderRadius.circular(10),
-                        fieldHeight: 70,
-                        fieldWidth: 70,
+                        fieldHeight: 60,
+                        fieldWidth: 60,
                         inactiveColor: AppColors.k0cbcc5,
                         inactiveFillColor: AppColors.k0cbcc5.withOpacity(0.1),
                         activeColor: AppColors.k0cbcc5.withOpacity(0.1),
