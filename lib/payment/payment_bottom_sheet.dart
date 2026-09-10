@@ -91,7 +91,8 @@ class PaymentBottomSheet extends StatelessWidget {
           child: TapDebouncer(
             onTap: () async {
               var state = await _startCardPaymentProcess(context);
-              Navigator.pop(params!.context, state);
+              // 只有支付成功才关闭套餐/服务页；取消或失败时留在当前页面，不回首页
+              if (state) Navigator.pop(params!.context, state);
             },
             builder: (context, onTap) => ListTile(
               leading: Image(
@@ -139,7 +140,8 @@ class PaymentBottomSheet extends StatelessWidget {
                     child: TapDebouncer(
                       onTap: () async {
                         var state = await _startApplePayProcess(context);
-                        Navigator.pop(params!.context, state);
+                        // 只有支付成功才关闭套餐/服务页；取消或失败时留在当前页面，不回首页
+                        if (state) Navigator.pop(params!.context, state);
                       },
                       builder: (context, onTap) => ListTile(
                         leading: const Icon(Icons.apple, color: Colors.black, size: 30),
@@ -178,7 +180,8 @@ class PaymentBottomSheet extends StatelessWidget {
                     child: TapDebouncer(
                       onTap: () async {
                         var state = await _startAlipayProcess(context);
-                        Navigator.pop(params!.context, state);
+                        // 只有支付成功才关闭套餐/服务页；取消或失败时留在当前页面，不回首页
+                        if (state) Navigator.pop(params!.context, state);
                       },
                       builder: (context, onTap) => ListTile(
                         leading: Image(
@@ -319,12 +322,18 @@ class PaymentBottomSheet extends StatelessWidget {
     } on StripeException catch (e, stacktrace) {
       await EasyLoading.dismiss();
       if (e.error.code != FailureCode.Canceled) {
-        await HttpExceptionNotifyUser.showError('Could not complete payment [5]: ' + e.toString() + ' -- ' + stacktrace.toString());
+        // 生产环境下 Apple ID 是沙盒测试账号、钱包里是测试卡时，Apple Pay 面板会显示
+        // "付款未完成"，Stripe 随后以 Failed 返回被拒原因。给用户看 Stripe 的可读文案
+        // （如 Your card was declined），完整异常和堆栈只打日志，不再整段塞进 toast
+        debugPrint('[ApplePay] failed: $e\n$stacktrace');
+        final reason = e.error.localizedMessage ?? e.error.message ?? e.error.code.name;
+        await HttpExceptionNotifyUser.showError('Could not complete payment [5]: $reason');
       }
       return false;
     } catch (e, stacktrace) {
       await EasyLoading.dismiss();
-      await HttpExceptionNotifyUser.showError('Could not complete payment [6]: ' + e.toString() + ' -- ' + stacktrace.toString());
+      debugPrint('[ApplePay] error: $e\n$stacktrace');
+      await HttpExceptionNotifyUser.showError('Could not complete payment [6]: ' + e.toString());
       return false;
     }
   }
