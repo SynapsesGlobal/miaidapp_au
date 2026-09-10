@@ -233,121 +233,252 @@ abstract class _OngoingCallStore with Store {
     incomingCallId = call.id;
   }
 
-  Future ongoingCallStore(BuildContext context, AppVersionResponse appVersionResponse) {
+  // 点"取消"后 24 小时内不再弹升级框；后台若换了新的最低版本号则立即恢复提醒
+  static const _updateDismissedAtKey = 'update_dialog_dismissed_at';
+  static const _updateDismissedVersionKey = 'update_dialog_dismissed_version';
+  static const _updateRemindInterval = Duration(hours: 24);
+
+  Future ongoingCallStore(BuildContext context, AppVersionResponse appVersionResponse) async {
+    final newVersion = appVersionResponse.minimumAppVersion;
+
+    final prefs = await SharedPreferences.getInstance();
+    final dismissedAt = prefs.getInt(_updateDismissedAtKey);
+    final dismissedVersion = prefs.getString(_updateDismissedVersionKey);
+    if (dismissedAt != null &&
+        dismissedVersion == (newVersion ?? '') &&
+        DateTime.now().difference(
+              DateTime.fromMillisecondsSinceEpoch(dismissedAt),
+            ) <
+            _updateRemindInterval) {
+      return;
+    }
+
     return showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Center(
-            child: Text(
-              S.of(context).updateModuleTitle,
-              style: GoogleFonts.rubik(
-                color: AppColors.k010101,
-                fontSize: 17,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+        return Dialog(
+          backgroundColor: Colors.white,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 52),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-          content: Column(
+          clipBehavior: Clip.antiAlias,
+          child: Column(
             mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                S.of(context).updateModuleMessage,
-                style: GoogleFonts.rubik(
-                  color: AppColors.k010101,
-                  fontSize: 13,
-                  letterSpacing: -0.08,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(
-                height: 30,
-              ),
+              // 渐变头图 + 装饰圆环 + 图标徽章
               Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 18),
                 decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.k0cbcc5.withOpacity(0.2),
-                      offset: Offset(
-                        0,
-                        0.4,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.k0cbcc5,
+                      Color(0xFF089AA6),
+                    ],
+                  ),
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Positioned(
+                      top: -30,
+                      right: -20,
+                      child: _decorCircle(90),
+                    ),
+                    Positioned(
+                      bottom: -36,
+                      left: -14,
+                      child: _decorCircle(110),
+                    ),
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        // logo 图片自带深色圆角底，这里只负责投影
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.18),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
                       ),
-                      blurRadius: 10,
-                      spreadRadius: 0,
-                    )
+                      child: const Image(
+                        image: AssetImage('assets/images/logo_splash.png'),
+                        fit: BoxFit.contain,
+                      ),
+                    ),
                   ],
                 ),
-                child: TextButton(
-                  style: ButtonStyle(
-                    backgroundColor:
-                        MaterialStateProperty.all(AppColors.k0cbcc5),
-                    shape: MaterialStateProperty.all(
-                      RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(9),
-                      ),
-                    ),
-                  ),
-                  onPressed: () async {
-                    PackageInfo packageInfo =
-                        await PackageInfo.fromPlatform();
-
-                    final url = Uri.parse(Platform.isAndroid
-                        ? "market://details?id=${packageInfo.packageName}"
-                        : appVersionResponse.iosAppLink!);
-                    if (await canLaunch(url.toString())) {
-                      Navigator.pop(context);
-                      await launchUrl(url);
-                    } else {
-                      throw 'Could not launch $url';
-                      Navigator.pop(context);
-                    }
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.only(
-                      left: 44,
-                      right: 44,
-                      top: 10,
-                      bottom: 8,
-                    ),
-                    child: Text(
-                      S.of(context).updateModuleButton,
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(22, 16, 22, 10),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      S.of(context).updateModuleTitle,
                       style: GoogleFonts.rubik(
-                        color: AppColors.kffffff,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                        color: AppColors.k010101,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    if (newVersion != null && newVersion.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      // 新版本号徽章
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.k0cbcc5.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: Text(
+                          'V $newVersion',
+                          style: GoogleFonts.rubik(
+                            color: AppColors.k0cbcc5,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Text(
+                      S.of(context).updateModuleMessage,
+                      style: GoogleFonts.rubik(
+                        color: AppColors.k8f8f8f,
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 42,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.k0cbcc5,
+                              Color(0xFF089AA6),
+                            ],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.k0cbcc5.withOpacity(0.35),
+                              blurRadius: 12,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: TextButton(
+                          style: TextButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () => _openStorePage(
+                            context,
+                            appVersionResponse,
+                          ),
+                          child: Text(
+                            S.of(context).updateModuleButton,
+                            style: GoogleFonts.rubik(
+                              color: AppColors.kffffff,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 2),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      onPressed: () async {
+                        await prefs.setInt(
+                          _updateDismissedAtKey,
+                          DateTime.now().millisecondsSinceEpoch,
+                        );
+                        await prefs.setString(
+                          _updateDismissedVersionKey,
+                          newVersion ?? '',
+                        );
+                        Navigator.pop(context);
+                      },
+                      child: Text(
+                        S.of(context).updateModuleCancel,
+                        style: GoogleFonts.rubik(
+                          color: AppColors.k8f8f8f,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              TextButton(
-                style: ButtonStyle(
-                  shape: MaterialStateProperty.all(
-                    RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(9),
-                    ),
-                  ),
-                ),
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text(
-                  S.of(context).updateModuleCancel,
-                  style: GoogleFonts.rubik(
-                    color: AppColors.k0cbcc5,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              )
             ],
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
         );
-      }
+      },
     );
+  }
+
+  Widget _decorCircle(double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: Colors.white.withOpacity(0.15),
+          width: 14,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openStorePage(
+    BuildContext context,
+    AppVersionResponse appVersionResponse,
+  ) async {
+    final packageInfo = await PackageInfo.fromPlatform();
+
+    // iOS 用后端下发的 App Store 链接（可能缺失，不能强解包）；
+    // Android 优先应用市场协议，测试包等无市场入口时回退网页版商店
+    final candidates = Platform.isAndroid
+        ? [
+            'market://details?id=${packageInfo.packageName}',
+            'https://play.google.com/store/apps/details?id=${packageInfo.packageName}',
+          ]
+        : [
+            if (appVersionResponse.iosAppLink?.isNotEmpty ?? false)
+              appVersionResponse.iosAppLink!,
+          ];
+
+    for (final link in candidates) {
+      final url = Uri.parse(link);
+      if (await canLaunchUrl(url)) {
+        Navigator.pop(context);
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+        return;
+      }
+    }
+    developer.log('Could not open store page, candidates: $candidates');
   }
 }

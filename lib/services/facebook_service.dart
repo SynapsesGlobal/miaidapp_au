@@ -188,14 +188,16 @@ class LogEventService {
         'price': total,
         'order_id': orderId,
         'lines': orderItems.map((product) {
-          final quantity = product.pivot!.qty ?? 1;
+          // 再次下单时 order 来自订单列表接口，product.pivot/pharmacy/unitPrice
+          // 可能为 null，不能用 ! 断言（否则扣款成功后在这里崩溃报错）
+          final quantity = product.pivot?.qty ?? 1;
 
           return {
             'quantity': quantity,
             'item_id': product.id,
             'item_name': product.name,
-            'item_brand': product.pharmacy!.name,
-            'price': product.unitPrice!.toDouble(),
+            'item_brand': product.pharmacy?.name ?? '',
+            'price': product.unitPrice?.toDouble() ?? 0,
             'currency': currency,
           };
         }).toList()
@@ -208,14 +210,14 @@ class LogEventService {
       parameters: {
         'order_id': orderId,
         'lines': orderItems.map((product) {
-          final quantity = product.pivot!.qty ?? 1;
+          final quantity = product.pivot?.qty ?? 1;
 
           return {
             'quantity': quantity,
             'item_id': product.id,
             'item_name': product.name,
-            'item_brand': product.pharmacy!.name,
-            'price': product.unitPrice!.toDouble(),
+            'item_brand': product.pharmacy?.name ?? '',
+            'price': product.unitPrice?.toDouble() ?? 0,
             'currency': currency,
           };
         }).toList()
