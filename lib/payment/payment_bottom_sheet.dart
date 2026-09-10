@@ -163,22 +163,24 @@ class PaymentBottomSheet extends StatelessWidget {
             },
           ),
         // 支付宝 App 支付：走后端 /alipay/createPackageOrder（境内商户号，人民币结算）+ tobias 唤起支付宝，
-        // 不经过 Stripe，不影响上方刷卡与 Apple Pay。只在套餐以人民币计价且设备已安装支付宝时展示，
-        // 与 e_shop_payment_bottom_sheet 的药房入口规则一致
+        // 不经过 Stripe，不影响上方刷卡与 Apple Pay。只要套餐以人民币计价就展示入口；设备未安装支付宝时
+        // 不再隐藏，而是在行下方提示并在点击时 toast，与 e_shop_payment_bottom_sheet 的药房入口规则一致
         if (_isRmbPurchase())
           FutureBuilder<bool>(
             future: AlipayService().isInstalled,
             builder: (context, snapshot) {
-              // 未安装支付宝时不显示任何内容（debug 构建也不显示提示）
-              if (snapshot.data != true) {
-                return const SizedBox.shrink();
-              }
+              // 检测未完成前按已安装展示，避免入口闪一下；真正发起支付时 AlipayService 会再查一次
+              final installed = snapshot.data ?? true;
               return Column(
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(top: 10, bottom: 10),
                     child: TapDebouncer(
                       onTap: () async {
+                        if (!installed) {
+                          await HttpExceptionNotifyUser.showInfo(S.of(context).alipayNotInstalled);
+                          return;
+                        }
                         var state = await _startAlipayProcess(context);
                         // 只有支付成功才关闭套餐/服务页；取消或失败时留在当前页面，不回首页
                         if (state) Navigator.pop(params!.context, state);
@@ -191,11 +193,14 @@ class PaymentBottomSheet extends StatelessWidget {
                           color: AppColors.k010101,
                           fontSize: 14,
                         )),
-                        // 境外卡单笔超 200 元支付宝向用户收 3%，提前告知避免被理解为平台多收费
-                        subtitle: Text(S.of(context).alipayOverseasCardFeeNotice, style: GoogleFonts.rubik(
-                          color: Colors.grey,
-                          fontSize: 11,
-                        )),
+                        // 未安装时提示先装支付宝；已安装时告知境外卡单笔超 200 元支付宝收 3%，避免被理解为平台多收费
+                        subtitle: Text(
+                          installed ? S.of(context).alipayOverseasCardFeeNotice : S.of(context).alipayNotInstalled,
+                          style: GoogleFonts.rubik(
+                            color: installed ? Colors.grey : Colors.redAccent,
+                            fontSize: 11,
+                          ),
+                        ),
                         dense: true,
                         onTap: onTap,
                       ),
