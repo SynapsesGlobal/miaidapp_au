@@ -41,15 +41,15 @@
 			</array>
 		</dict>
 		<dict>
-            <key>CFBundleTypeRole</key>
-            <string>Editor</string>
-            <key>CFBundleURLName</key>
-            <string>com.em.bright.miaid.square</string>
-            <key>CFBundleURLSchemes</key>
-            <array>
-                <string>miaidsquare</string>
-            </array>
-        </dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.em.bright.miaid.square</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>miaidsquare</string>
+			</array>
+		</dict>
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
@@ -122,6 +122,8 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
+		<string>fetch</string>
+		<string>remote-notification</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

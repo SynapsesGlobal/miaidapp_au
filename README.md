@@ -150,7 +150,7 @@ tools:replace="android:exported" />
 
 ```
 设置位置
-澳大利亚：xcrun simctl loccation booted set -33.8688,151.2093
+澳大利亚：xcrun simctl location booted set -33.8688,151.2093
 中国：xcrun simctl location booted set 39.9042,116.4074
 
 启动命令（连上模拟器或真机后）：
@@ -172,5 +172,3 @@ flutter run --flavor sandbox -t lib/main_sandbox.dart -d <设备ID>
 ios启动正式
 flutter run --flavor prod -d  flutter run --flavor google_prod -d <设备ID>
 ```
-
-
