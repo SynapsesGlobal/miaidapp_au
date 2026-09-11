@@ -1489,17 +1489,29 @@ class _CartEShopState extends State<CartEShop> {
                     onChanged: _onDeliveryAddressChanged,
                     decoration: InputDecoration(
                       hintText: S.of(context).shippingAddress,
+                      // 联想请求中显示细小的品牌色转圈，选中地址后显示对勾；
+                      // 固定 suffix 尺寸，避免图标切换时输入框高度跳动
+                      suffixIconConstraints: const BoxConstraints(
+                        minWidth: 40,
+                        minHeight: 40,
+                      ),
                       suffixIcon: _searchingAddress
-                          ? const Padding(
-                              padding: EdgeInsets.all(12),
-                              child: SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                          ? Padding(
+                              padding: const EdgeInsets.only(right: 12),
+                              child: CupertinoActivityIndicator(
+                                radius: 8,
+                                color: AppColors.k0cbcc5,
                               ),
                             )
                           : (cartStore.hasDeliveryCoordinates
-                              ? Icon(Icons.check_circle, color: AppColors.k0cbcc5, size: 20)
+                              ? Padding(
+                                  padding: const EdgeInsets.only(right: 12),
+                                  child: Icon(
+                                    Icons.check_circle_rounded,
+                                    color: AppColors.k0cbcc5,
+                                    size: 20,
+                                  ),
+                                )
                               : null),
                       hintStyle: GoogleFonts.rubik(
                         color: AppColors.kb1b1b1,
