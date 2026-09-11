@@ -504,5 +504,9 @@
   "cancelledStatus": "已取消",
   "cancelPickupOrderConfirm": "确定取消这笔自取订单吗？商品库存将会退回。",
   "keepOrder": "保留订单",
-  "orderCancelled": "订单已取消"
+  "orderCancelled": "订单已取消",
+  "selectAddressFromSuggestions": "请从下拉建议中选择收货地址",
+  "deliveryTooFar": "寄送距离不能超过药店 5 公里，请选择到店自取。",
+  "noAddressFound": "没有找到匹配的地址",
+  "deliveryUnavailableNoLocation": "该药店暂无位置信息，无法寄送，请选择到店自取。"
 }

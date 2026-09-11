@@ -528,5 +528,9 @@
   "cancelledStatus": "취소됨",
   "cancelPickupOrderConfirm": "이 픽업 주문을 취소하시겠습니까? 상품은 재고로 반환됩니다.",
   "keepOrder": "주문 유지",
-  "orderCancelled": "주문이 취소되었습니다"
+  "orderCancelled": "주문이 취소되었습니다",
+  "selectAddressFromSuggestions": "제안 목록에서 배송 주소를 선택해 주세요",
+  "deliveryTooFar": "배송은 약국에서 5km 이내만 가능합니다. 픽업을 선택해 주세요.",
+  "noAddressFound": "일치하는 주소를 찾을 수 없습니다",
+  "deliveryUnavailableNoLocation": "이 약국은 위치 정보가 없어 배송할 수 없습니다. 픽업을 선택해 주세요."
 }

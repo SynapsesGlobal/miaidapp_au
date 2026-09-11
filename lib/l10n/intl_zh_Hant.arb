@@ -498,5 +498,9 @@
   "cancelledStatus": "已取消",
   "cancelPickupOrderConfirm": "確定取消這筆自取訂單嗎？商品庫存將會退回。",
   "keepOrder": "保留訂單",
-  "orderCancelled": "訂單已取消"
+  "orderCancelled": "訂單已取消",
+  "selectAddressFromSuggestions": "請從下拉建議中選擇收貨地址",
+  "deliveryTooFar": "寄送距離不能超過藥店 5 公里，請選擇到店自取。",
+  "noAddressFound": "沒有找到相符的地址",
+  "deliveryUnavailableNoLocation": "該藥店暫無位置資訊，無法寄送，請選擇到店自取。"
 }

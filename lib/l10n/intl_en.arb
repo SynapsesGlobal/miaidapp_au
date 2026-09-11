@@ -503,5 +503,9 @@
   "cancelledStatus": "Cancelled",
   "cancelPickupOrderConfirm": "Cancel this pick-up order? The items will be returned to stock.",
   "keepOrder": "Keep order",
-  "orderCancelled": "Order cancelled"
+  "orderCancelled": "Order cancelled",
+  "selectAddressFromSuggestions": "Please select your address from the suggestions",
+  "deliveryTooFar": "Delivery is only available within 5 km of the pharmacy. Please choose pick-up instead.",
+  "noAddressFound": "No matching address found",
+  "deliveryUnavailableNoLocation": "Delivery is unavailable: this pharmacy has no location on file. Please choose pick-up."
 }

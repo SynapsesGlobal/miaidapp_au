@@ -529,5 +529,9 @@
   "cancelledStatus": "Dibatalkan",
   "cancelPickupOrderConfirm": "Batalkan pesanan ambil di toko ini? Barang akan dikembalikan ke stok.",
   "keepOrder": "Simpan pesanan",
-  "orderCancelled": "Pesanan dibatalkan"
+  "orderCancelled": "Pesanan dibatalkan",
+  "selectAddressFromSuggestions": "Silakan pilih alamat Anda dari saran",
+  "deliveryTooFar": "Pengiriman hanya tersedia dalam radius 5 km dari apotek. Silakan pilih ambil di toko.",
+  "noAddressFound": "Alamat yang cocok tidak ditemukan",
+  "deliveryUnavailableNoLocation": "Pengiriman tidak tersedia: apotek ini belum memiliki data lokasi. Silakan pilih ambil di toko."
 }
