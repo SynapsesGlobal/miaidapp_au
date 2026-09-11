@@ -9,6 +9,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:injectable/injectable.dart';
 import 'package:miaid/api_utils/api_provider.dart';
 import 'package:miaid/api_utils/http_exception.dart';
+import 'dart:async';
+import 'package:geolocator/geolocator.dart';
+import 'package:intl/intl.dart';
+import 'package:miaid/services/mapbox_geocoding_service.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
@@ -61,7 +65,19 @@ class _CartEShopState extends State<CartEShop> {
   // 药店级配送方式开关（后台药店管理页配置，checkDeliveryAvailable 接口返回）。
   // 旧后端没有 pickup_status 字段时默认支持到店取货，保持升级前行为。
   bool get _pickupAvailable => deliveryAvailableResponse?.pickupStatus ?? true;
-  bool get _deliveryAvailable => deliveryAvailableResponse?.status == true;
+  // 寄送除了药店开关，还要求药店有坐标，否则无法做 5 公里校验
+  bool get _deliveryAvailable =>
+      deliveryAvailableResponse?.status == true && cartStore.hasPharmacyLocation;
+  bool get _deliverySwitchedOnButNoLocation =>
+      deliveryAvailableResponse?.status == true && !cartStore.hasPharmacyLocation;
+
+  // 收货地址联想（Mapbox）：防抖 + 丢弃过期响应
+  final MapboxGeocodingService _geocoding = MapboxGeocodingService();
+  List<MapboxPlace> _addressSuggestions = [];
+  Timer? _addressDebounce;
+  int _addressSearchSeq = 0;
+  bool _searchingAddress = false;
+  bool _addressSearchedOnce = false;
 
   @override
   void initState() {
@@ -133,8 +149,131 @@ class _CartEShopState extends State<CartEShop> {
 
   @override
   void dispose() {
+    _addressDebounce?.cancel();
     _disposers.forEach((d) => d());
     super.dispose();
+  }
+
+  /// 地址输入变化：清掉上次选中的坐标，400ms 防抖后向 Mapbox 请求联想
+  void _onDeliveryAddressChanged(String value) {
+    cartStore.clearDeliveryCoordinates();
+    _addressDebounce?.cancel();
+    final query = value.trim();
+    if (query.length < 3) {
+      setState(() {
+        _addressSuggestions = [];
+        _searchingAddress = false;
+        _addressSearchedOnce = false;
+      });
+      return;
+    }
+    setState(() => _searchingAddress = true);
+    _addressDebounce = Timer(const Duration(milliseconds: 400), () async {
+      final seq = ++_addressSearchSeq;
+      final results = await _geocoding.search(
+        query,
+        proximityLatitude: cartStore.pharmacyLatitude,
+        proximityLongitude: cartStore.pharmacyLongitude,
+        language: Intl.getCurrentLocale().split('_').first,
+      );
+      // 用户已继续输入，这次结果作废
+      if (!mounted || seq != _addressSearchSeq) return;
+      setState(() {
+        _addressSuggestions = results;
+        _searchingAddress = false;
+        _addressSearchedOnce = true;
+      });
+    });
+  }
+
+  /// 选中联想地址：写入文本与坐标，并立刻做 5 公里校验
+  Future<void> _selectDeliveryAddress(MapboxPlace place) async {
+    _addressDebounce?.cancel();
+    _addressSearchSeq++;
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _addressSuggestions = [];
+      _searchingAddress = false;
+      _addressSearchedOnce = false;
+    });
+    if (!_isWithinDeliveryRadius(place.latitude, place.longitude)) {
+      cartStore.deliveryAddressController.clear();
+      cartStore.clearDeliveryCoordinates();
+      await _showDeliveryTooFarAlert();
+      return;
+    }
+    cartStore.deliveryAddressController.text = place.placeName;
+    cartStore.setDeliveryCoordinates(place.latitude, place.longitude);
+    setState(() {});
+  }
+
+  bool _isWithinDeliveryRadius(double latitude, double longitude) {
+    if (!cartStore.hasPharmacyLocation) return false;
+    final meters = Geolocator.distanceBetween(
+      cartStore.pharmacyLatitude!,
+      cartStore.pharmacyLongitude!,
+      latitude,
+      longitude,
+    );
+    return meters <= kDeliveryRadiusMeters;
+  }
+
+  /// 下单前对寄送订单再校验一次：必须从联想里选过地址，且在 5 公里内
+  Future<bool> _validateDeliveryDistance() async {
+    if (!cartStore.hasDeliveryCoordinates) {
+      await HttpExceptionNotifyUser.showInfo(
+          S.of(context).selectAddressFromSuggestions);
+      return false;
+    }
+    if (!_isWithinDeliveryRadius(
+        cartStore.deliveryLatitude!, cartStore.deliveryLongitude!)) {
+      await _showDeliveryTooFarAlert();
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _showDeliveryTooFarAlert() {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+        content: Text(
+          S.of(context).deliveryTooFar,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.rubik(fontSize: 13, color: AppColors.k010101),
+        ),
+        actions: [
+          Padding(
+            padding: EdgeInsets.only(left: 64.5, right: 63.5, bottom: 24.5),
+            child: Container(
+              width: MediaQuery.of(context).size.width,
+              height: 36,
+              child: TextButton(
+                style: ButtonStyle(
+                  backgroundColor: MaterialStateProperty.all(AppColors.k0cbcc5),
+                  shape: MaterialStateProperty.all(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                  ),
+                ),
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  S.of(context).okay,
+                  style: GoogleFonts.rubik(
+                    color: AppColors.kffffff,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   bool isNearCloseTime(List<PharmacyHour> openHours) {
@@ -425,6 +564,8 @@ class _CartEShopState extends State<CartEShop> {
                     if (cartStore.deliveryOption == 2) {
                       if (pharmacy!.isOpen! == 1) {
                         if (cartStore.formKey.currentState?.validate() ?? false) {
+                          // 寄送：地址必须来自联想选择且在药店 5 公里内
+                          if (!await _validateDeliveryDistance()) return;
                           await cartStore.createOrder(widget.services.api);
                         }
                       } else {
@@ -615,9 +756,21 @@ class _CartEShopState extends State<CartEShop> {
               2, S.of(context).deliver, Icons.local_shipping_outlined),
           cartStore.deliveryOption == 2 ? delivery() : SizedBox.shrink(),
         ],
+        if (_deliverySwitchedOnButNoLocation)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              S.of(context).deliveryUnavailableNoLocation,
+              style: GoogleFonts.rubik(
+                color: AppColors.k5e5e5e,
+                fontSize: 13,
+              ),
+            ),
+          ),
         if (deliveryAvailableResponse != null &&
             !_pickupAvailable &&
-            !_deliveryAvailable)
+            !_deliveryAvailable &&
+            !_deliverySwitchedOnButNoLocation)
           Text(
             S.of(context).noDeliveryOptions,
             style: GoogleFonts.rubik(
@@ -1183,6 +1336,59 @@ class _CartEShopState extends State<CartEShop> {
     );
   }
 
+  /// 地址联想下拉：输入满 3 个字符后展示，选中即填入并校验距离
+  Widget _addressSuggestionList() {
+    if (_addressSuggestions.isEmpty) {
+      if (_addressSearchedOnce &&
+          !_searchingAddress &&
+          !cartStore.hasDeliveryCoordinates &&
+          cartStore.deliveryAddressController.text.trim().length >= 3) {
+        return Padding(
+          padding: const EdgeInsets.only(top: 6, left: 4),
+          child: Text(
+            S.of(context).noAddressFound,
+            style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 12),
+          ),
+        );
+      }
+      return const SizedBox.shrink();
+    }
+    return Container(
+      margin: const EdgeInsets.only(top: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.kb1b1b1, width: 0.5),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < _addressSuggestions.length; i++) ...[
+            if (i > 0) Divider(height: 1, color: Colors.grey.shade200),
+            InkWell(
+              onTap: () => _selectDeliveryAddress(_addressSuggestions[i]),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Row(
+                  children: [
+                    Icon(Icons.place_outlined, size: 18, color: AppColors.k8f8e94),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _addressSuggestions[i].placeName,
+                        style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget delivery() {
     return Form(
       key: cartStore.formKey,
@@ -1212,14 +1418,29 @@ class _CartEShopState extends State<CartEShop> {
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Please enter delivery address';
-                      } else {
-                        return null;
                       }
+                      // 必须从 Mapbox 联想里选，才有坐标做 5 公里校验
+                      if (!cartStore.hasDeliveryCoordinates) {
+                        return S.of(context).selectAddressFromSuggestions;
+                      }
+                      return null;
                     },
                     controller: cartStore.deliveryAddressController,
-                    onChanged: (value) {},
+                    onChanged: _onDeliveryAddressChanged,
                     decoration: InputDecoration(
                       hintText: S.of(context).shippingAddress,
+                      suffixIcon: _searchingAddress
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            )
+                          : (cartStore.hasDeliveryCoordinates
+                              ? Icon(Icons.check_circle, color: AppColors.k0cbcc5, size: 20)
+                              : null),
                       hintStyle: GoogleFonts.rubik(
                         color: AppColors.kb1b1b1,
                         fontSize: 14,
@@ -1249,6 +1470,7 @@ class _CartEShopState extends State<CartEShop> {
                       focusedErrorBorder: kErrorFocusedOutlineInputBorder,
                     ),
                   ),
+                  _addressSuggestionList(),
                 ],
               ),
             ),
