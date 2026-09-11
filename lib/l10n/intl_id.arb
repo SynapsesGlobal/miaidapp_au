@@ -514,5 +514,20 @@
   "hospitalPrivate": "Swasta",
   "hospitalHasEmergency": "Ada IGD",
   "hospitalNoEmergency": "Tanpa IGD",
-  "phoneCopied": "Nomor telepon disalin"
+  "phoneCopied": "Nomor telepon disalin",
+  "chooseDeliveryMethod": "Bagaimana Anda ingin menerima pesanan?",
+  "pickupOption": "Ambil di toko",
+  "pickupOptionHint": "Ambil di apotek dan bayar di tempat",
+  "deliveryOptionLabel": "Pengiriman",
+  "deliveryOptionHint": "Dikirim ke alamat Anda",
+  "pickupPriceNote": "Harga akhir mengikuti harga aktual apotek. Anda membayar di apotek saat mengambil pesanan.",
+  "placeOrder": "Buat pesanan",
+  "pickupOrderPlaced": "Pesanan Anda telah dibuat. Silakan bayar di apotek saat mengambilnya.",
+  "pickupPayInStore": "Ambil di toko · bayar di tempat",
+  "awaitingCollectionPayInStore": "Menunggu pengambilan (bayar di tempat)",
+  "orderCollected": "Sudah diambil",
+  "cancelledStatus": "Dibatalkan",
+  "cancelPickupOrderConfirm": "Batalkan pesanan ambil di toko ini? Barang akan dikembalikan ke stok.",
+  "keepOrder": "Simpan pesanan",
+  "orderCancelled": "Pesanan dibatalkan"
 }

@@ -487,5 +487,20 @@
   "hospitalPrivate": "Ιδιωτικό",
   "hospitalHasEmergency": "Με επείγοντα",
   "hospitalNoEmergency": "Χωρίς επείγοντα",
-  "phoneCopied": "Ο αριθμός τηλεφώνου αντιγράφηκε"
+  "phoneCopied": "Ο αριθμός τηλεφώνου αντιγράφηκε",
+  "chooseDeliveryMethod": "Πώς θέλετε να παραλάβετε την παραγγελία σας;",
+  "pickupOption": "Παραλαβή από το κατάστημα",
+  "pickupOptionHint": "Παραλαβή από το φαρμακείο και πληρωμή στο κατάστημα",
+  "deliveryOptionLabel": "Παράδοση",
+  "deliveryOptionHint": "Παράδοση στη διεύθυνσή σας",
+  "pickupPriceNote": "Η τελική τιμή εξαρτάται από την πραγματική τιμολόγηση του φαρμακείου. Πληρώνετε στο κατάστημα κατά την παραλαβή.",
+  "placeOrder": "Υποβολή παραγγελίας",
+  "pickupOrderPlaced": "Η παραγγελία σας υποβλήθηκε. Πληρώστε στο φαρμακείο κατά την παραλαβή.",
+  "pickupPayInStore": "Παραλαβή · πληρωμή στο κατάστημα",
+  "awaitingCollectionPayInStore": "Αναμονή παραλαβής (πληρωμή στο κατάστημα)",
+  "orderCollected": "Παραλήφθηκε",
+  "cancelledStatus": "Ακυρώθηκε",
+  "cancelPickupOrderConfirm": "Ακύρωση αυτής της παραγγελίας παραλαβής; Τα προϊόντα θα επιστραφούν στο απόθεμα.",
+  "keepOrder": "Διατήρηση παραγγελίας",
+  "orderCancelled": "Η παραγγελία ακυρώθηκε"
 }

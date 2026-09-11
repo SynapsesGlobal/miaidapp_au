@@ -483,5 +483,20 @@
   "hospitalPrivate": "私立",
   "hospitalHasEmergency": "有急診",
   "hospitalNoEmergency": "無急診",
-  "phoneCopied": "電話號碼已複製"
+  "phoneCopied": "電話號碼已複製",
+  "chooseDeliveryMethod": "請選擇收貨方式",
+  "pickupOption": "到店自取",
+  "pickupOptionHint": "到藥局取貨，到店付款",
+  "deliveryOptionLabel": "寄送",
+  "deliveryOptionHint": "送到您的收貨地址",
+  "pickupPriceNote": "最終價格以藥局實際情況為準，取貨時在藥局付款。",
+  "placeOrder": "提交訂單",
+  "pickupOrderPlaced": "訂單已提交，請到藥局取貨時付款。",
+  "pickupPayInStore": "到店自取 · 到店付款",
+  "awaitingCollectionPayInStore": "待取貨（到店付款）",
+  "orderCollected": "已取貨",
+  "cancelledStatus": "已取消",
+  "cancelPickupOrderConfirm": "確定取消這筆自取訂單嗎？商品庫存將會退回。",
+  "keepOrder": "保留訂單",
+  "orderCancelled": "訂單已取消"
 }

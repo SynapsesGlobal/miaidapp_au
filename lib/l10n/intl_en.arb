@@ -488,5 +488,20 @@
   "hospitalPrivate": "Private",
   "hospitalHasEmergency": "Emergency",
   "hospitalNoEmergency": "No emergency",
-  "phoneCopied": "Phone number copied"
+  "phoneCopied": "Phone number copied",
+  "chooseDeliveryMethod": "How would you like to receive your order?",
+  "pickupOption": "Pick-up",
+  "pickupOptionHint": "Collect from the pharmacy and pay in store",
+  "deliveryOptionLabel": "Delivery",
+  "deliveryOptionHint": "Delivered to your address",
+  "pickupPriceNote": "Final price is subject to the pharmacy's actual pricing. You pay in store when collecting.",
+  "placeOrder": "Place order",
+  "pickupOrderPlaced": "Your order has been placed. Please pay at the pharmacy when you collect it.",
+  "pickupPayInStore": "Pick-up · pay in store",
+  "awaitingCollectionPayInStore": "Awaiting collection (pay in store)",
+  "orderCollected": "Collected",
+  "cancelledStatus": "Cancelled",
+  "cancelPickupOrderConfirm": "Cancel this pick-up order? The items will be returned to stock.",
+  "keepOrder": "Keep order",
+  "orderCancelled": "Order cancelled"
 }

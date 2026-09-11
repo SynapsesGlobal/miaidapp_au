@@ -513,5 +513,20 @@
   "hospitalPrivate": "사립",
   "hospitalHasEmergency": "응급실 있음",
   "hospitalNoEmergency": "응급실 없음",
-  "phoneCopied": "전화번호가 복사되었습니다"
+  "phoneCopied": "전화번호가 복사되었습니다",
+  "chooseDeliveryMethod": "주문을 어떻게 받으시겠습니까?",
+  "pickupOption": "매장 픽업",
+  "pickupOptionHint": "약국에서 수령하고 매장에서 결제",
+  "deliveryOptionLabel": "배송",
+  "deliveryOptionHint": "입력하신 주소로 배송",
+  "pickupPriceNote": "최종 가격은 약국의 실제 가격에 따르며, 수령 시 매장에서 결제합니다.",
+  "placeOrder": "주문하기",
+  "pickupOrderPlaced": "주문이 접수되었습니다. 수령 시 약국에서 결제해 주세요.",
+  "pickupPayInStore": "매장 픽업 · 매장 결제",
+  "awaitingCollectionPayInStore": "수령 대기 (매장 결제)",
+  "orderCollected": "수령 완료",
+  "cancelledStatus": "취소됨",
+  "cancelPickupOrderConfirm": "이 픽업 주문을 취소하시겠습니까? 상품은 재고로 반환됩니다.",
+  "keepOrder": "주문 유지",
+  "orderCancelled": "주문이 취소되었습니다"
 }

@@ -124,6 +124,20 @@ abstract class _CartEShopStore with Store {
 
   Order? order;
 
+  /// 最近一次成功创建的订单是否为到店自取：到店付款，不弹在线支付。
+  /// 普通字段（非 @observable），随 orderCreated 变化一起被购物车页读取。
+  bool lastOrderPayOnPickup = false;
+
+  /// 进入药店前查询到的该药店配送方式开关（checkDeliveryAvailable），
+  /// 购物车页用它做初始值，避免页面先按"无选项"渲染再跳变。
+  IsDeliveryAvailableResponse? deliveryAvailability;
+  int? deliveryAvailabilityPharmacyId;
+
+  void setDeliveryAvailability(int pharmacyId, IsDeliveryAvailableResponse? response) {
+    deliveryAvailabilityPharmacyId = pharmacyId;
+    deliveryAvailability = response;
+  }
+
   @action
   bool? addItem(Product product, {String? curr, int quantity = 1}) {
     if (cartItems.isNotEmpty) {
@@ -331,6 +345,8 @@ abstract class _CartEShopStore with Store {
       //developer.log('cart store create order: ${placeOrderResponse.bodyString}');
       if (ApiSuccessParser.isSuccessfulWithPayload(placeOrderResponse)) {
         order = placeOrderResponse.body?.payload;
+        // 到店自取订单后端不建支付记录、直接完成，购物车页据此跳过支付弹窗
+        lastOrderPayOnPickup = deliveryOption == 1;
         orderCreated++;
 
         //developer.log('Create order SuccessFull');
