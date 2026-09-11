@@ -66,7 +66,14 @@ class _CartEShopState extends State<CartEShop> {
   @override
   void initState() {
     cartStore = widget.services.store;
-    deliveryAvailableResponse = null;
+    // 进入药店前的选择弹窗已经查过一次开关，先用它做初始值，再在下方刷新一次
+    final cartPharmacyId = cartStore.cartItems.isNotEmpty
+        ? cartStore.cartItems.first.keys.first.pharmacy?.id
+        : null;
+    deliveryAvailableResponse = (cartPharmacyId != null &&
+            cartStore.deliveryAvailabilityPharmacyId == cartPharmacyId)
+        ? cartStore.deliveryAvailability
+        : null;
 
     showNearCloseAlert = cartStore.cartItems.isNotEmpty ? isNearCloseTime(cartStore.cartItems.first.keys.first.pharmacy!.openingHours!) : false;
 
@@ -74,6 +81,12 @@ class _CartEShopState extends State<CartEShop> {
     _disposers = [
       reaction((_) => widget.services.store.orderCreated, (_) async {
         var order = widget.services.store.order;
+        if (order != null && cartStore.lastOrderPayOnPickup) {
+          // 到店自取：后端已直接完成订单（到店付款），不弹支付，提示后清空购物车返回
+          await _showPickupOrderPlacedDialog();
+          cartStore.closeCart();
+          return;
+        }
         if (order != null) {
           await showModalBottomSheet(
             backgroundColor: Colors.white,
@@ -474,12 +487,17 @@ class _CartEShopState extends State<CartEShop> {
                     top: 9,
                     bottom: 9,
                   ),
-                  child: Text(
-                    S.of(context).checkout,
-                    style: GoogleFonts.rubik(
-                      color: AppColors.kffffff,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                  // 到店自取不在线支付，按钮改为"提交订单"
+                  child: Observer(
+                    builder: (_) => Text(
+                      cartStore.deliveryOption == 1
+                          ? S.of(context).placeOrder
+                          : S.of(context).checkout,
+                      style: GoogleFonts.rubik(
+                        color: AppColors.kffffff,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -488,6 +506,59 @@ class _CartEShopState extends State<CartEShop> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// 到店自取下单成功提示：到店付款，无在线支付环节
+  Future<void> _showPickupOrderPlacedDialog() {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+        title: Text(
+          S.of(context).success,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.rubik(
+            color: AppColors.k010101,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Text(
+          S.of(context).pickupOrderPlaced,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.rubik(fontSize: 13),
+        ),
+        actions: [
+          Padding(
+            padding: EdgeInsets.only(left: 64.5, right: 63.5, bottom: 24.5),
+            child: Container(
+              width: MediaQuery.of(context).size.width,
+              height: 36,
+              child: TextButton(
+                style: ButtonStyle(
+                  backgroundColor: MaterialStateProperty.all(AppColors.k0cbcc5),
+                  shape: MaterialStateProperty.all(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                  ),
+                ),
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  S.of(context).okay,
+                  style: GoogleFonts.rubik(
+                    color: AppColors.kffffff,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -654,6 +725,34 @@ class _CartEShopState extends State<CartEShop> {
                   );
                 }
                 return const SizedBox.shrink();
+              }),
+              // 到店自取：不收运费，价格以药店实际为准、到店付款，在汇总处醒目提示
+              Observer(builder: (context) {
+                if (cartStore.deliveryOption != 1) return const SizedBox.shrink();
+                return Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.ke68c30.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.info_outline, size: 16, color: AppColors.ke68c30),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          S.of(context).pickupPriceNote,
+                          style: GoogleFonts.rubik(
+                            color: AppColors.ke68c30,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
               }),
             ],
           ),
