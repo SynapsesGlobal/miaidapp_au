@@ -285,7 +285,9 @@ class _EShopState extends State<EShop> with SingleTickerProviderStateMixin {
     }
     // 与购物车页一致：旧后端没有 pickup_status 时默认支持自取；接口失败时只放开自取
     final pickupAvailable = availability?.pickupStatus ?? true;
-    final deliveryAvailable = availability?.status == true;
+    // 寄送还要求药店有坐标，否则无法校验 5 公里范围，选择弹窗里不提供寄送
+    final hasLocation = pharmacy.latitude != null && pharmacy.longitude != null;
+    final deliveryAvailable = availability?.status == true && hasLocation;
     if (!mounted) return;
 
     if (!pickupAvailable && !deliveryAvailable) {
@@ -300,7 +302,12 @@ class _EShopState extends State<EShop> with SingleTickerProviderStateMixin {
     );
     if (option == null || !mounted) return;
 
-    cartStore.setDeliveryAvailability(pharmacyId, availability);
+    cartStore.setDeliveryAvailability(
+      pharmacyId,
+      availability,
+      pharmacyLatitude: pharmacy.latitude,
+      pharmacyLongitude: pharmacy.longitude,
+    );
     cartStore.changeDeliveryOption(option);
 
     await Navigator.push(

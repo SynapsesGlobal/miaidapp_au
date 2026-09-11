@@ -27,6 +27,13 @@ part 'cart_store.g.dart';
 @singleton
 class CartEShopStore = _CartEShopStore with _$CartEShopStore;
 
+/// 药房订单寄送运费：固定 19.9（不区分币种），不再读国家级运费配置和会员免运费规则；
+/// 后端下单时同样按此值强制计算
+const double kPharmacyDeliveryFee = 19.9;
+
+/// 寄送范围：收货地址与药店直线距离不得超过 5 公里
+const double kDeliveryRadiusMeters = 5000;
+
 abstract class _CartEShopStore with Store {
   _CartEShopStore();
 
@@ -49,7 +56,7 @@ abstract class _CartEShopStore with Store {
   int orderCreated = 1;
 
   @observable
-  double deliveryFee = 100;
+  double deliveryFee = kPharmacyDeliveryFee;
 
   @observable
   DeliveryFee? deliveryFeeDetails;
@@ -133,9 +140,41 @@ abstract class _CartEShopStore with Store {
   IsDeliveryAvailableResponse? deliveryAvailability;
   int? deliveryAvailabilityPharmacyId;
 
-  void setDeliveryAvailability(int pharmacyId, IsDeliveryAvailableResponse? response) {
+  /// 药店坐标（来自 PharmacyLocation），用于地址联想的就近排序和 5 公里校验。
+  /// 为空说明药店没有位置信息，此时不允许选择寄送。
+  double? pharmacyLatitude;
+  double? pharmacyLongitude;
+  bool get hasPharmacyLocation => pharmacyLatitude != null && pharmacyLongitude != null;
+
+  /// 用户从地址联想里选中的收货地址坐标；手动改动地址文本后清空，下单时必须有值
+  double? deliveryLatitude;
+  double? deliveryLongitude;
+  bool get hasDeliveryCoordinates => deliveryLatitude != null && deliveryLongitude != null;
+
+  void setDeliveryAvailability(
+    int pharmacyId,
+    IsDeliveryAvailableResponse? response, {
+    double? pharmacyLatitude,
+    double? pharmacyLongitude,
+  }) {
+    if (deliveryAvailabilityPharmacyId != pharmacyId) {
+      // 换了药店，之前选的收货坐标不再有意义
+      clearDeliveryCoordinates();
+    }
     deliveryAvailabilityPharmacyId = pharmacyId;
     deliveryAvailability = response;
+    this.pharmacyLatitude = pharmacyLatitude;
+    this.pharmacyLongitude = pharmacyLongitude;
+  }
+
+  void setDeliveryCoordinates(double latitude, double longitude) {
+    deliveryLatitude = latitude;
+    deliveryLongitude = longitude;
+  }
+
+  void clearDeliveryCoordinates() {
+    deliveryLatitude = null;
+    deliveryLongitude = null;
   }
 
   @action
@@ -224,40 +263,9 @@ abstract class _CartEShopStore with Store {
     });
     subTotal = total;
 
-    if (activeSubscriptionStore!.hasActiveSubscription == true) {
-      if (activeSubscriptionStore!.activeCustomerSubscriptionDetail != null) {
-        if (deliveryFeeDetails!.allowFreeShipping! == true &&
-            subTotal >=
-                double.parse(
-                    deliveryFeeDetails!.freeShippingPriceForMembers!)) {
-          deliveryFee = 0.0;
-        } else {
-          deliveryFee = double.parse(deliveryFeeDetails!.flatRateForMembers!);
-        }
-      }
-
-      if (activeSubscriptionStore!
-          .activeCompanySubscriptionDetails!.isNotEmpty) {
-        if (deliveryFeeDetails!.allowFreeShipping! == true &&
-            subTotal >=
-                double.parse(deliveryFeeDetails!
-                    .freeShippingPriceForCorporateMembers!)) {
-          deliveryFee = 0.0;
-        } else {
-          deliveryFee =
-              double.parse(deliveryFeeDetails!.flatRateForCorporateMembers!);
-        }
-      }
-    } else {
-      if (deliveryFeeDetails!.allowFreeShipping! == true &&
-          subTotal >= double.parse(deliveryFeeDetails!.freeShippingPrice!)) {
-        deliveryFee = 0.0;
-      } else {
-        deliveryFee = double.parse(deliveryFeeDetails!.flatRate!);
-      }
-    }
-
-    // deliveryFee = deliveryFeeTotal;
+    // 药房订单运费固定 19.9，与是否会员、国家运费配置无关；
+    // 自取时购物车页不展示运费，下单也按 0 传，这里保持常量即可
+    deliveryFee = kPharmacyDeliveryFee;
   }
 
   @action
@@ -315,50 +323,65 @@ abstract class _CartEShopStore with Store {
         total: subtotal,
       );
 
-      var placeOrderResponse =
-          await apiProvider.apiClient.eShopOrdersPostCreateAOrder(
-        accept: 'application/json',
-        delivery_fee:
-            deliveryOption == 1 ? 0.toString() : deliveryFee.toString(),
-        items: orders.toString(),
-        order_total: (subtotal).toString(),
-        order_type: deliveryOption,
-        pharmacy_id: cartItems.first.keys.first.pharmacyId ?? 0,
-        location_id: cartItems.first.keys.first.locationId ?? 0,
-        sub_total: subTotal.toString(),
-        delivery_address: deliveryOption == 1
+      // 生成的 swagger 客户端参数固定且手工补丁易被 build_runner 覆盖，这里直接
+      // 用 http 发同样的表单请求，以便寄送订单附带收货坐标（delivery_latitude/longitude）
+      final body = <String, String>{
+        'pharmacy_id': (cartItems.first.keys.first.pharmacyId ?? 0).toString(),
+        'location_id': (cartItems.first.keys.first.locationId ?? 0).toString(),
+        'order_type': deliveryOption.toString(),
+        'sub_total': subTotal.toString(),
+        'delivery_fee': deliveryOption == 1 ? 0.toString() : deliveryFee.toString(),
+        'order_total': subtotal.toString(),
+        'items': orders.toString(),
+        'delivery_address': deliveryOption == 1
             ? collectInstructionsController.text
             : deliveryAddressController.text,
-        delivery_email: emailController.text,
-        delivery_mobile:
-            ((selectedCountry?.dialCode ?? '') + phoneController.text),
-        delivery_name: nameController.text,
-        prescription_image: prescriptionPath,
+        'delivery_email': emailController.text,
+        'delivery_mobile': ((selectedCountry?.dialCode ?? '') + phoneController.text),
+        'delivery_name': nameController.text,
+      };
+      if (prescriptionPath != null) {
+        body['prescription_image'] = prescriptionPath!;
+      }
+      if (deliveryOption == 2 && hasDeliveryCoordinates) {
+        // 后端据此复核 5 公里范围并固定运费
+        body['delivery_latitude'] = deliveryLatitude!.toString();
+        body['delivery_longitude'] = deliveryLongitude!.toString();
+      }
+
+      final response = await http.post(
+        Uri.parse(apiProvider.apiClient.client.baseUrl + '/orders/create'),
+        headers: {
+          'x-api-key': apiProvider.apiKey,
+          'x-access-token': apiProvider.userProvider.user?.accessToken ?? '',
+          'Accept': 'application/json',
+        },
+        body: body,
       );
 
       isLoading = false;
       await EasyLoading.dismiss();
-      // if (prescriptionPath != null) {
-      //   prescriptionPath = null;
-      // }
 
-      //developer.log('cart store create order: ${placeOrderResponse.bodyString}');
-      if (ApiSuccessParser.isSuccessfulWithPayload(placeOrderResponse)) {
-        order = placeOrderResponse.body?.payload;
+      var json = <String, dynamic>{};
+      try {
+        json = jsonDecode(response.body) as Map<String, dynamic>;
+      } catch (_) {}
+
+      if (response.statusCode == 200 && json['payload'] is Map<String, dynamic>) {
+        order = Order.fromJson(json['payload'] as Map<String, dynamic>);
         // 到店自取订单后端不建支付记录、直接完成，购物车页据此跳过支付弹窗
         lastOrderPayOnPickup = deliveryOption == 1;
         orderCreated++;
-
-        //developer.log('Create order SuccessFull');
-        //developer.log('orderId: ${placeOrderResponse.body?.payload?.id}');
       } else {
-        final errorJson = jsonEncode(placeOrderResponse.error,
-            toEncodable: (e) => e.toString());
-        Map<String, dynamic> errors = jsonDecode(errorJson);
-
+        // 422 校验失败（如超出 5 公里、药店不支持该方式）等：把后端 message 展示给用户
+        var message = json['message'] as String? ?? '';
+        final errors = json['errors'];
+        if (errors is Map && errors.isNotEmpty) {
+          final first = errors.values.first;
+          if (first is List && first.isNotEmpty) message = first.first.toString();
+        }
         await HttpExceptionNotifyUser.showError(
-            errors["message"] ?? 'Something went wrong');
-        await ApiSuccessParser.payloadOrThrowWithMessage(placeOrderResponse);
+            message.isNotEmpty ? message : 'Something went wrong');
       }
     } catch (e) {
       isLoading = false;
@@ -380,20 +403,7 @@ abstract class _CartEShopStore with Store {
     deliveryFeeDetails =
         await ApiSuccessParser.payloadOrThrowWithMessage(response);
 
-    // get subscription status
-    if (activeSubscriptionStore!.hasActiveSubscription == true) {
-      if (activeSubscriptionStore!.activeCustomerSubscriptionDetail != null) {
-        deliveryFee = double.parse(deliveryFeeDetails!.flatRateForMembers!);
-      }
-
-      if (activeSubscriptionStore!
-          .activeCompanySubscriptionDetails!.isNotEmpty) {
-        deliveryFee =
-            double.parse(deliveryFeeDetails!.flatRateForCorporateMembers!);
-      }
-    } else {
-      deliveryFee = double.parse(deliveryFeeDetails!.flatRate!);
-    }
+    // 药房订单运费已固定为 kPharmacyDeliveryFee，国家级配置只保留读取，不再覆盖 deliveryFee
     // print(deliveryFeeDetails);
   }
 
