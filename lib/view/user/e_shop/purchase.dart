@@ -639,10 +639,12 @@ class _PurchaseItemState extends State<PurchaseItem> {
     );
   }
 
-  // 仅已取货或已退款（流程已结束）的订单允许删除
+  // 仅流程已结束的订单允许删除：已取货、已退款、已取消（自取单）
   bool _canDeleteOrder(Order order) {
     final status = order.orderStatus ?? 0;
-    return status == _statusCollected || status == _statusRefunded;
+    return status == _statusCollected ||
+        status == _statusRefunded ||
+        status == orderStatusCancelled;
   }
 
   // 删除订单确认框（风格与退款确认框一致）
