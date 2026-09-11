@@ -507,5 +507,9 @@
   "selectAddressFromSuggestions": "Please select your address from the suggestions",
   "deliveryTooFar": "Delivery is only available within 5 km of the pharmacy. Please choose pick-up instead.",
   "noAddressFound": "No matching address found",
-  "deliveryUnavailableNoLocation": "Delivery is unavailable: this pharmacy has no location on file. Please choose pick-up."
+  "deliveryUnavailableNoLocation": "Delivery is unavailable: this pharmacy has no location on file. Please choose pick-up.",
+  "deliveryTooFarTitle": "Out of delivery range",
+  "deliveryTooFarDistance": "This address is about {km} km from the pharmacy. Delivery is only available within 5 km.",
+  "switchToPickup": "Switch to pick-up",
+  "changeAddress": "Try another address"
 }

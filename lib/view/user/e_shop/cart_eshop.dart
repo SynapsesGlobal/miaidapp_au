@@ -196,10 +196,11 @@ class _CartEShopState extends State<CartEShop> {
       _searchingAddress = false;
       _addressSearchedOnce = false;
     });
-    if (!_isWithinDeliveryRadius(place.latitude, place.longitude)) {
+    final meters = _distanceToPharmacyMeters(place.latitude, place.longitude);
+    if (meters == null || meters > kDeliveryRadiusMeters) {
       cartStore.deliveryAddressController.clear();
       cartStore.clearDeliveryCoordinates();
-      await _showDeliveryTooFarAlert();
+      await _showDeliveryTooFarAlert(meters);
       return;
     }
     cartStore.deliveryAddressController.text = place.placeName;
@@ -207,15 +208,15 @@ class _CartEShopState extends State<CartEShop> {
     setState(() {});
   }
 
-  bool _isWithinDeliveryRadius(double latitude, double longitude) {
-    if (!cartStore.hasPharmacyLocation) return false;
-    final meters = Geolocator.distanceBetween(
+  /// 收货地址到药店的直线距离（米）；药店没有坐标时返回 null
+  double? _distanceToPharmacyMeters(double latitude, double longitude) {
+    if (!cartStore.hasPharmacyLocation) return null;
+    return Geolocator.distanceBetween(
       cartStore.pharmacyLatitude!,
       cartStore.pharmacyLongitude!,
       latitude,
       longitude,
     );
-    return meters <= kDeliveryRadiusMeters;
   }
 
   /// 下单前对寄送订单再校验一次：必须从联想里选过地址，且在 5 公里内
@@ -225,54 +226,113 @@ class _CartEShopState extends State<CartEShop> {
           S.of(context).selectAddressFromSuggestions);
       return false;
     }
-    if (!_isWithinDeliveryRadius(
-        cartStore.deliveryLatitude!, cartStore.deliveryLongitude!)) {
-      await _showDeliveryTooFarAlert();
+    final meters = _distanceToPharmacyMeters(
+        cartStore.deliveryLatitude!, cartStore.deliveryLongitude!);
+    if (meters == null || meters > kDeliveryRadiusMeters) {
+      await _showDeliveryTooFarAlert(meters);
       return false;
     }
     return true;
   }
 
-  Future<void> _showDeliveryTooFarAlert() {
+  /// 超出 5 公里的提示：图标 + 标题 + 带实际距离的说明；
+  /// 主按钮直接切到到店自取（药店支持自取时），次按钮回去换地址
+  Future<void> _showDeliveryTooFarAlert(double? distanceMeters) {
+    final canSwitchToPickup = _pickupAvailable;
     return showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12)),
-        ),
-        content: Text(
-          S.of(context).deliveryTooFar,
-          textAlign: TextAlign.center,
-          style: GoogleFonts.rubik(fontSize: 13, color: AppColors.k010101),
-        ),
-        actions: [
-          Padding(
-            padding: EdgeInsets.only(left: 64.5, right: 63.5, bottom: 24.5),
-            child: Container(
-              width: MediaQuery.of(context).size.width,
-              height: 36,
-              child: TextButton(
-                style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.all(AppColors.k0cbcc5),
-                  shape: MaterialStateProperty.all(
-                    RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(9),
+      builder: (context) {
+        final l10n = S.of(context);
+        final message = distanceMeters == null
+            ? l10n.deliveryTooFar
+            : l10n.deliveryTooFarDistance((distanceMeters / 1000).toStringAsFixed(1));
+        return Dialog(
+          backgroundColor: Colors.white,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: AppColors.ke68c30.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.location_off_outlined,
+                    size: 32,
+                    color: AppColors.ke68c30,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  l10n.deliveryTooFarTitle,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.rubik(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.k010101,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.rubik(
+                    fontSize: 13,
+                    height: 1.5,
+                    color: AppColors.k5e5e5e,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      backgroundColor: AppColors.k0cbcc5,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      if (canSwitchToPickup) {
+                        cartStore.changeDeliveryOption(1);
+                      }
+                    },
+                    child: Text(
+                      canSwitchToPickup ? l10n.switchToPickup : l10n.changeAddress,
+                      style: GoogleFonts.rubik(
+                        color: AppColors.kffffff,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text(
-                  S.of(context).okay,
-                  style: GoogleFonts.rubik(
-                    color: AppColors.kffffff,
-                    fontSize: 14,
+                if (canSwitchToPickup) ...[
+                  const SizedBox(height: 4),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      l10n.changeAddress,
+                      style: GoogleFonts.rubik(
+                        color: AppColors.k8f8e94,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
-                ),
-              ),
+                ],
+              ],
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

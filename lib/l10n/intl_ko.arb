@@ -532,5 +532,9 @@
   "selectAddressFromSuggestions": "제안 목록에서 배송 주소를 선택해 주세요",
   "deliveryTooFar": "배송은 약국에서 5km 이내만 가능합니다. 픽업을 선택해 주세요.",
   "noAddressFound": "일치하는 주소를 찾을 수 없습니다",
-  "deliveryUnavailableNoLocation": "이 약국은 위치 정보가 없어 배송할 수 없습니다. 픽업을 선택해 주세요."
+  "deliveryUnavailableNoLocation": "이 약국은 위치 정보가 없어 배송할 수 없습니다. 픽업을 선택해 주세요.",
+  "deliveryTooFarTitle": "배송 가능 범위를 벗어났습니다",
+  "deliveryTooFarDistance": "이 주소는 약국에서 약 {km} km 떨어져 있습니다. 배송은 5 km 이내에서만 가능합니다.",
+  "switchToPickup": "픽업으로 변경",
+  "changeAddress": "다른 주소 입력"
 }

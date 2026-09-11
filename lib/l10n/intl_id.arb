@@ -533,5 +533,9 @@
   "selectAddressFromSuggestions": "Silakan pilih alamat Anda dari saran",
   "deliveryTooFar": "Pengiriman hanya tersedia dalam radius 5 km dari apotek. Silakan pilih ambil di toko.",
   "noAddressFound": "Alamat yang cocok tidak ditemukan",
-  "deliveryUnavailableNoLocation": "Pengiriman tidak tersedia: apotek ini belum memiliki data lokasi. Silakan pilih ambil di toko."
+  "deliveryUnavailableNoLocation": "Pengiriman tidak tersedia: apotek ini belum memiliki data lokasi. Silakan pilih ambil di toko.",
+  "deliveryTooFarTitle": "Di luar jangkauan pengiriman",
+  "deliveryTooFarDistance": "Alamat ini berjarak sekitar {km} km dari apotek. Pengiriman hanya tersedia dalam radius 5 km.",
+  "switchToPickup": "Ganti ke ambil di toko",
+  "changeAddress": "Coba alamat lain"
 }
