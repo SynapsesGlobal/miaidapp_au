@@ -17,6 +17,7 @@ import 'package:miaid/payment/e_shop_payment_bottom_sheet.dart';
 import 'package:miaid/store/app/app_settings.dart';
 import 'package:miaid/store/e_shop/purchases_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
+import 'package:miaid/view/user/e_shop/order_actions.dart';
 import 'package:miaid/view/user/e_shop/purchase_detail.dart';
 import 'package:miaid/view/user/e_shop/refund_flow.dart';
 
@@ -63,6 +64,8 @@ class _PurchaseItemState extends State<PurchaseItem> {
   // 同一接口原始 JSON 的 refund 关联（生成的 Order 模型不包含该字段）
   final List<Order> _orders = [];
   Map<int, Map<String, dynamic>> _refundByOrderId = {};
+  // 到店自取（到店付款）订单 id，同样来自原始 JSON 的 pay_on_pickup 字段
+  Set<int> _pickupOrderIds = {};
 
   // ★ 分页变量
   static const int _pageSize = 10;
@@ -94,6 +97,7 @@ class _PurchaseItemState extends State<PurchaseItem> {
     _hasMore = true;
     _orders.clear();
     _refundByOrderId = {};
+    _pickupOrderIds = {};
     await _fetchOrders();
   }
 
@@ -125,6 +129,9 @@ class _PurchaseItemState extends State<PurchaseItem> {
             if (item['id'] is int && item['refund'] is Map<String, dynamic>) {
               _refundByOrderId[item['id'] as int] =
                   item['refund'] as Map<String, dynamic>;
+            }
+            if (item['id'] is int && isPayOnPickupJson(item)) {
+              _pickupOrderIds.add(item['id'] as int);
             }
           }
         }
@@ -272,6 +279,7 @@ class _PurchaseItemState extends State<PurchaseItem> {
         builder: (context) => PurchaseDetail(
           order: order,
           refund: _refundByOrderId[order.id],
+          payOnPickup: _isPickup(order),
           api: widget.services.api,
           store: widget.services.store,
         ),
@@ -336,6 +344,10 @@ class _PurchaseItemState extends State<PurchaseItem> {
                       _orderStatusText(order),
                     ],
                   ),
+                  if (_isPickup(order)) ...[
+                    const SizedBox(height: 6),
+                    pickupPayInStoreChip(context),
+                  ],
                   const SizedBox(height: 6),
                   // 订单号 + 下单时间
                   Row(
@@ -427,11 +439,21 @@ class _PurchaseItemState extends State<PurchaseItem> {
                         ),
                         const SizedBox(width: 10),
                       ],
-                      _orderActionButton(
-                        label: S.of(context).orderAgain,
-                        color: AppColors.k0cbcc5,
-                        onTap: () => _orderAgain(order),
-                      ),
+                      if (_canCancelPickup(order)) ...[
+                        _orderActionButton(
+                          label: S.of(context).cancelOrder,
+                          color: AppColors.ke63030,
+                          onTap: () => _cancelPickupOrder(order),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
+                      // 自取订单没有在线支付，"再来一单"会走支付弹窗，对自取订单不展示
+                      if (!_isPickup(order))
+                        _orderActionButton(
+                          label: S.of(context).orderAgain,
+                          color: AppColors.k0cbcc5,
+                          onTap: () => _orderAgain(order),
+                        ),
                     ],
                   ),
                 ],
@@ -451,7 +473,20 @@ class _PurchaseItemState extends State<PurchaseItem> {
     return count;
   }
 
+  bool _isPickup(Order order) =>
+      order.id != null && _pickupOrderIds.contains(order.id);
+
+  // 自取订单取货前可取消（后端同样限制 1..3）
+  bool _canCancelPickup(Order order) {
+    final status = order.orderStatus ?? 0;
+    return _isPickup(order) &&
+        status >= _statusConfirming &&
+        status <= _statusReadyForCollection;
+  }
+
   bool _canRequestRefund(Order order) {
+    // 到店自取订单没有在线支付，不存在退款，取货前用"取消订单"
+    if (_isPickup(order)) return false;
     final status = order.orderStatus ?? 0;
     if (status < _statusConfirming || status > _statusReadyForCollection) {
       return false;
@@ -734,6 +769,26 @@ class _PurchaseItemState extends State<PurchaseItem> {
     }
   }
 
+  // 取消到店自取订单：确认后 POST /orders/{id}/cancel，成功刷新列表
+  Future<void> _cancelPickupOrder(Order order) async {
+    final confirmed = await confirmCancelPickupOrder(context);
+    if (!confirmed || !mounted) return;
+    String? error;
+    try {
+      error = await cancelPickupOrder(widget.services.api, order.id!);
+    } catch (_) {
+      error = '';
+    }
+    if (error == null) {
+      await HttpExceptionNotifyUser.showInfo(S.of(context).orderCancelled);
+      if (mounted) await _refresh();
+      return;
+    }
+    await HttpExceptionNotifyUser.showInfo(
+      error.isNotEmpty ? error : S.of(context).somethingWentWrong,
+    );
+  }
+
   // 申请退款（共享流程），提交成功后刷新列表
   Future<void> _requestRefund(Order order) async {
     final ok = await showRefundFlow(
@@ -774,7 +829,19 @@ class _PurchaseItemState extends State<PurchaseItem> {
 
     String label;
     Color color;
-    if (status == _statusRefundRequested) {
+    if (_isPickup(order)) {
+      // 到店自取：无支付，按取货进度显示
+      if (status == orderStatusCancelled) {
+        label = S.of(context).cancelledStatus;
+        color = AppColors.k8f8f8f;
+      } else if (status == _statusCollected) {
+        label = S.of(context).orderCollected;
+        color = AppColors.k0cbcc5;
+      } else {
+        label = S.of(context).awaitingCollectionPayInStore;
+        color = AppColors.ke68c30;
+      }
+    } else if (status == _statusRefundRequested) {
       label = S.of(context).refunding;
       color = AppColors.ke68c30;
     } else if (status == _statusRefunded) {
