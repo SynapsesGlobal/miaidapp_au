@@ -505,14 +505,19 @@ class _PurchaseDetailState extends State<PurchaseDetail> {
 
   Widget _actionButtons() {
     final refundSlot = _refundSlot();
+    // 已取消（自取单）和已退款的订单没有可看的收据，不再展示"查看收据"
+    final status = widget.order.orderStatus ?? 0;
+    final showReceipt =
+        status != orderStatusCancelled && status != _statusRefunded;
     return Row(
       children: [
         if (refundSlot != null) ...[
           Expanded(child: refundSlot),
-          const SizedBox(width: 8),
+          if (showReceipt || !widget.payOnPickup) const SizedBox(width: 8),
         ],
-        Expanded(
-          child: OutlinedButton(
+        if (showReceipt)
+          Expanded(
+            child: OutlinedButton(
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.k0cbcc5,
               side: BorderSide(color: AppColors.k0cbcc5),
@@ -536,7 +541,7 @@ class _PurchaseDetailState extends State<PurchaseDetail> {
         ),
         // 自取订单没有在线支付，"再来一单"会走支付弹窗，对自取订单不展示
         if (!widget.payOnPickup) ...[
-          const SizedBox(width: 8),
+          if (showReceipt) const SizedBox(width: 8),
           Expanded(
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
