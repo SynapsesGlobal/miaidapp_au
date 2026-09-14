@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:injectable/injectable.dart';
 import 'package:latlong2/latlong.dart';
@@ -277,8 +278,15 @@ class _EShopState extends State<EShop> with SingleTickerProviderStateMixin {
     final cartStore = widget.services.cartEShopStore;
 
     // 开关 + 运费 + 寄送半径一起下发；接口失败返回 null，只放开自取
-    final availability =
-        await fetchDeliveryAvailability(widget.services.api, pharmacyId);
+    // 查询药店配送能力期间显示 loading，避免点击后无反馈；查完再弹选择框
+    await EasyLoading.show(maskType: EasyLoadingMaskType.clear);
+    DeliveryAvailability? availability;
+    try {
+      availability =
+          await fetchDeliveryAvailability(widget.services.api, pharmacyId);
+    } finally {
+      await EasyLoading.dismiss();
+    }
     // 与购物车页一致：旧后端没有 pickup_status 时默认支持自取；接口失败时只放开自取
     final pickupAvailable = availability?.pickupAvailable ?? true;
     // 寄送还要求药店有坐标，否则无法校验寄送半径，选择弹窗里不提供寄送

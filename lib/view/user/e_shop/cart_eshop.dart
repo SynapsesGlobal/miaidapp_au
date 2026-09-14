@@ -61,6 +61,8 @@ class _CartEShopState extends State<CartEShop> {
   late CartEShopStore cartStore;
   late List<ReactionDisposer> _disposers;
   late bool showNearCloseAlert;
+  /// 结算按钮防重复提交：点击后到 createOrder 结束前置 true，期间按钮禁用并忽略再次点击
+  bool _submittingOrder = false;
   late DeliveryAvailability? deliveryAvailableResponse;
 
   // 药店级配送方式开关（后台药店管理页配置，checkDeliveryAvailable 接口返回）。
@@ -610,7 +612,12 @@ class _CartEShopState extends State<CartEShop> {
                     ),
                   ),
                 ),
-                onPressed: () async {
+                // 提交中禁用按钮；_submittingOrder 在校验（含异步的距离校验）阶段就生效，
+                // isLoading 覆盖 createOrder 的网络阶段
+                onPressed: (cartStore.isLoading || _submittingOrder) ? null : () async {
+                  if (_submittingOrder || cartStore.isLoading) return;
+                  setState(() => _submittingOrder = true);
+                  try {
                   //check if contain prescription
 
                   var containPrescription = false;
@@ -686,6 +693,9 @@ class _CartEShopState extends State<CartEShop> {
                       ),
                     );
                   }
+                  } finally {
+                    if (mounted) setState(() => _submittingOrder = false);
+                  }
                 },
                 child: Padding(
                   padding: const EdgeInsets.only(
@@ -694,18 +704,24 @@ class _CartEShopState extends State<CartEShop> {
                     top: 9,
                     bottom: 9,
                   ),
-                  // 到店自取不在线支付，按钮改为"提交订单"
+                  // 到店自取不在线支付，按钮改为"提交订单"；提交中显示转圈
                   child: Observer(
-                    builder: (_) => Text(
-                      cartStore.deliveryOption == 1
-                          ? S.of(context).placeOrder
-                          : S.of(context).checkout,
-                      style: GoogleFonts.rubik(
-                        color: AppColors.kffffff,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    builder: (_) => (cartStore.isLoading || _submittingOrder)
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CupertinoActivityIndicator(color: Colors.white),
+                          )
+                        : Text(
+                            cartStore.deliveryOption == 1
+                                ? S.of(context).placeOrder
+                                : S.of(context).checkout,
+                            style: GoogleFonts.rubik(
+                              color: AppColors.kffffff,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                   ),
                 ),
               ),
