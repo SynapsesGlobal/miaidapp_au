@@ -17,18 +17,14 @@ class DeliveryAvailability {
     required this.radiusKm,
   });
 
-  /// 旧后端不下发运费 / 半径时的兜底值
-  static const double defaultDeliveryFee = 19.9;
-  static const double defaultRadiusKm = 5;
-
   final bool deliveryAvailable;
   final bool pickupAvailable;
   final String? message;
 
-  /// 寄送运费（主单位，如 19.9），与药店币种一致
+  /// 寄送运费（主单位，如 19.9），与药店币种一致。只有 deliveryAvailable 为 true 时才有意义
   final double deliveryFee;
 
-  /// 寄送半径（公里）
+  /// 寄送半径（公里）。只有 deliveryAvailable 为 true 时才有意义
   final double radiusKm;
 
   double get radiusMeters => radiusKm * 1000;
@@ -39,13 +35,21 @@ class DeliveryAvailability {
       : radiusKm.toString();
 
   factory DeliveryAvailability.fromJson(Map<String, dynamic> json) {
+    final fee = _toDouble(json['delivery_fee']);
+    final radiusKm = _toDouble(json['delivery_radius_km']);
+    // 运费和半径必须由后端下发，App 不保留任何默认值：
+    // 缺任一项（旧后端）就视为该药店不可寄送，只允许自取
+    final configured = fee != null && radiusKm != null && radiusKm > 0;
+    if (!configured) {
+      debugPrint('[DeliveryAvailability] delivery_fee / delivery_radius_km missing, delivery disabled');
+    }
     return DeliveryAvailability(
-      deliveryAvailable: _toBool(json['status']) ?? false,
+      deliveryAvailable: (_toBool(json['status']) ?? false) && configured,
       // 旧后端没有 pickup_status 时默认支持自取，保持升级前行为
       pickupAvailable: _toBool(json['pickup_status']) ?? true,
       message: json['message'] as String?,
-      deliveryFee: _toDouble(json['delivery_fee']) ?? defaultDeliveryFee,
-      radiusKm: _toDouble(json['delivery_radius_km']) ?? defaultRadiusKm,
+      deliveryFee: fee ?? 0,
+      radiusKm: radiusKm ?? 0,
     );
   }
 

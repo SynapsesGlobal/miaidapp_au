@@ -52,15 +52,14 @@ abstract class _CartEShopStore with Store {
   /// 药房订单寄送运费，由 checkDeliveryAvailable 下发（setDeliveryAvailability 写入），
   /// 不再读国家级运费配置和会员免运费规则；后端下单时按同一配置强制计算
   @observable
-  double deliveryFee = DeliveryAvailability.defaultDeliveryFee;
+  /// App 内没有默认值：后端未下发时 deliveryAvailable 为 false，寄送入口不会出现，这两个值也不会被用到
+  double deliveryFee = 0;
 
   /// 寄送半径（米），同样由后端下发；收货地址与药店直线距离不得超过它
-  double deliveryRadiusMeters = DeliveryAvailability.defaultRadiusKm * 1000;
+  double deliveryRadiusMeters = 0;
 
   /// 半径展示文本（"5" / "7.5"），提示文案用
-  String get deliveryRadiusLabel =>
-      deliveryAvailability?.radiusLabel ??
-      DeliveryAvailability.defaultRadiusKm.toStringAsFixed(0);
+  String get deliveryRadiusLabel => deliveryAvailability?.radiusLabel ?? '';
 
   @observable
   DeliveryFee? deliveryFeeDetails;
