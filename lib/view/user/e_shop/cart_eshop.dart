@@ -12,6 +12,7 @@ import 'package:miaid/api_utils/http_exception.dart';
 import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
+import 'package:miaid/services/delivery_availability_service.dart';
 import 'package:miaid/services/mapbox_geocoding_service.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/config/app_colors.dart';
@@ -60,16 +61,16 @@ class _CartEShopState extends State<CartEShop> {
   late CartEShopStore cartStore;
   late List<ReactionDisposer> _disposers;
   late bool showNearCloseAlert;
-  late IsDeliveryAvailableResponse? deliveryAvailableResponse;
+  late DeliveryAvailability? deliveryAvailableResponse;
 
   // 药店级配送方式开关（后台药店管理页配置，checkDeliveryAvailable 接口返回）。
   // 旧后端没有 pickup_status 字段时默认支持到店取货，保持升级前行为。
-  bool get _pickupAvailable => deliveryAvailableResponse?.pickupStatus ?? true;
-  // 寄送除了药店开关，还要求药店有坐标，否则无法做 5 公里校验
+  bool get _pickupAvailable => deliveryAvailableResponse?.pickupAvailable ?? true;
+  // 寄送除了药店开关，还要求药店有坐标，否则无法做寄送半径校验
   bool get _deliveryAvailable =>
-      deliveryAvailableResponse?.status == true && cartStore.hasPharmacyLocation;
+      deliveryAvailableResponse?.deliveryAvailable == true && cartStore.hasPharmacyLocation;
   bool get _deliverySwitchedOnButNoLocation =>
-      deliveryAvailableResponse?.status == true && !cartStore.hasPharmacyLocation;
+      deliveryAvailableResponse?.deliveryAvailable == true && !cartStore.hasPharmacyLocation;
 
   // 收货地址联想（Mapbox）：防抖 + 丢弃过期响应
   final MapboxGeocodingService _geocoding = MapboxGeocodingService();
@@ -130,9 +131,12 @@ class _CartEShopState extends State<CartEShop> {
     ];
 
     if (cartStore.cartItems.isNotEmpty) {
-      widget.services.api.apiClient.settingsCheckIsDeliveryAvailableForPharmacy(pharmacy: cartStore.cartItems.first.keys.first.pharmacy!.id!).then((value) {
+      // 刷新配送开关和后端下发的运费 / 半径；失败时保留进入药店时缓存的值
+      fetchDeliveryAvailability(widget.services.api, cartStore.cartItems.first.keys.first.pharmacy!.id!).then((value) {
+        if (!mounted || value == null) return;
+        cartStore.applyDeliveryAvailability(value);
         setState(() {
-          deliveryAvailableResponse = value.body!;
+          deliveryAvailableResponse = value;
         });
         _syncDeliveryOptionWithAvailability();
       });
@@ -197,7 +201,7 @@ class _CartEShopState extends State<CartEShop> {
       _addressSearchedOnce = false;
     });
     final meters = _distanceToPharmacyMeters(place.latitude, place.longitude);
-    if (meters == null || meters > kDeliveryRadiusMeters) {
+    if (meters == null || meters > cartStore.deliveryRadiusMeters) {
       cartStore.deliveryAddressController.clear();
       cartStore.clearDeliveryCoordinates();
       await _showDeliveryTooFarAlert(meters);
@@ -228,14 +232,14 @@ class _CartEShopState extends State<CartEShop> {
     }
     final meters = _distanceToPharmacyMeters(
         cartStore.deliveryLatitude!, cartStore.deliveryLongitude!);
-    if (meters == null || meters > kDeliveryRadiusMeters) {
+    if (meters == null || meters > cartStore.deliveryRadiusMeters) {
       await _showDeliveryTooFarAlert(meters);
       return false;
     }
     return true;
   }
 
-  /// 超出 5 公里的提示：图标 + 标题 + 带实际距离的说明；
+  /// 超出寄送半径的提示：图标 + 标题 + 带实际距离的说明；半径来自后端下发
   /// 主按钮直接切到到店自取（药店支持自取时），次按钮回去换地址
   Future<void> _showDeliveryTooFarAlert(double? distanceMeters) {
     final canSwitchToPickup = _pickupAvailable;
@@ -243,9 +247,11 @@ class _CartEShopState extends State<CartEShop> {
       context: context,
       builder: (context) {
         final l10n = S.of(context);
+        final radius = cartStore.deliveryRadiusLabel;
         final message = distanceMeters == null
-            ? l10n.deliveryTooFar
-            : l10n.deliveryTooFarDistance((distanceMeters / 1000).toStringAsFixed(1));
+            ? l10n.deliveryTooFar(radius)
+            : l10n.deliveryTooFarDistance(
+                (distanceMeters / 1000).toStringAsFixed(1), radius);
         return Dialog(
           backgroundColor: Colors.white,
           insetPadding: const EdgeInsets.symmetric(horizontal: 32),
@@ -567,7 +573,7 @@ class _CartEShopState extends State<CartEShop> {
                           ),
                         ),
                         Text(
-                          ((cartStore.deliveryOption == 2 && deliveryAvailableResponse?.status == true ? cartStore.deliveryFee : 0) + cartStore.subTotal).toStringAsFixed(2),
+                          ((cartStore.deliveryOption == 2 && deliveryAvailableResponse?.deliveryAvailable == true ? cartStore.deliveryFee : 0) + cartStore.subTotal).toStringAsFixed(2),
                           style: GoogleFonts.rubik(
                             color: AppColors.k0cbcc5,
                             fontWeight: FontWeight.w700,
@@ -912,7 +918,7 @@ class _CartEShopState extends State<CartEShop> {
                 ],
               ),
               Observer(builder: (context) {
-                if (cartStore.deliveryOption == 2 && deliveryAvailableResponse?.status == true) {
+                if (cartStore.deliveryOption == 2 && deliveryAvailableResponse?.deliveryAvailable == true) {
                   return Padding(
                     padding: const EdgeInsets.only(top: 12),
                     child: Row(

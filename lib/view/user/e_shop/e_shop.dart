@@ -16,6 +16,7 @@ import 'package:miaid/component/progress_indicator.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/generated_api_code/api_client.swagger.dart';
+import 'package:miaid/services/delivery_availability_service.dart';
 import 'package:miaid/store/app/app_settings.dart';
 import 'package:miaid/store/e_shop/cart_store.dart';
 import 'package:miaid/store/e_shop/e_shop_store.dart';
@@ -275,19 +276,14 @@ class _EShopState extends State<EShop> with SingleTickerProviderStateMixin {
     final pharmacyId = pharmacy.pharmacy!.id!;
     final cartStore = widget.services.cartEShopStore;
 
-    IsDeliveryAvailableResponse? availability;
-    try {
-      final response = await widget.services.api.apiClient
-          .settingsCheckIsDeliveryAvailableForPharmacy(pharmacy: pharmacyId);
-      availability = response.body;
-    } catch (e) {
-      developer.log('checkDeliveryAvailable failed: $e');
-    }
+    // 开关 + 运费 + 寄送半径一起下发；接口失败返回 null，只放开自取
+    final availability =
+        await fetchDeliveryAvailability(widget.services.api, pharmacyId);
     // 与购物车页一致：旧后端没有 pickup_status 时默认支持自取；接口失败时只放开自取
-    final pickupAvailable = availability?.pickupStatus ?? true;
-    // 寄送还要求药店有坐标，否则无法校验 5 公里范围，选择弹窗里不提供寄送
+    final pickupAvailable = availability?.pickupAvailable ?? true;
+    // 寄送还要求药店有坐标，否则无法校验寄送半径，选择弹窗里不提供寄送
     final hasLocation = pharmacy.latitude != null && pharmacy.longitude != null;
-    final deliveryAvailable = availability?.status == true && hasLocation;
+    final deliveryAvailable = availability?.deliveryAvailable == true && hasLocation;
     if (!mounted) return;
 
     if (!pickupAvailable && !deliveryAvailable) {

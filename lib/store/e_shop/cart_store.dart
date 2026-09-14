@@ -15,6 +15,7 @@ import 'package:miaid/api_utils/http_exception.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/generated_api_code/api_client.swagger.dart';
 import 'package:miaid/main.dart';
+import 'package:miaid/services/delivery_availability_service.dart';
 import 'package:miaid/services/facebook_service.dart';
 import 'package:miaid/store/home/active_subscription_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
@@ -26,13 +27,6 @@ part 'cart_store.g.dart';
 
 @singleton
 class CartEShopStore = _CartEShopStore with _$CartEShopStore;
-
-/// 药房订单寄送运费：固定 19.9（不区分币种），不再读国家级运费配置和会员免运费规则；
-/// 后端下单时同样按此值强制计算
-const double kPharmacyDeliveryFee = 19.9;
-
-/// 寄送范围：收货地址与药店直线距离不得超过 5 公里
-const double kDeliveryRadiusMeters = 50000;
 
 abstract class _CartEShopStore with Store {
   _CartEShopStore();
@@ -55,8 +49,18 @@ abstract class _CartEShopStore with Store {
   @observable
   int orderCreated = 1;
 
+  /// 药房订单寄送运费，由 checkDeliveryAvailable 下发（setDeliveryAvailability 写入），
+  /// 不再读国家级运费配置和会员免运费规则；后端下单时按同一配置强制计算
   @observable
-  double deliveryFee = kPharmacyDeliveryFee;
+  double deliveryFee = DeliveryAvailability.defaultDeliveryFee;
+
+  /// 寄送半径（米），同样由后端下发；收货地址与药店直线距离不得超过它
+  double deliveryRadiusMeters = DeliveryAvailability.defaultRadiusKm * 1000;
+
+  /// 半径展示文本（"5" / "7.5"），提示文案用
+  String get deliveryRadiusLabel =>
+      deliveryAvailability?.radiusLabel ??
+      DeliveryAvailability.defaultRadiusKm.toStringAsFixed(0);
 
   @observable
   DeliveryFee? deliveryFeeDetails;
@@ -135,12 +139,12 @@ abstract class _CartEShopStore with Store {
   /// 普通字段（非 @observable），随 orderCreated 变化一起被购物车页读取。
   bool lastOrderPayOnPickup = false;
 
-  /// 进入药店前查询到的该药店配送方式开关（checkDeliveryAvailable），
+  /// 进入药店前查询到的该药店配送能力（checkDeliveryAvailable：开关 + 运费 + 半径），
   /// 购物车页用它做初始值，避免页面先按"无选项"渲染再跳变。
-  IsDeliveryAvailableResponse? deliveryAvailability;
+  DeliveryAvailability? deliveryAvailability;
   int? deliveryAvailabilityPharmacyId;
 
-  /// 药店坐标（来自 PharmacyLocation），用于地址联想的就近排序和 5 公里校验。
+  /// 药店坐标（来自 PharmacyLocation），用于地址联想的就近排序和寄送半径校验。
   /// 为空说明药店没有位置信息，此时不允许选择寄送。
   double? pharmacyLatitude;
   double? pharmacyLongitude;
@@ -153,7 +157,7 @@ abstract class _CartEShopStore with Store {
 
   void setDeliveryAvailability(
     int pharmacyId,
-    IsDeliveryAvailableResponse? response, {
+    DeliveryAvailability? response, {
     double? pharmacyLatitude,
     double? pharmacyLongitude,
   }) {
@@ -165,6 +169,16 @@ abstract class _CartEShopStore with Store {
     deliveryAvailability = response;
     this.pharmacyLatitude = pharmacyLatitude;
     this.pharmacyLongitude = pharmacyLongitude;
+    applyDeliveryAvailability(response);
+  }
+
+  /// 把后端下发的运费 / 半径写入 store；接口失败（null）时保留当前值
+  @action
+  void applyDeliveryAvailability(DeliveryAvailability? response) {
+    if (response == null) return;
+    deliveryAvailability = response;
+    deliveryFee = response.deliveryFee;
+    deliveryRadiusMeters = response.radiusMeters;
   }
 
   void setDeliveryCoordinates(double latitude, double longitude) {
@@ -263,9 +277,8 @@ abstract class _CartEShopStore with Store {
     });
     subTotal = total;
 
-    // 药房订单运费固定 19.9，与是否会员、国家运费配置无关；
-    // 自取时购物车页不展示运费，下单也按 0 传，这里保持常量即可
-    deliveryFee = kPharmacyDeliveryFee;
+    // 药房订单运费由后端下发（applyDeliveryAvailability 已写入 deliveryFee），
+    // 与是否会员、国家运费配置无关；自取时购物车页不展示运费，下单也按 0 传
   }
 
   @action
@@ -416,7 +429,7 @@ abstract class _CartEShopStore with Store {
     deliveryFeeDetails =
         await ApiSuccessParser.payloadOrThrowWithMessage(response);
 
-    // 药房订单运费已固定为 kPharmacyDeliveryFee，国家级配置只保留读取，不再覆盖 deliveryFee
+    // 药房订单运费由 checkDeliveryAvailable 下发，国家级配置只保留读取，不再覆盖 deliveryFee
     // print(deliveryFeeDetails);
   }
 
