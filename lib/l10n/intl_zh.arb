@@ -512,5 +512,6 @@
   "deliveryTooFarTitle": "超出寄送范围",
   "deliveryTooFarDistance": "该地址距离药店约 {km} 公里，寄送仅支持 5 公里以内。",
   "switchToPickup": "改为到店自取",
-  "changeAddress": "换一个地址"
+  "changeAddress": "换一个地址",
+  "awaitingCollection": "待取货"
 }

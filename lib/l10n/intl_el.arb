@@ -510,5 +510,6 @@
   "deliveryTooFarTitle": "Εκτός περιοχής παράδοσης",
   "deliveryTooFarDistance": "Η διεύθυνση απέχει περίπου {km} χλμ. από το φαρμακείο. Η παράδοση είναι διαθέσιμη μόνο εντός 5 χλμ.",
   "switchToPickup": "Αλλαγή σε παραλαβή",
-  "changeAddress": "Δοκιμάστε άλλη διεύθυνση"
+  "changeAddress": "Δοκιμάστε άλλη διεύθυνση",
+  "awaitingCollection": "Αναμονή παραλαβής"
 }

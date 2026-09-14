@@ -537,5 +537,6 @@
   "deliveryTooFarTitle": "Di luar jangkauan pengiriman",
   "deliveryTooFarDistance": "Alamat ini berjarak sekitar {km} km dari apotek. Pengiriman hanya tersedia dalam radius 5 km.",
   "switchToPickup": "Ganti ke ambil di toko",
-  "changeAddress": "Coba alamat lain"
+  "changeAddress": "Coba alamat lain",
+  "awaitingCollection": "Menunggu pengambilan"
 }
