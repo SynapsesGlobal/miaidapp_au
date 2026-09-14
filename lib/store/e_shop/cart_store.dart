@@ -32,7 +32,7 @@ class CartEShopStore = _CartEShopStore with _$CartEShopStore;
 const double kPharmacyDeliveryFee = 19.9;
 
 /// 寄送范围：收货地址与药店直线距离不得超过 5 公里
-const double kDeliveryRadiusMeters = 5000;
+const double kDeliveryRadiusMeters = 50000;
 
 abstract class _CartEShopStore with Store {
   _CartEShopStore();
