@@ -111,7 +111,10 @@ dependencies:
 #   admin.mi-aid.com.au，避免脚本新增无效域名（留空时脚本会写入一个空的 "applinks:"）
 # - ios.ignore_security：禁止脚本把 NSAllowsArbitraryLoads 改成 true（会影响 App Store 审核）
 tobias:
-  url_scheme: com.em.bright.miaid.alipay
+  # 与 Info.plist 里的 alipay URL type 保持同一字符串，pod install 时 tobias_setup.rb 才不会再插入
+  # 一条固定 scheme；实际值由 Xcode 按 flavor 的 bundle id 展开（正式 com.em.bright.ios.miaid.alipay，
+  # dev/sandbox com.em.bright.ios.dev.miaid.alipay），避免 sandbox 支付回跳到正式版
+  url_scheme: $(PRODUCT_BUNDLE_IDENTIFIER).alipay
   ios:
     universal_link: https://admin.mi-aid.com.au/app/
     ignore_security: true

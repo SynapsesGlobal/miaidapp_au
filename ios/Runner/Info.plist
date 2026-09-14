@@ -57,7 +57,9 @@
 			<string>alipay</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.em.bright.miaid.alipay</string>
+				<!-- 支付宝回跳 scheme 随 bundle id 变化：正式版与 dev/sandbox 包装在同一台手机时，
+				     固定 scheme 会被系统交给正式版，导致 sandbox 支付完回到正式版 -->
+				<string>$(PRODUCT_BUNDLE_IDENTIFIER).alipay</string>
 			</array>
 		</dict>
 	</array>
