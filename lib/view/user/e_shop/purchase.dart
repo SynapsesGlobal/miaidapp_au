@@ -454,13 +454,11 @@ class _PurchaseItemState extends State<PurchaseItem> {
                         ),
                         const SizedBox(width: 10),
                       ],
-                      // 自取订单没有在线支付，"再来一单"会走支付弹窗，对自取订单不展示
-                      if (!_isPickup(order))
-                        _orderActionButton(
-                          label: S.of(context).orderAgain,
-                          color: AppColors.k0cbcc5,
-                          onTap: () => _orderAgain(order),
-                        ),
+                      _orderActionButton(
+                        label: S.of(context).orderAgain,
+                        color: AppColors.k0cbcc5,
+                        onTap: () => _orderAgain(order),
+                      ),
                     ],
                   ),
                 ],
@@ -814,6 +812,12 @@ class _PurchaseItemState extends State<PurchaseItem> {
     final reOrdered =
         await widget.services.store.reOrder(order, widget.services.api);
     if (!reOrdered) return;
+    if (_isPickup(order)) {
+      // 自取单再次下单：后端直接复制成新的自取单（到店付款），不走支付弹窗
+      await HttpExceptionNotifyUser.showInfo(S.of(context).pickupOrderPlaced);
+      await _refresh();
+      return;
+    }
     await showModalBottomSheet<void>(
       backgroundColor: Colors.white,
       context: context,

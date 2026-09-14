@@ -522,7 +522,7 @@ class _PurchaseDetailState extends State<PurchaseDetail> {
       children: [
         if (refundSlot != null) ...[
           Expanded(child: refundSlot),
-          if (showReceipt || !widget.payOnPickup) const SizedBox(width: 8),
+          const SizedBox(width: 8),
         ],
         if (showReceipt)
           Expanded(
@@ -548,8 +548,8 @@ class _PurchaseDetailState extends State<PurchaseDetail> {
             ),
           ),
         ),
-        // 自取订单没有在线支付，"再来一单"会走支付弹窗，对自取订单不展示
-        if (!widget.payOnPickup) ...[
+        // 任何订单都可以再来一单；自取单会复制成新的自取单，不走支付
+        ...[
           if (showReceipt) const SizedBox(width: 8),
           Expanded(
             child: ElevatedButton(
@@ -731,6 +731,12 @@ class _PurchaseDetailState extends State<PurchaseDetail> {
   Future<void> _orderAgain() async {
     final reOrdered = await widget.store.reOrder(order, widget.api);
     if (!reOrdered) return;
+    if (widget.payOnPickup) {
+      // 自取单再次下单：后端直接复制成新的自取单（到店付款），不走支付弹窗
+      await HttpExceptionNotifyUser.showInfo(S.of(context).pickupOrderPlaced);
+      _changed = true;
+      return;
+    }
     await showModalBottomSheet<void>(
       backgroundColor: Colors.white,
       context: context,
