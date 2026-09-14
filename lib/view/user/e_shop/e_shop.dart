@@ -10,11 +10,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:injectable/injectable.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:miaid/api_utils/api_provider.dart';
+import 'package:miaid/api_utils/http_exception.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/component/progress_indicator.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/generated_api_code/api_client.swagger.dart';
+import 'package:miaid/services/delivery_availability_service.dart';
 import 'package:miaid/store/app/app_settings.dart';
 import 'package:miaid/store/e_shop/cart_store.dart';
 import 'package:miaid/store/e_shop/e_shop_store.dart';
@@ -23,6 +25,7 @@ import 'package:miaid/store/home/active_subscription_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/utils/utils.dart';
 import 'package:miaid/view/user/e_shop/cart_eshop.dart';
+import 'package:miaid/view/user/e_shop/delivery_method_sheet.dart';
 import 'package:miaid/view/user/e_shop/e_shop_details.dart';
 import 'package:miaid/view/user/e_shop/purchase.dart';
 import 'package:miaid/view/user/location/location.dart';
@@ -185,18 +188,7 @@ class _EShopState extends State<EShop> with SingleTickerProviderStateMixin {
                         style: TextButton.styleFrom(
                           backgroundColor: AppColors.k0cbcc5,
                         ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute<void>(
-                              builder: (context) => getIt<EShopDetails>(
-                                  param1: EShopDetailsParams(
-                                pharmacy.pharmacy!.id!,
-                                pharmacy,
-                              )),
-                            ),
-                          );
-                        },
+                        onPressed: () => _openPharmacy(context, pharmacy),
                         child: Text(
                           S.of(context).view,
                           style: TextStyle(color: Colors.white),
@@ -275,6 +267,53 @@ class _EShopState extends State<EShop> with SingleTickerProviderStateMixin {
   void activate() {
     // TODO: implement activate
     super.activate();
+  }
+
+  /// 进入药店详情前先让用户选配送方式（到店自取 / 寄送）。
+  /// 每次进入都要选，不记忆上次选择；只展示该药店支持的方式，
+  /// 两种都不支持则提示并不进入；用户关闭弹窗不选也不进入。
+  Future<void> _openPharmacy(BuildContext context, PharmacyLocation pharmacy) async {
+    final pharmacyId = pharmacy.pharmacy!.id!;
+    final cartStore = widget.services.cartEShopStore;
+
+    // 开关 + 运费 + 寄送半径一起下发；接口失败返回 null，只放开自取
+    final availability =
+        await fetchDeliveryAvailability(widget.services.api, pharmacyId);
+    // 与购物车页一致：旧后端没有 pickup_status 时默认支持自取；接口失败时只放开自取
+    final pickupAvailable = availability?.pickupAvailable ?? true;
+    // 寄送还要求药店有坐标，否则无法校验寄送半径，选择弹窗里不提供寄送
+    final hasLocation = pharmacy.latitude != null && pharmacy.longitude != null;
+    final deliveryAvailable = availability?.deliveryAvailable == true && hasLocation;
+    if (!mounted) return;
+
+    if (!pickupAvailable && !deliveryAvailable) {
+      await HttpExceptionNotifyUser.showInfo(S.of(context).noDeliveryOptions);
+      return;
+    }
+
+    final option = await showDeliveryMethodSheet(
+      context,
+      pickupAvailable: pickupAvailable,
+      deliveryAvailable: deliveryAvailable,
+    );
+    if (option == null || !mounted) return;
+
+    cartStore.setDeliveryAvailability(
+      pharmacyId,
+      availability,
+      pharmacyLatitude: pharmacy.latitude,
+      pharmacyLongitude: pharmacy.longitude,
+    );
+    cartStore.changeDeliveryOption(option);
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) => getIt<EShopDetails>(
+          param1: EShopDetailsParams(pharmacyId, pharmacy),
+        ),
+      ),
+    );
   }
 
   @override
@@ -744,14 +783,7 @@ class _EShopState extends State<EShop> with SingleTickerProviderStateMixin {
       elevation: 0,
       child: InkWell(
         onTap: () async {
-          await Navigator.push(context, MaterialPageRoute<void>(
-            builder: (context) => getIt<EShopDetails>(
-              param1: EShopDetailsParams(
-                pharmacy.pharmacy!.id!,
-                pharmacy,
-              ),
-            ),
-          ),);
+          await _openPharmacy(context, pharmacy);
           setState(() {});
         },
         child: Column(

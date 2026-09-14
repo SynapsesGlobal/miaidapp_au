@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:miaid/api_utils/api_provider.dart';
+import 'package:miaid/api_utils/http_exception.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
@@ -9,8 +9,10 @@ import 'package:miaid/generated_api_code/api_client.swagger.dart';
 import 'package:miaid/payment/e_shop_payment_bottom_sheet.dart';
 import 'package:miaid/store/e_shop/purchases_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
+import 'package:miaid/view/user/e_shop/order_actions.dart';
 import 'package:miaid/view/user/e_shop/purchase_view_receipt.dart';
 import 'package:miaid/view/user/e_shop/refund_flow.dart';
+import 'package:miaid/utils/date_utils.dart';
 
 /// 订单详情页：数据由列表页直接传入，不额外请求详情接口
 class PurchaseDetail extends StatefulWidget {
@@ -20,6 +22,8 @@ class PurchaseDetail extends StatefulWidget {
     required this.api,
     required this.store,
     this.refund,
+    this.payOnPickup = false,
+    this.collectedAt,
   }) : super(key: key);
 
   final Order order;
@@ -29,6 +33,12 @@ class PurchaseDetail extends StatefulWidget {
   /// 订单的退款申请信息（status/reason/reject_reason），无退款申请时为 null
   final Map<String, dynamic>? refund;
 
+  /// 到店自取（到店付款）订单：无在线支付、不可退款，取货前可取消
+  final bool payOnPickup;
+
+  /// 药店标记已取货的时间（collected_at），历史订单可能为空
+  final String? collectedAt;
+
   @override
   _PurchaseDetailState createState() => _PurchaseDetailState();
 }
@@ -37,6 +47,7 @@ class _PurchaseDetailState extends State<PurchaseDetail> {
   // 与后端 Order.order_status 保持一致
   static const int _statusConfirming = 1;
   static const int _statusReadyForCollection = 3;
+  static const int _statusCollected = 4;
   static const int _statusRefundRequested = 5;
   static const int _statusRefunded = 6;
   // 与后端 OrderRefund.status 保持一致
@@ -162,6 +173,13 @@ class _PurchaseDetailState extends State<PurchaseDetail> {
             _metaLine(S.of(context).orderNumber, order.id?.toString() ?? ''),
             const SizedBox(height: 6),
             _metaLine(S.of(context).orderDate, _formatDate(order.createdAt)),
+            // 已取货：显示取货时间；老订单没有 collected_at 时退回最后更新时间
+            if ((order.orderStatus ?? 0) == _statusCollected)
+              _metaLine(
+                S.of(context).collectedTime,
+                _formatDate(widget.collectedAt ?? order.updatedAt),
+              ),
+            if (widget.payOnPickup) _pickupBanner(),
             _refundRejectedBanner(),
           ],
         ),
@@ -176,7 +194,20 @@ class _PurchaseDetailState extends State<PurchaseDetail> {
 
     String label;
     Color color;
-    if (status == _statusRefundRequested) {
+    if (widget.payOnPickup) {
+      // 到店自取：无支付，按取货进度显示
+      if (status == orderStatusCancelled) {
+        label = S.of(context).cancelledStatus;
+        color = AppColors.k8f8f8f;
+      } else if (status == _statusCollected) {
+        label = S.of(context).orderCollected;
+        color = AppColors.k0cbcc5;
+      } else {
+        // 顶部横幅已说明到店付款，状态只显示待取货
+        label = S.of(context).awaitingCollection;
+        color = AppColors.ke68c30;
+      }
+    } else if (status == _statusRefundRequested) {
       label = S.of(context).refunding;
       color = AppColors.ke68c30;
     } else if (status == _statusRefunded) {
@@ -203,6 +234,32 @@ class _PurchaseDetailState extends State<PurchaseDetail> {
           fontSize: 11,
           fontWeight: FontWeight.w500,
         ),
+      ),
+    );
+  }
+
+  // 到店自取提示：标签 + 价格以药店为准、到店付款说明
+  Widget _pickupBanner() {
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.ke68c30.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          pickupPayInStoreChip(context),
+          const SizedBox(height: 8),
+          Text(
+            S.of(context).pickupPriceNote,
+            style: GoogleFonts.rubik(
+              color: AppColors.ke68c30,
+              fontSize: 13,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -264,10 +321,8 @@ class _PurchaseDetailState extends State<PurchaseDetail> {
     );
   }
 
-  String _formatDate(String? raw) {
-    if (raw == null || raw.isEmpty) return '';
-    return DateFormat('dd MMM yyyy hh:mm aaa').format(DateTime.parse(raw));
-  }
+  // 按当前语言格式化并转本地时区（共用 lib/utils/date_utils.dart）
+  String _formatDate(String? raw) => formatOrderDateTime(context, raw);
 
   // ---------------------------------------------------------------------------
   // 商品列表
@@ -395,11 +450,14 @@ class _PurchaseDetailState extends State<PurchaseDetail> {
               S.of(context).subTotal,
               '${order.pharmacyCurrency} ${order.subTotal}',
             ),
-            const SizedBox(height: 6),
-            _summaryRow(
-              S.of(context).deliveryFees,
-              '${order.pharmacyCurrency} ${order.deliveryFee}',
-            ),
+            // 到店自取不收运费，不显示运费行
+            if (!widget.payOnPickup) ...[
+              const SizedBox(height: 6),
+              _summaryRow(
+                S.of(context).deliveryFees,
+                '${order.pharmacyCurrency} ${order.deliveryFee}',
+              ),
+            ],
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 10),
               child: Divider(height: 1, color: Colors.black12,),
@@ -456,14 +514,19 @@ class _PurchaseDetailState extends State<PurchaseDetail> {
 
   Widget _actionButtons() {
     final refundSlot = _refundSlot();
+    // 已取消（自取单）和已退款的订单没有可看的收据，不再展示"查看收据"
+    final status = widget.order.orderStatus ?? 0;
+    final showReceipt =
+        status != orderStatusCancelled && status != _statusRefunded;
     return Row(
       children: [
         if (refundSlot != null) ...[
           Expanded(child: refundSlot),
           const SizedBox(width: 8),
         ],
-        Expanded(
-          child: OutlinedButton(
+        if (showReceipt)
+          Expanded(
+            child: OutlinedButton(
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.k0cbcc5,
               side: BorderSide(color: AppColors.k0cbcc5),
@@ -485,31 +548,34 @@ class _PurchaseDetailState extends State<PurchaseDetail> {
             ),
           ),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.k0cbcc5,
-              foregroundColor: AppColors.kffffff,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+        // 任何订单都可以再来一单；自取单会复制成新的自取单，不走支付
+        ...[
+          if (showReceipt) const SizedBox(width: 8),
+          Expanded(
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.k0cbcc5,
+                foregroundColor: AppColors.kffffff,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
-            ),
-            onPressed: _orderAgain,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                S.of(context).orderAgain,
-                style: GoogleFonts.rubik(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+              onPressed: _orderAgain,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  S.of(context).orderAgain,
+                  style: GoogleFonts.rubik(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -518,6 +584,36 @@ class _PurchaseDetailState extends State<PurchaseDetail> {
   // 退款中/已退款/已拒绝显示状态；已取货不显示
   Widget? _refundSlot() {
     final status = order.orderStatus ?? 0;
+    if (widget.payOnPickup) {
+      // 到店自取：取货前可取消；已取消显示状态；已取货无操作
+      if (status == orderStatusCancelled) {
+        return _refundStatusChip(S.of(context).cancelledStatus, AppColors.k8f8f8f);
+      }
+      if (status >= _statusConfirming && status <= _statusReadyForCollection) {
+        return OutlinedButton(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.ke63030,
+            side: BorderSide(color: AppColors.ke63030.withOpacity(0.5)),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          onPressed: _cancelPickupOrder,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              S.of(context).cancelOrder,
+              style: GoogleFonts.rubik(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        );
+      }
+      return null;
+    }
     if (status == _statusRefundRequested) {
       return _refundStatusChip(S.of(context).refunding, AppColors.ke68c30);
     }
@@ -593,6 +689,26 @@ class _PurchaseDetailState extends State<PurchaseDetail> {
     }
   }
 
+  // 取消到店自取订单：确认后调用取消接口，成功返回列表页并刷新
+  Future<void> _cancelPickupOrder() async {
+    final confirmed = await confirmCancelPickupOrder(context);
+    if (!confirmed || !mounted) return;
+    String? error;
+    try {
+      error = await cancelPickupOrder(widget.api, order.id!);
+    } catch (_) {
+      error = '';
+    }
+    if (error == null) {
+      await HttpExceptionNotifyUser.showInfo(S.of(context).orderCancelled);
+      if (mounted) Navigator.pop(context, true);
+      return;
+    }
+    await HttpExceptionNotifyUser.showInfo(
+      error.isNotEmpty ? error : S.of(context).somethingWentWrong,
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // 其他操作
   // ---------------------------------------------------------------------------
@@ -615,6 +731,12 @@ class _PurchaseDetailState extends State<PurchaseDetail> {
   Future<void> _orderAgain() async {
     final reOrdered = await widget.store.reOrder(order, widget.api);
     if (!reOrdered) return;
+    if (widget.payOnPickup) {
+      // 自取单再次下单：后端直接复制成新的自取单（到店付款），不走支付弹窗
+      await HttpExceptionNotifyUser.showInfo(S.of(context).pickupOrderPlaced);
+      _changed = true;
+      return;
+    }
     await showModalBottomSheet<void>(
       backgroundColor: Colors.white,
       context: context,
