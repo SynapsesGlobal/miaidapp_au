@@ -203,7 +203,8 @@ class _PurchaseDetailState extends State<PurchaseDetail> {
         label = S.of(context).orderCollected;
         color = AppColors.k0cbcc5;
       } else {
-        label = S.of(context).awaitingCollectionPayInStore;
+        // 顶部横幅已说明到店付款，状态只显示待取货
+        label = S.of(context).awaitingCollection;
         color = AppColors.ke68c30;
       }
     } else if (status == _statusRefundRequested) {
