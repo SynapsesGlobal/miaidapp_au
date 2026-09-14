@@ -7,7 +7,6 @@ import 'package:gallery_saver/gallery_saver.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:injectable/injectable.dart';
-import 'package:intl/intl.dart';
 import 'package:miaid/api_utils/api_provider.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/component/progress_indicator.dart';
@@ -15,6 +14,7 @@ import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/store/app/app_settings.dart';
 import 'package:miaid/store/e_shop/purchases_store.dart';
+import 'package:miaid/utils/date_utils.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share/share.dart';
 import 'package:tap_debouncer/tap_debouncer.dart';
@@ -244,11 +244,11 @@ class _PurchaseViewReceiptState extends State<PurchaseViewReceipt> {
                                       ),
                                     ),
                                     Text(
-                                      DateFormat('dd MMM yyyy hh:mm aaa')
-                                          .format(
-                                        DateTime.parse(purchaseViewReceiptStore
-                                                .orderDetails?.createdAt ??
-                                            ''),
+                                      // 与订单列表/详情一致：按当前语言格式化并转本地时区
+                                      formatOrderDateTime(
+                                        context,
+                                        purchaseViewReceiptStore
+                                            .orderDetails?.createdAt,
                                       ),
                                       style: GoogleFonts.rubik(
                                         fontSize: 10,
