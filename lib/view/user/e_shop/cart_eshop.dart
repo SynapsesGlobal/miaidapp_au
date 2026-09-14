@@ -432,6 +432,8 @@ class _CartEShopState extends State<CartEShop> {
       // 商品少时也撑满视口：汇总与条款贴近底部结算栏，页面不留大片空白
       body: LayoutBuilder(
         builder: (context, constraints) => SingleChildScrollView(
+          // 滑动页面即收起键盘：手机号用的数字键盘在 iOS 上没有"完成"键
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           child: ConstrainedBox(
             constraints: BoxConstraints(minHeight: constraints.maxHeight),
             child: IntrinsicHeight(
@@ -1721,6 +1723,11 @@ class _CartEShopState extends State<CartEShop> {
                     },
                     onChanged: (value) {},
                     keyboardType: TextInputType.phone,
+                    // iOS 数字键盘没有回车键，点输入框外任意位置或滑动页面收起键盘；
+                    // Android 的"完成"键也直接收起，避免键盘一直盖住底部结算栏
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
+                    onTapOutside: (_) => FocusScope.of(context).unfocus(),
                     controller: cartStore.phoneController,
                     decoration: InputDecoration(
                       hintText: '1 23456 7890',
