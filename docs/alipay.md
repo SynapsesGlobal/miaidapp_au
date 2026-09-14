@@ -18,7 +18,7 @@
 | `lib/payment/e_shop_payment_bottom_sheet.dart` | 支付方式列表新增支付宝一行（仅药房币种为人民币 RMB/CNY 时显示；设备未安装支付宝时该行仍显示，副标题提示先安装，点击只弹 toast 不发起支付）及 `_startAlipayProcess` |
 | `lib/payment/payment_bottom_sheet.dart` | 旅行套餐与加购问诊共用的支付弹窗，同样规则新增支付宝一行；成功后复用 `recheckActiveSubscription` 轮询后端 payment 状态 |
 | `lib/l10n/intl_*.arb` | 4 个新文案：未安装提示、支付成功、处理中、境外卡手续费说明 |
-| `ios/Runner/Info.plist` | URL type `alipay`（scheme `com.em.bright.miaid.alipay`），`LSApplicationQueriesSchemes` 加 `alipay`/`alipays` |
+| `ios/Runner/Info.plist` | URL type `alipay`（scheme `$(PRODUCT_BUNDLE_IDENTIFIER).alipay`，按 flavor 展开为 `com.em.bright.ios.miaid.alipay` / `com.em.bright.ios.dev.miaid.alipay`，避免 sandbox 支付回跳到正式版），`LSApplicationQueriesSchemes` 加 `alipay`/`alipays` |
 | `ios/Podfile.lock` | `pod install` 后新增 tobias |
 | `android/build.gradle` | 根工程原本把所有插件模块的 Kotlin jvmTarget 强制成 1.8，tobias 自身声明 Java 11，两者不一致会编译失败；只对 tobias 放开到 11 |
 
