@@ -355,6 +355,11 @@ abstract class _CartEShopStore with Store {
       if (prescriptionPath != null) {
         body['prescription_image'] = prescriptionPath!;
       }
+      if (deliveryOption == 1) {
+        // 明确告诉后端这是"到店付款"的自取单（免在线支付、下单即扣库存并通知药店）。
+        // 后端靠这个标记区分新旧版本：旧版 App 不传，自取单仍走在线支付
+        body['pay_on_pickup'] = '1';
+      }
       if (deliveryOption == 2 && hasDeliveryCoordinates) {
         // 后端据此复核 5 公里范围并固定运费
         body['delivery_latitude'] = deliveryLatitude!.toString();
