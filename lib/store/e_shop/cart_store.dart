@@ -368,7 +368,7 @@ abstract class _CartEShopStore with Store {
       } catch (_) {}
 
       if (response.statusCode == 200 && json['payload'] is Map<String, dynamic>) {
-        order = Order.fromJson(json['payload'] as Map<String, dynamic>);
+        order = Order.fromJson(_coerceIntFields(json['payload'] as Map<String, dynamic>));
         // 到店自取订单后端不建支付记录、直接完成，购物车页据此跳过支付弹窗
         lastOrderPayOnPickup = deliveryOption == 1;
         orderCreated++;
@@ -387,6 +387,19 @@ abstract class _CartEShopStore with Store {
       isLoading = false;
       rethrow;
     }
+  }
+
+  /// 下单响应里的 order_type / order_status 可能是字符串（后端把表单值原样写回），
+  /// 生成的 Order.fromJson 按 int 解析会抛 type cast 异常，这里先转成 int
+  static Map<String, dynamic> _coerceIntFields(Map<String, dynamic> payload) {
+    const intKeys = ['id', 'customer_id', 'pharmacy_id', 'order_type', 'order_status'];
+    final fixed = Map<String, dynamic>.from(payload);
+    for (final key in intKeys) {
+      final value = fixed[key];
+      if (value is String) fixed[key] = int.tryParse(value);
+      if (value is double) fixed[key] = value.toInt();
+    }
+    return fixed;
   }
 
   @action
