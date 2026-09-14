@@ -190,7 +190,7 @@ class _CartEShopState extends State<CartEShop> {
     });
   }
 
-  /// 选中联想地址：写入文本与坐标，并立刻做 5 公里校验
+  /// 选中联想地址：写入文本与坐标，并立刻按后端下发的寄送半径校验
   Future<void> _selectDeliveryAddress(MapboxPlace place) async {
     _addressDebounce?.cancel();
     _addressSearchSeq++;
@@ -223,7 +223,7 @@ class _CartEShopState extends State<CartEShop> {
     );
   }
 
-  /// 下单前对寄送订单再校验一次：必须从联想里选过地址，且在 5 公里内
+  /// 下单前对寄送订单再校验一次：必须从联想里选过地址，且在后端下发的寄送半径内
   Future<bool> _validateDeliveryDistance() async {
     if (!cartStore.hasDeliveryCoordinates) {
       await HttpExceptionNotifyUser.showInfo(
@@ -630,7 +630,7 @@ class _CartEShopState extends State<CartEShop> {
                     if (cartStore.deliveryOption == 2) {
                       if (pharmacy!.isOpen! == 1) {
                         if (cartStore.formKey.currentState?.validate() ?? false) {
-                          // 寄送：地址必须来自联想选择且在药店 5 公里内
+                          // 寄送：地址必须来自联想选择且在后端下发的寄送半径内
                           if (!await _validateDeliveryDistance()) return;
                           await cartStore.createOrder(widget.services.api);
                         }
@@ -1485,7 +1485,7 @@ class _CartEShopState extends State<CartEShop> {
                       if (value == null || value.trim().isEmpty) {
                         return 'Please enter delivery address';
                       }
-                      // 必须从 Mapbox 联想里选，才有坐标做 5 公里校验
+                      // 必须从 Mapbox 联想里选，才有坐标做寄送半径校验
                       if (!cartStore.hasDeliveryCoordinates) {
                         return S.of(context).selectAddressFromSuggestions;
                       }
