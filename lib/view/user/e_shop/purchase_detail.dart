@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:miaid/api_utils/api_provider.dart';
 import 'package:miaid/api_utils/http_exception.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
@@ -13,6 +12,7 @@ import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/e_shop/order_actions.dart';
 import 'package:miaid/view/user/e_shop/purchase_view_receipt.dart';
 import 'package:miaid/view/user/e_shop/refund_flow.dart';
+import 'package:miaid/utils/date_utils.dart';
 
 /// 订单详情页：数据由列表页直接传入，不额外请求详情接口
 class PurchaseDetail extends StatefulWidget {
@@ -310,10 +310,8 @@ class _PurchaseDetailState extends State<PurchaseDetail> {
     );
   }
 
-  String _formatDate(String? raw) {
-    if (raw == null || raw.isEmpty) return '';
-    return DateFormat('dd MMM yyyy hh:mm aaa').format(DateTime.parse(raw));
-  }
+  // 按当前语言格式化并转本地时区（共用 lib/utils/date_utils.dart）
+  String _formatDate(String? raw) => formatOrderDateTime(context, raw);
 
   // ---------------------------------------------------------------------------
   // 商品列表

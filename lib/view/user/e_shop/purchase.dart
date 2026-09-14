@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:injectable/injectable.dart';
-import 'package:intl/intl.dart';
 import 'package:miaid/api_utils/api_provider.dart';
 import 'package:miaid/api_utils/http_exception.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
@@ -20,6 +19,7 @@ import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/e_shop/order_actions.dart';
 import 'package:miaid/view/user/e_shop/purchase_detail.dart';
 import 'package:miaid/view/user/e_shop/refund_flow.dart';
+import 'package:miaid/utils/date_utils.dart';
 
 class PurchaseItemParams {
   const PurchaseItemParams(this.key);
@@ -863,10 +863,8 @@ class _PurchaseItemState extends State<PurchaseItem> {
     );
   }
 
-  String _formatDate(String? raw) {
-    if (raw == null || raw.isEmpty) return '';
-    return DateFormat('dd MMM yyyy hh:mm aaa').format(DateTime.parse(raw));
-  }
+  // 按当前语言格式化并转本地时区（共用 lib/utils/date_utils.dart）
+  String _formatDate(String? raw) => formatOrderDateTime(context, raw);
 
   Widget divider() {
     return Container(height: 0.5, color: AppColors.k5e5e5e.withOpacity(0.15));

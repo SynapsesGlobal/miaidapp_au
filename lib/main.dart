@@ -15,6 +15,7 @@ import 'package:miaid/config/stripe_settings.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/notifications/notifications_token_provider.dart';
 import 'package:miaid/services/analytics_service.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:miaid/services/facebook_service.dart';
 import 'package:miaid/services/location_upload_service.dart';
 import 'package:miaid/services/square_payment_backend_service.dart';
@@ -61,6 +62,9 @@ void main() async {
 /// 否则测试包与正式包的行为会出现分叉。
 Future<void> bootstrap(String envName) async {
   WidgetsFlutterBinding.ensureInitialized();
+  // 加载 intl 的多语言日期符号（中/韩/印尼/希腊等），否则 DateFormat 带 locale 会抛
+  // "Locale data has not been initialized"；数据随包内置，无网络请求
+  await initializeDateFormatting();
   await configureDependencies(envName);
   await initFirebase();
 
