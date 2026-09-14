@@ -23,6 +23,7 @@ class PurchaseDetail extends StatefulWidget {
     required this.store,
     this.refund,
     this.payOnPickup = false,
+    this.collectedAt,
   }) : super(key: key);
 
   final Order order;
@@ -34,6 +35,9 @@ class PurchaseDetail extends StatefulWidget {
 
   /// 到店自取（到店付款）订单：无在线支付、不可退款，取货前可取消
   final bool payOnPickup;
+
+  /// 药店标记已取货的时间（collected_at），历史订单可能为空
+  final String? collectedAt;
 
   @override
   _PurchaseDetailState createState() => _PurchaseDetailState();
@@ -169,6 +173,12 @@ class _PurchaseDetailState extends State<PurchaseDetail> {
             _metaLine(S.of(context).orderNumber, order.id?.toString() ?? ''),
             const SizedBox(height: 6),
             _metaLine(S.of(context).orderDate, _formatDate(order.createdAt)),
+            // 已取货：显示取货时间；老订单没有 collected_at 时退回最后更新时间
+            if ((order.orderStatus ?? 0) == _statusCollected)
+              _metaLine(
+                S.of(context).collectedTime,
+                _formatDate(widget.collectedAt ?? order.updatedAt),
+              ),
             if (widget.payOnPickup) _pickupBanner(),
             _refundRejectedBanner(),
           ],

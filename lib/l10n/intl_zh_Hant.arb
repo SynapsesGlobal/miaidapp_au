@@ -507,5 +507,6 @@
   "deliveryTooFarDistance": "該地址距離藥店約 {km} 公里，寄送僅支援 5 公里以內。",
   "switchToPickup": "改為到店自取",
   "changeAddress": "換一個地址",
-  "awaitingCollection": "待取貨"
+  "awaitingCollection": "待取貨",
+  "collectedTime": "取貨時間"
 }

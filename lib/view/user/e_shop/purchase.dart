@@ -66,6 +66,8 @@ class _PurchaseItemState extends State<PurchaseItem> {
   Map<int, Map<String, dynamic>> _refundByOrderId = {};
   // 到店自取（到店付款）订单 id，同样来自原始 JSON 的 pay_on_pickup 字段
   Set<int> _pickupOrderIds = {};
+  // 已取货时间（collected_at），同样只在原始 JSON 里
+  Map<int, String> _collectedAtByOrderId = {};
 
   // ★ 分页变量
   static const int _pageSize = 10;
@@ -98,6 +100,7 @@ class _PurchaseItemState extends State<PurchaseItem> {
     _orders.clear();
     _refundByOrderId = {};
     _pickupOrderIds = {};
+    _collectedAtByOrderId = {};
     await _fetchOrders();
   }
 
@@ -132,6 +135,9 @@ class _PurchaseItemState extends State<PurchaseItem> {
             }
             if (item['id'] is int && isPayOnPickupJson(item)) {
               _pickupOrderIds.add(item['id'] as int);
+            }
+            if (item['id'] is int && item['collected_at'] is String) {
+              _collectedAtByOrderId[item['id'] as int] = item['collected_at'] as String;
             }
           }
         }
@@ -280,6 +286,7 @@ class _PurchaseItemState extends State<PurchaseItem> {
           order: order,
           refund: _refundByOrderId[order.id],
           payOnPickup: _isPickup(order),
+          collectedAt: _collectedAtByOrderId[order.id],
           api: widget.services.api,
           store: widget.services.store,
         ),

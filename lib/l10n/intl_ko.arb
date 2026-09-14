@@ -537,5 +537,6 @@
   "deliveryTooFarDistance": "이 주소는 약국에서 약 {km} km 떨어져 있습니다. 배송은 5 km 이내에서만 가능합니다.",
   "switchToPickup": "픽업으로 변경",
   "changeAddress": "다른 주소 입력",
-  "awaitingCollection": "수령 대기"
+  "awaitingCollection": "수령 대기",
+  "collectedTime": "수령 시간"
 }
