@@ -512,5 +512,8 @@
   "switchToPickup": "Αλλαγή σε παραλαβή",
   "changeAddress": "Δοκιμάστε άλλη διεύθυνση",
   "awaitingCollection": "Αναμονή παραλαβής",
-  "collectedTime": "Ώρα παραλαβής"
+  "collectedTime": "Ώρα παραλαβής",
+  "mentalHotlines": "Γραμμές ψυχολογικής υποστήριξης",
+  "mentalOnlinePlatforms": "Διαδικτυακές πλατφόρμες υποστήριξης",
+  "mentalNearbyHospitals": "Κοντινά νοσοκομεία"
 }

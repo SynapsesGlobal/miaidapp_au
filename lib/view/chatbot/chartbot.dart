@@ -8,6 +8,7 @@ import '../../component/nav_bar_icons.dart';
 import '../../config/app_colors.dart';
 import '../../generated/l10n.dart';
 import 'models/chat_message.dart';
+import 'models/mental_workflow_content.dart';
 import 'ui/doctor_message.dart';
 import 'ui/patient_message.dart';
 import 'viewmodel/chatbot_viewmodel.dart';
@@ -202,7 +203,11 @@ class _StreamingDoctorBubble extends StatelessWidget {
     return ValueListenableBuilder<String>(
       valueListenable: contentNotifier,
       builder: (context, content, _) {
-        if (content.isEmpty) return const _TypingIndicator();
+        // 心理工作流的回复是整段 JSON 逐字推送，流式阶段不显示原始 JSON，
+        // 保持输入中动画，等 done 事件到达后按卡片渲染
+        if (content.isEmpty || MentalWorkflowContent.isStructuredStream(content)) {
+          return const _TypingIndicator();
+        }
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

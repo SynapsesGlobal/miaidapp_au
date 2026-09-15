@@ -7,10 +7,13 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../config/app_colors.dart';
 import '../../../generated/l10n.dart';
+import 'chat_card_widgets.dart';
 
 /// 附近医院卡片列表：渲染 AI 查询附近医院返回的结构化数据。
 /// 每项字段：name / address / phone / website / is_private /
 /// has_emergency_department，以及可选的 latitude / longitude / distance。
+/// 心理工作流的 m4_list 复用本组件，它没有 is_private /
+/// has_emergency_department 字段，此时不显示公立/急诊标签。
 class HospitalCards extends StatelessWidget {
   final List<Map<String, dynamic>> hospitals;
 
@@ -32,14 +35,7 @@ class _HospitalCard extends StatelessWidget {
 
   const _HospitalCard({required this.hospital});
 
-  /// 无效值（null/空/na/-/unknown 等）一律不展示
-  String? _field(String key) {
-    final value = hospital[key]?.toString().trim();
-    if (value == null || value.isEmpty) return null;
-    const invalid = ['na', 'n/a', '-', 'unknown', 'null'];
-    if (invalid.contains(value.toLowerCase())) return null;
-    return value;
-  }
+  String? _field(String key) => cardField(hospital, key);
 
   double? _coord(String key) => double.tryParse(hospital[key]?.toString() ?? '');
 
@@ -47,26 +43,6 @@ class _HospitalCard extends StatelessWidget {
     final d = double.tryParse(hospital['distance']?.toString() ?? '');
     if (d == null) return null;
     return d < 1 ? '${(d * 1000).round()} m' : '$d km';
-  }
-
-  /// 跳转系统拨号页面；无法拨号的环境（如 iOS 模拟器没有电话应用）
-  /// 复制号码并提示，避免点击无任何反馈
-  Future<void> _dial(BuildContext context, String phone) async {
-    // 只保留数字及拨号有效符号，避免个别系统解析失败
-    final number = phone.replaceAll(RegExp(r'[^0-9+#*,;]'), '');
-    var ok = false;
-    try {
-      // ignore: deprecated_member_use
-      ok = await launch('tel://$number');
-    } catch (_) {
-      ok = false;
-    }
-    if (!ok && context.mounted) {
-      await Clipboard.setData(ClipboardData(text: phone));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${S.of(context).phoneCopied}: $phone')),
-      );
-    }
   }
 
   Future<void> _openMap(BuildContext context, String name, String? address) async {
@@ -101,6 +77,9 @@ class _HospitalCard extends StatelessWidget {
     final phone = _field('phone');
     final website = _field('website');
     final distance = _distanceText();
+    // 医院查询接口总会带这两个字段；心理工作流的 m4_list 不带，缺失时不显示标签
+    final showTags = hospital.containsKey('is_private') ||
+        hospital.containsKey('has_emergency_department');
     final isPrivate = hospital['is_private'] == true;
     final hasEmergency = hospital['has_emergency_department'] == true;
 
@@ -140,40 +119,42 @@ class _HospitalCard extends StatelessWidget {
               ],
             ],
           ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              _Tag(
-                text: isPrivate
-                    ? S.of(context).hospitalPrivate
-                    : S.of(context).hospitalPublic,
-                color: AppColors.k0cbcc5,
-              ),
-              const SizedBox(width: 6),
-              _Tag(
-                text: hasEmergency
-                    ? S.of(context).hospitalHasEmergency
-                    : S.of(context).hospitalNoEmergency,
-                color: hasEmergency ? Colors.redAccent : AppColors.kb1b1b1,
-              ),
-            ],
-          ),
+          if (showTags) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                ChatCardTag(
+                  text: isPrivate
+                      ? S.of(context).hospitalPrivate
+                      : S.of(context).hospitalPublic,
+                  color: AppColors.k0cbcc5,
+                ),
+                const SizedBox(width: 6),
+                ChatCardTag(
+                  text: hasEmergency
+                      ? S.of(context).hospitalHasEmergency
+                      : S.of(context).hospitalNoEmergency,
+                  color: hasEmergency ? Colors.redAccent : AppColors.kb1b1b1,
+                ),
+              ],
+            ),
+          ],
           if (address != null)
-            _InfoRow(
+            ChatCardInfoRow(
               icon: Icons.location_on_outlined,
               text: address,
               onTap: () => _openMap(context, name, address),
             ),
           if (phone != null)
-            _InfoRow(
+            ChatCardInfoRow(
               icon: Icons.phone_outlined,
               text: phone,
               isLink: true,
               // 点击跳转到系统拨号页面
-              onTap: () => _dial(context, phone),
+              onTap: () => dialPhone(context, phone),
             ),
           if (website != null)
-            _InfoRow(
+            ChatCardInfoRow(
               icon: Icons.language_outlined,
               text: website,
               isLink: true,
@@ -181,77 +162,6 @@ class _HospitalCard extends StatelessWidget {
               onTap: () => launch(website),
             ),
         ],
-      ),
-    );
-  }
-}
-
-class _Tag extends StatelessWidget {
-  final String text;
-  final Color color;
-
-  const _Tag({required this.text, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        text,
-        style: GoogleFonts.rubik(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  final VoidCallback onTap;
-
-  /// 链接样式：文字用主题色展示，明示可点击（电话、网址）
-  final bool isLink;
-
-  const _InfoRow({
-    required this.icon,
-    required this.text,
-    required this.onTap,
-    this.isLink = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.only(top: 6),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, size: 15, color: AppColors.k0cbcc5),
-            const SizedBox(width: 5),
-            Expanded(
-              child: Text(
-                text,
-                style: GoogleFonts.rubik(
-                  color: isLink ? AppColors.k0cbcc5 : AppColors.k010101,
-                  fontSize: 13,
-                  height: 1.35,
-                  decoration: isLink ? TextDecoration.underline : null,
-                  decorationColor: AppColors.k0cbcc5,
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

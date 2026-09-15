@@ -538,5 +538,8 @@
   "switchToPickup": "픽업으로 변경",
   "changeAddress": "다른 주소 입력",
   "awaitingCollection": "수령 대기",
-  "collectedTime": "수령 시간"
+  "collectedTime": "수령 시간",
+  "mentalHotlines": "심리 상담 핫라인",
+  "mentalOnlinePlatforms": "온라인 지원 플랫폼",
+  "mentalNearbyHospitals": "가까운 병원"
 }

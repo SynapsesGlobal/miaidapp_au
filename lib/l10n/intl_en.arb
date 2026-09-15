@@ -513,5 +513,8 @@
   "switchToPickup": "Switch to pick-up",
   "changeAddress": "Try another address",
   "awaitingCollection": "Awaiting collection",
-  "collectedTime": "Collected at"
+  "collectedTime": "Collected at",
+  "mentalHotlines": "Mental health hotlines",
+  "mentalOnlinePlatforms": "Online support platforms",
+  "mentalNearbyHospitals": "Nearby hospitals"
 }

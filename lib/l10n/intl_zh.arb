@@ -514,5 +514,8 @@
   "switchToPickup": "改为到店自取",
   "changeAddress": "换一个地址",
   "awaitingCollection": "待取货",
-  "collectedTime": "取货时间"
+  "collectedTime": "取货时间",
+  "mentalHotlines": "心理援助热线",
+  "mentalOnlinePlatforms": "在线支持平台",
+  "mentalNearbyHospitals": "附近医院"
 }

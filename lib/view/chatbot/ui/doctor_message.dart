@@ -7,7 +7,9 @@ import '../../../config/app_colors.dart';
 import '../../../generated/l10n.dart';
 import '../../../store/user/calling/call_screen_store.dart';
 import '../../user/calling/call_screen_helper.dart';
+import '../models/mental_workflow_content.dart';
 import 'hospital_cards.dart';
+import 'mental_workflow_message.dart';
 
 class DoctorMessage extends StatelessWidget {
   final dynamic message;
@@ -17,6 +19,11 @@ class DoctorMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 心理工作流（Level5）消息：content 是结构化 JSON，拆成多个气泡显示；
+    // 不是该结构的消息一律走下面的原有渲染路径
+    final mental = MentalWorkflowContent.tryParse(message['content']?.toString());
+    if (mental != null) return MentalWorkflowMessage(content: mental);
+
     // 医院卡片消息：结构化数据渲染卡片，气泡放宽避免地址硬折行
     final hospitals = message['hospitals'];
     final hasHospitals = hospitals is List && hospitals.isNotEmpty;

@@ -31,6 +31,9 @@ class ChatBotViewModel extends ChangeNotifier {
   late final String _lang;
   late final String _currentLang;
 
+  // 创建会话时按定位算出的国家码，发消息时复用，避免每条消息都反查一次
+  String? _countryCode;
+
   ChatBotViewModel() {
     _initLocale();
     createNewChat();
@@ -66,13 +69,28 @@ class ChatBotViewModel extends ChangeNotifier {
 
   // ─── Public API ────────────────────────────────────────────
 
+  /// 国家码：已有缓存直接用；否则按定位反查一次并缓存。反查失败返回 null，
+  /// 绝不抛错，不能因为拿不到国家码而阻塞发消息
+  Future<String?> _resolveCountryCode(Position position) async {
+    final cached = _countryCode;
+    if (cached != null && cached.isNotEmpty) return cached;
+    try {
+      final code = await getCountryCodeFromLocation(position);
+      if (code != null && code.isNotEmpty) _countryCode = code;
+      return _countryCode;
+    } catch (e) {
+      debugPrint('Country code unavailable, continuing without it: $e');
+      return null;
+    }
+  }
+
   Future<void> createNewChat() async {
     _setLoading(true);
     errorMessage = null;
 
     try {
       final position = await _getPosition();
-      final countryCode = await getCountryCodeFromLocation(position);
+      final countryCode = await _resolveCountryCode(position);
       final countryName = _resolveCountryName(countryCode);
       final localTime = _formatLocalTime();
 
@@ -120,6 +138,7 @@ class ChatBotViewModel extends ChangeNotifier {
 
     try {
       final position = await _getPosition();
+      final countryCode = await _resolveCountryCode(position);
 
       messages.add(ChatMessage(
         id: _uuid.v4(),
@@ -149,6 +168,7 @@ class ChatBotViewModel extends ChangeNotifier {
         chatId: chatId,
         lang: _lang,
         contents: paramContents,
+        countryCode: countryCode,
       );
 
       stream.listen(

@@ -539,5 +539,8 @@
   "switchToPickup": "Ganti ke ambil di toko",
   "changeAddress": "Coba alamat lain",
   "awaitingCollection": "Menunggu pengambilan",
-  "collectedTime": "Waktu pengambilan"
+  "collectedTime": "Waktu pengambilan",
+  "mentalHotlines": "Hotline kesehatan mental",
+  "mentalOnlinePlatforms": "Platform dukungan online",
+  "mentalNearbyHospitals": "Rumah sakit terdekat"
 }

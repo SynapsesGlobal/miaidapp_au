@@ -508,5 +508,8 @@
   "switchToPickup": "改為到店自取",
   "changeAddress": "換一個地址",
   "awaitingCollection": "待取貨",
-  "collectedTime": "取貨時間"
+  "collectedTime": "取貨時間",
+  "mentalHotlines": "心理援助熱線",
+  "mentalOnlinePlatforms": "線上支援平台",
+  "mentalNearbyHospitals": "附近醫院"
 }
