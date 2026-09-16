@@ -21,6 +21,8 @@ import 'package:miaid/store/home/active_subscription_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:mobx/mobx.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../utils/current_country.dart';
 import 'package:http/http.dart' as http;
 import 'dart:developer' as developer;
 part 'cart_store.g.dart';
@@ -352,6 +354,11 @@ abstract class _CartEShopStore with Store {
         'delivery_mobile': ((selectedCountry?.dialCode ?? '') + phoneController.text),
         'delivery_name': nameController.text,
       };
+      // 用户当前所在国家（首页定位结果），后端按国家处理该订单；未定位过则不传
+      final countryCode = await currentCountryCode();
+      if (countryCode != null) {
+        body['countryCode'] = countryCode;
+      }
       if (prescriptionPath != null) {
         body['prescription_image'] = prescriptionPath!;
       }

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:miaid/api_utils/api_provider.dart';
+import 'package:miaid/utils/current_country.dart';
 
 /// 药店配送能力：GET /checkDeliveryAvailable/{pharmacy}
 ///
@@ -78,8 +79,13 @@ Future<DeliveryAvailability?> fetchDeliveryAvailability(
 ) async {
   try {
     final endpoint = api.apiSettings.endpointSub;
+    // 带上用户当前所在国家，后端据此按国家判断该药店对该用户的配送能力
+    final countryCode = await currentCountryCode();
+    final uri = Uri.parse('$endpoint/checkDeliveryAvailable/$pharmacyId').replace(
+      queryParameters: countryCode == null ? null : {'countryCode': countryCode},
+    );
     final response = await http.get(
-      Uri.parse('$endpoint/checkDeliveryAvailable/$pharmacyId'),
+      uri,
       headers: {
         'x-api-key': api.apiKey,
         'x-access-token': api.userProvider.user?.accessToken ?? '',
