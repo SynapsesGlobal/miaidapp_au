@@ -93,6 +93,29 @@ class _ChatbotHistoryState extends State<ChatbotHistory> {
     return result;
   }
 
+  /// 删除 miaid 后端 chatbot_chat_histories 里同步过来的会话记录。
+  /// chatbot 每轮对话都会把全量会话推给 miaid，这里不删的话后台还会看到已删的会话。
+  /// 与 book/hospitals 等接口一样用 x-user-id 表明用户，服务端只删属于该用户的会话
+  Future<void> _deleteMiaidChatHistory(String historyId) async {
+    final api = getIt<ApiProvider>();
+    final user = api.userProvider.user;
+    if (user == null) return;
+    try {
+      final url = Uri.parse('${api.baseUrl}/api/v1/chatbot/chat-history/$historyId');
+      final response = await http.delete(url, headers: {
+        'Content-Type': 'application/json',
+        'x-user-id': user.id.toString(),
+        'x-api-key': api.apiKey,
+        'x-access-token': user.accessToken ?? '',
+      });
+      if (response.statusCode != 200) {
+        debugPrint('miaid chat history delete failed: ${response.statusCode} ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('miaid chat history delete error: $e');
+    }
+  }
+
   Future<void> _deleteHistoryChat(String historyId) async {
     final headers = <String, String>{
       'X-Custom-Token': getIt<ApiSettings>().chatBotApiToken
@@ -115,6 +138,8 @@ class _ChatbotHistoryState extends State<ChatbotHistory> {
       if (response.statusCode == 200) {
         histories.removeWhere((item) => item['id'] == historyId);
         setState(() => histories);
+        // chatbot 侧已删除，再删掉 miaid 同步过去的那一份；失败只记日志不打断用户
+        await _deleteMiaidChatHistory(historyId);
       } else {
         await HttpExceptionNotifyUser.showInfo(S.of(context).somethingWentWrong);
       }
