@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:miaid/view/chatbot/chartbot.dart';
 import 'package:miaid/view/chatbot/chatbot_history_dtl.dart';
+import 'package:miaid/view/chatbot/hospital_bookings.dart';
 
 import '../../api_utils/api_provider.dart';
 import '../../api_utils/http_exception.dart';
@@ -172,9 +173,45 @@ class _ChatbotHistoryState extends State<ChatbotHistory> {
         ),
       ),
       body: Column(children: [
+        _buildHospitalBookingsEntry(),
         _buildChatListLayout(),
         _buildCreateNewChatLayout()
       ],),
+    );
+  }
+
+  /// 医院预约入口：chatbot 帮用户发过的预约请求及各医院的确认情况
+  Widget _buildHospitalBookingsEntry() {
+    return InkWell(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute<void>(builder: (context) => const HospitalBookings()),
+      ),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.k0cbcc5.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(children: [
+          Icon(Icons.local_hospital_outlined, color: AppColors.k0cbcc5),
+          const SizedBox(width: 10),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(S.of(context).hospitalBookings, style: GoogleFonts.rubik(
+              color: AppColors.k010101,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            )),
+            const SizedBox(height: 2),
+            Text(S.of(context).hospitalBookingsHint, style: GoogleFonts.rubik(
+              color: Colors.grey,
+              fontSize: 12,
+            )),
+          ])),
+          Icon(Icons.chevron_right, color: AppColors.k0cbcc5),
+        ]),
+      ),
     );
   }
 
