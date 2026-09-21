@@ -113,6 +113,7 @@ class _ChatBotViewState extends State<_ChatBotView> {
                 scrollController: _scrollController,
                 chatbotId: vm.chatId.toString(),
                 streamingNotifier: vm.streamingContent,
+                mentalVisibleBubbles: vm.mentalVisibleBubbles,
               ),
             )),
             _InputBar(
@@ -156,12 +157,16 @@ class _MessageList extends StatelessWidget {
   final String chatbotId;
   final ValueNotifier<String> streamingNotifier;
 
+  /// 心理工作流消息分段显示：消息 id → 当前显示前几个气泡（null = 全部）
+  final int? Function(String messageId) mentalVisibleBubbles;
+
   const _MessageList({
     required this.messages,
     required this.services,
     required this.scrollController,
     required this.chatbotId,
     required this.streamingNotifier,
+    required this.mentalVisibleBubbles,
   });
 
   @override
@@ -183,7 +188,13 @@ class _MessageList extends StatelessWidget {
           return Padding(
             padding: const EdgeInsets.only(top: 20),
             child: msg.role == MessageRole.doctor
-                ? DoctorMessage(message: msg.toJson(), services: services, chatbotId: chatbotId)
+                ? DoctorMessage(
+                    message: msg.toJson(),
+                    services: services,
+                    chatbotId: chatbotId,
+                    mentalVisibleBubbles: mentalVisibleBubbles(msg.id),
+                    pendingIndicator: const _TypingIndicator(),
+                  )
                 : PatientMessage(message: msg.toJson()),
           );
         },

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -13,6 +14,7 @@ import '../../../country/translations.dart';
 import '../../../store/home/home_screen_store.dart';
 import '../../../utils/configure_dependencies.dart';
 import '../models/chat_message.dart';
+import '../models/mental_workflow_content.dart';
 import 'package:miaid/config/api_settings.dart';
 
 class ChatBotViewModel extends ChangeNotifier {
@@ -33,6 +35,19 @@ class ChatBotViewModel extends ChangeNotifier {
 
   // 创建会话时按定位算出的国家码，发消息时复用，避免每条消息都反查一次
   String? _countryCode;
+
+  /// 心理工作流消息相邻两个气泡之间的缓冲时间
+  static const mentalRevealInterval = Duration(milliseconds: 1500);
+
+  // 心理工作流消息分段显示：消息 id → 当前已显示的气泡数。
+  // 服务端一次返回建议 / 资源 / 后续询问三段，同时显示时资源卡片会把建议顶出屏幕，
+  // 所以新到达的消息逐个放出。不在表里的消息（历史记录、已放完的）全部显示
+  final Map<String, int> _mentalRevealStage = {};
+  final List<Timer> _revealTimers = [];
+  bool _disposed = false;
+
+  /// 该消息当前显示前几个气泡；null 表示全部显示
+  int? mentalVisibleBubbles(String messageId) => _mentalRevealStage[messageId];
 
   ChatBotViewModel() {
     _initLocale();
@@ -58,6 +73,11 @@ class ChatBotViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
+    for (final timer in _revealTimers) {
+      timer.cancel();
+    }
+    _revealTimers.clear();
     streamingContent.dispose();
     super.dispose();
   }
@@ -132,6 +152,9 @@ class ChatBotViewModel extends ChangeNotifier {
   Future<void> sendMessage(String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty || chatId.isEmpty || isSending) return;
+
+    // 用户在分段显示途中就回复了：剩余气泡立即全部放出，避免它们晚于用户消息才出现
+    _finishMentalReveal();
 
     isSending = true;
     streamingContent.value = '';
@@ -229,6 +252,7 @@ class ChatBotViewModel extends ChangeNotifier {
           ));
         } else {
           isSending = false;
+          _startMentalReveal(finalMsg);
         }
         notifyListeners();
 
@@ -243,6 +267,39 @@ class ChatBotViewModel extends ChangeNotifier {
     } catch (e) {
       debugPrint('Chunk parse error: $e');
     }
+  }
+
+  /// 新到达的心理工作流消息：先只显示第一个气泡，之后每隔 [mentalRevealInterval] 放出下一个。
+  /// 不是该结构、或只有一个气泡的消息不处理，照常一次显示
+  void _startMentalReveal(ChatMessage message) {
+    final total = MentalWorkflowContent.tryParse(message.content)?.bubbleCount ?? 0;
+    if (total <= 1) return;
+
+    final id = message.id;
+    _mentalRevealStage[id] = 1;
+    final timer = Timer.periodic(mentalRevealInterval, (t) {
+      final current = _mentalRevealStage[id];
+      if (current == null || current + 1 >= total) {
+        // 最后一个气泡放出：移出表，之后按"全部显示"渲染
+        _mentalRevealStage.remove(id);
+        t.cancel();
+        _revealTimers.remove(t);
+      } else {
+        _mentalRevealStage[id] = current + 1;
+      }
+      if (!_disposed) notifyListeners();
+    });
+    _revealTimers.add(timer);
+  }
+
+  /// 立即结束所有分段显示（全部气泡放出）
+  void _finishMentalReveal() {
+    if (_mentalRevealStage.isEmpty && _revealTimers.isEmpty) return;
+    for (final timer in _revealTimers) {
+      timer.cancel();
+    }
+    _revealTimers.clear();
+    _mentalRevealStage.clear();
   }
 
   void _removeStreamingMessage() {

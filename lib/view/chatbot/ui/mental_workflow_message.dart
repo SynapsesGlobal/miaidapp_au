@@ -15,7 +15,20 @@ import 'mental_resource_cards.dart';
 class MentalWorkflowMessage extends StatelessWidget {
   final MentalWorkflowContent content;
 
-  const MentalWorkflowMessage({super.key, required this.content});
+  /// 当前显示前几个气泡。null 表示全部显示（历史记录、分段显示已结束）。
+  /// 三段内容是服务端一次返回的，新消息到达时由 ViewModel 逐个放出，
+  /// 避免资源卡片一出现就把前面的建议文本顶出屏幕
+  final int? visibleBubbles;
+
+  /// 还有气泡未显示时挂在末尾的"输入中"动画
+  final Widget? pendingIndicator;
+
+  const MentalWorkflowMessage({
+    super.key,
+    required this.content,
+    this.visibleBubbles,
+    this.pendingIndicator,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -47,13 +60,22 @@ class MentalWorkflowMessage extends StatelessWidget {
         _DoctorBubble(child: _BubbleText(content.followUpQuestion!)),
     ];
 
+    final shown = visibleBubbles == null
+        ? bubbles.length
+        : visibleBubbles!.clamp(1, bubbles.length);
+    final hasPending = shown < bubbles.length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (var i = 0; i < bubbles.length; i++) ...[
+        for (var i = 0; i < shown; i++) ...[
           // 与列表项之间的间距保持一致，看起来就是三条独立消息
           if (i > 0) const SizedBox(height: 20),
           bubbles[i],
+        ],
+        if (hasPending && pendingIndicator != null) ...[
+          const SizedBox(height: 20),
+          pendingIndicator!,
         ],
       ],
     );

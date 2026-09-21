@@ -15,14 +15,32 @@ class DoctorMessage extends StatelessWidget {
   final dynamic message;
   final dynamic services;
   final String chatbotId;
-  const DoctorMessage({super.key, this.message, this.services, required this.chatbotId});
+
+  /// 心理工作流消息分段显示：当前显示前几个气泡（null = 全部），以及等待下一个气泡时的动画
+  final int? mentalVisibleBubbles;
+  final Widget? pendingIndicator;
+
+  const DoctorMessage({
+    super.key,
+    this.message,
+    this.services,
+    required this.chatbotId,
+    this.mentalVisibleBubbles,
+    this.pendingIndicator,
+  });
 
   @override
   Widget build(BuildContext context) {
     // 心理工作流（Level5）消息：content 是结构化 JSON，拆成多个气泡显示；
     // 不是该结构的消息一律走下面的原有渲染路径
     final mental = MentalWorkflowContent.tryParse(message['content']?.toString());
-    if (mental != null) return MentalWorkflowMessage(content: mental);
+    if (mental != null) {
+      return MentalWorkflowMessage(
+        content: mental,
+        visibleBubbles: mentalVisibleBubbles,
+        pendingIndicator: pendingIndicator,
+      );
+    }
 
     // 医院卡片消息：结构化数据渲染卡片，气泡放宽避免地址硬折行
     final hospitals = message['hospitals'];
