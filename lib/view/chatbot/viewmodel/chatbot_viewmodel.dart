@@ -233,7 +233,7 @@ class ChatBotViewModel extends ChangeNotifier {
         notifyListeners();
 
         if (data['category'] == Consts.AIBookHospitals) {
-          _bookHospitals();
+          //_bookHospitals();
         }
 
         if (data['level'].toString().toUpperCase() == Consts.AINotifyFamilyOrCompany) {
