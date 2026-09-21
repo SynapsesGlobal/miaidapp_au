@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-// ignore: deprecated_member_use
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../config/app_colors.dart';
@@ -24,11 +23,14 @@ Future<void> dialPhone(BuildContext context, String phone) async {
   // 只保留数字及拨号有效符号，避免个别系统解析失败
   final number = phone.replaceAll(RegExp(r'[^0-9+#*,;]'), '');
   var ok = false;
-  try {
-    // ignore: deprecated_member_use
-    ok = await launch('tel://$number');
-  } catch (_) {
-    ok = false;
+  if (number.isNotEmpty) {
+    try {
+      // 标准写法是 tel:<号码>（不带 //）：带 // 时号码会被当成 URI 的 host，
+      // 以 + 开头的国际号码在部分系统上无法解析，拨号页打不开
+      ok = await launchUrl(Uri(scheme: 'tel', path: number));
+    } catch (_) {
+      ok = false;
+    }
   }
   if (!ok && context.mounted) {
     await Clipboard.setData(ClipboardData(text: phone));

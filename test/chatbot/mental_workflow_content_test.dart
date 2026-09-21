@@ -94,6 +94,17 @@ void main() {
       expect(noResources.hasResources, isFalse);
     });
 
+    test('bubbleCount：有内容的部分各算一个气泡，三组资源合为一个', () {
+      expect(MentalWorkflowContent.tryParse(fullContent)!.bubbleCount, 3);
+      // 三个列表为空：只剩建议和后续询问
+      expect(MentalWorkflowContent.tryParse(emptyListsContent)!.bubbleCount, 2);
+      expect(
+        MentalWorkflowContent.tryParse(
+            jsonEncode({'recommendation': {'content': 'r'}}))!.bubbleCount,
+        1,
+      );
+    });
+
     test('流式阶段以 { 开头的文本判定为结构化内容', () {
       expect(MentalWorkflowContent.isStructuredStream('{"recomm'), isTrue);
       expect(MentalWorkflowContent.isStructuredStream('  \n{'), isTrue);
