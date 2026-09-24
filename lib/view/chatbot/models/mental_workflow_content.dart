@@ -10,7 +10,8 @@ import 'dart:convert';
 ///   "follow_up_question": {"content": "..."}
 /// }
 /// ```
-/// - m2_list（心理援助热线）/ m3_list（在线支持平台）每项：country / name / description / phone
+/// - m2_list（心理援助热线）每项：country / name / description / phone
+/// - m3_list（在线支持平台）每项：country / name / description / website
 /// - m4_list（附近医院）每项：name / phone / address / website / latitude / longitude / distance
 ///
 /// 该类只用于展示层解析，`ChatMessage.content` 保持原始 JSON 字符串不动，

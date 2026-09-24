@@ -88,7 +88,7 @@ class DoctorMessage extends StatelessWidget {
                 HospitalCards(
                   hospitals: hospitals.whereType<Map<String, dynamic>>().toList(),
                 ),
-              message.containsKey('video_consultation') ? InkWell(
+              /*message.containsKey('video_consultation') ? InkWell(
                 onTap: () async {
                   showAlertDialog(context);
                 },
@@ -105,7 +105,7 @@ class DoctorMessage extends StatelessWidget {
                   color: AppColors.k0cbcc5,
                   fontWeight: FontWeight.bold
                 ),),
-              ) : Offstage()
+              ) : Offstage()*/
             ],),
           ),
         )),

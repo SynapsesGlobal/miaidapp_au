@@ -14,6 +14,7 @@ import 'package:miaid/store/e_shop/cart_store.dart';
 import 'package:miaid/store/product/product_details_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/e_shop/cart_eshop.dart';
+import 'package:miaid/view/user/e_shop/product_image_preview.dart';
 import 'package:miaid/view/user/sign_in/sign_in.dart';
 import 'package:miaid/widget/custom_dialog.dart';
 import 'package:miaid/widget/image_widget.dart';
@@ -214,8 +215,8 @@ class _ProductDetailsState extends State<ProductDetails> {
         Container(
           height: 260,
           margin: const EdgeInsets.symmetric(horizontal: 20),
+          // 图片区不加底色，contain 留白部分直接透出页面背景
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
             borderRadius: BorderRadius.circular(16),
           ),
           clipBehavior: Clip.antiAlias,
@@ -231,8 +232,20 @@ class _ProductDetailsState extends State<ProductDetails> {
                   onPageChanged: (index) {
                     productDetailsStore.currentImageIndex = index;
                   },
-                  itemBuilder: (context, index) => ImageWidget(
-                    imageUrl: images[index].image ?? '',
+                  // 商品图完整显示不裁切；点击进入全屏预览（可缩放、左右切换）
+                  itemBuilder: (context, index) => GestureDetector(
+                    onTap: () => showProductImagePreview(
+                      context,
+                      imageUrls: images
+                          .map((e) => e.image ?? '')
+                          .where((url) => url.isNotEmpty)
+                          .toList(),
+                      initialIndex: index,
+                    ),
+                    child: ImageWidget(
+                      imageUrl: images[index].image ?? '',
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
         ),

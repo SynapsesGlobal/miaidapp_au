@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../config/app_colors.dart';
 import 'chat_card_widgets.dart';
 
 /// 心理援助热线 / 在线支持平台卡片列表（m2_list / m3_list）。
-/// 每项字段：country / name / description / phone，缺失的字段不显示。
+/// 每项字段：country / name / description，热线带 phone，在线平台带 website；
+/// 缺失的字段不显示。
 class MentalResourceCards extends StatelessWidget {
   final List<Map<String, dynamic>> items;
 
@@ -32,6 +34,7 @@ class _MentalResourceCard extends StatelessWidget {
     final country = cardField(item, 'country');
     final description = cardField(item, 'description');
     final phone = cardField(item, 'phone');
+    final website = cardField(item, 'website');
 
     return Container(
       width: double.infinity,
@@ -82,8 +85,22 @@ class _MentalResourceCard extends StatelessWidget {
               isLink: true,
               onTap: () => dialPhone(context, phone),
             ),
+          if (website != null)
+            ChatCardInfoRow(
+              icon: Icons.language_outlined,
+              text: website,
+              isLink: true,
+              // 在外部浏览器打开在线平台
+              onTap: () => _openWebsite(website),
+            ),
         ],
       ),
     );
   }
+}
+
+Future<void> _openWebsite(String website) async {
+  final uri = Uri.tryParse(website.trim());
+  if (uri == null || !uri.hasScheme) return;
+  await launchUrl(uri, mode: LaunchMode.externalApplication);
 }
