@@ -8,15 +8,18 @@ import 'chat_card_widgets.dart';
 import 'hospital_cards.dart';
 import 'mental_resource_cards.dart';
 
-/// 心理工作流（Level5 Q7）消息：一条服务端消息在界面上拆成最多三个气泡
+/// 心理工作流（Level5 Q7）消息：一条服务端消息在界面上拆成最多五个气泡
 /// 1. recommendation：就医建议文本
-/// 2. mental_resources：热线 / 在线平台 / 附近医院三组卡片（全部为空时整个气泡隐藏）
-/// 3. follow_up_question：后续询问文本
+/// 2. mental_resources.m2_list：心理援助热线卡片
+/// 3. mental_resources.m3_list：在线支持平台卡片
+/// 4. mental_resources.m4_list：附近医院卡片
+/// 5. follow_up_question：后续询问文本
+/// 某一项没有内容时对应气泡不生成，其余气泡顺序不变
 class MentalWorkflowMessage extends StatelessWidget {
   final MentalWorkflowContent content;
 
   /// 当前显示前几个气泡。null 表示全部显示（历史记录、分段显示已结束）。
-  /// 三段内容是服务端一次返回的，新消息到达时由 ViewModel 逐个放出，
+  /// 各段内容是服务端一次返回的，新消息到达时由 ViewModel 逐个放出，
   /// 避免资源卡片一出现就把前面的建议文本顶出屏幕
   final int? visibleBubbles;
 
@@ -35,25 +38,29 @@ class MentalWorkflowMessage extends StatelessWidget {
     final bubbles = <Widget>[
       if (content.recommendation != null)
         _DoctorBubble(child: _BubbleText(content.recommendation!)),
-      if (content.hasResources)
+      // 三组资源各占一个气泡；生成条件与顺序要和 MentalWorkflowContent.bubbleCount 保持一致
+      if (content.hotlines.isNotEmpty)
         _DoctorBubble(
           wide: true,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (content.hotlines.isNotEmpty) ...[
-                ChatCardSectionTitle(text: S.of(context).mentalHotlines),
-                MentalResourceCards(items: content.hotlines),
-              ],
-              if (content.onlinePlatforms.isNotEmpty) ...[
-                ChatCardSectionTitle(text: S.of(context).mentalOnlinePlatforms),
-                MentalResourceCards(items: content.onlinePlatforms),
-              ],
-              if (content.clinics.isNotEmpty) ...[
-                ChatCardSectionTitle(text: S.of(context).mentalNearbyHospitals),
-                HospitalCards(hospitals: content.clinics),
-              ],
-            ],
+          child: _ResourceSection(
+            title: S.of(context).mentalHotlines,
+            child: MentalResourceCards(items: content.hotlines),
+          ),
+        ),
+      if (content.onlinePlatforms.isNotEmpty)
+        _DoctorBubble(
+          wide: true,
+          child: _ResourceSection(
+            title: S.of(context).mentalOnlinePlatforms,
+            child: MentalResourceCards(items: content.onlinePlatforms),
+          ),
+        ),
+      if (content.clinics.isNotEmpty)
+        _DoctorBubble(
+          wide: true,
+          child: _ResourceSection(
+            title: S.of(context).mentalNearbyHospitals,
+            child: HospitalCards(hospitals: content.clinics),
           ),
         ),
       if (content.followUpQuestion != null)
@@ -69,7 +76,7 @@ class MentalWorkflowMessage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (var i = 0; i < shown; i++) ...[
-          // 与列表项之间的间距保持一致，看起来就是三条独立消息
+          // 与列表项之间的间距保持一致，看起来就是几条独立消息
           if (i > 0) const SizedBox(height: 20),
           bubbles[i],
         ],
@@ -77,6 +84,25 @@ class MentalWorkflowMessage extends StatelessWidget {
           const SizedBox(height: 20),
           pendingIndicator!,
         ],
+      ],
+    );
+  }
+}
+
+/// 资源气泡的内容：分组标题 + 该组卡片
+class _ResourceSection extends StatelessWidget {
+  final String title;
+  final Widget child;
+
+  const _ResourceSection({required this.title, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ChatCardSectionTitle(text: title),
+        child,
       ],
     );
   }

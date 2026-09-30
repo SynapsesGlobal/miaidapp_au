@@ -152,7 +152,8 @@ android {
                 '**/libagora_spatial_audio_extension.so',           // 空间音频
                 '**/libagora_video_av1_encoder_extension.so',       // AV1 编码
                 '**/libagora_video_quality_analyzer_extension.so',  // 视频质量分析
-                '**/libagora_ffmpeg.so',                            // 全格式媒体解码（audioMixing/媒体播放器用，通话不需要）
+                // 注意：libagora_ffmpeg.so 不能排除 —— 它是 libagora-rtc-sdk.so 的直接依赖
+                // （readelf NEEDED），缺了会在引擎初始化时 UnsatisfiedLinkError 直接崩溃
             ]
         }
     }

@@ -34,10 +34,14 @@ class MentalWorkflowContent {
   bool get hasResources =>
       hotlines.isNotEmpty || onlinePlatforms.isNotEmpty || clinics.isNotEmpty;
 
-  /// 界面上会拆出的气泡数：建议、资源（三组列表合为一个气泡）、后续询问，各自有内容才算
+  /// 界面上会拆出的气泡数，最多 5 个：建议、热线（m2）、在线平台（m3）、附近医院（m4）、
+  /// 后续询问，各自有内容才算。必须与 MentalWorkflowMessage 里气泡的生成条件和顺序一致，
+  /// ViewModel 按这个数量逐个放出气泡
   int get bubbleCount =>
       (recommendation != null ? 1 : 0) +
-      (hasResources ? 1 : 0) +
+      (hotlines.isNotEmpty ? 1 : 0) +
+      (onlinePlatforms.isNotEmpty ? 1 : 0) +
+      (clinics.isNotEmpty ? 1 : 0) +
       (followUpQuestion != null ? 1 : 0);
 
   /// 流式阶段服务端会把这段 JSON 逐字推送；以 `{` 开头的流式文本不应直接显示
