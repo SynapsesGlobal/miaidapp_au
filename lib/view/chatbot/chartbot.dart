@@ -73,7 +73,10 @@ class _ChatBotViewState extends State<_ChatBotView> {
   }
 
   Future<void> _send(ChatBotViewModel vm) async {
+    // AI 回复中不允许发送：保留用户已输入的文字，避免"看起来发出去了其实被丢弃"
+    if (vm.isSending) return;
     final text = _controller.text;
+    if (text.trim().isEmpty) return;
     _controller.clear();
     FocusScope.of(context).requestFocus(_focusNode);
     await vm.sendMessage(text);
@@ -120,6 +123,7 @@ class _ChatBotViewState extends State<_ChatBotView> {
               controller: _controller,
               focusNode: _focusNode,
               enabled: !vm.isLoading,
+              canSend: !vm.isSending,
               onSend: () => _send(vm),
             ),
           ]);
@@ -341,18 +345,23 @@ class _TypingIndicatorState extends State<_TypingIndicator>
 class _InputBar extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
+  /// 整个输入框是否可用（会话创建中为 false）
   final bool enabled;
+  /// 是否允许发送（AI 回复中为 false）；为 false 时输入框仍可编辑，只禁发送
+  final bool canSend;
   final VoidCallback onSend;
 
   const _InputBar({
     required this.controller,
     required this.focusNode,
     required this.enabled,
+    required this.canSend,
     required this.onSend,
   });
 
   @override
   Widget build(BuildContext context) {
+    final sendable = enabled && canSend;
     return SafeArea(
       child: Container(
         color: Colors.grey[100],
@@ -372,12 +381,16 @@ class _InputBar extends StatelessWidget {
               hintText: S.of(context).enter_message,
               hintStyle: GoogleFonts.rubik(color: AppColors.kb1b1b1, fontSize: 16),
               suffixIcon: IconButton(
-                icon: Icon(Icons.send_rounded, color: AppColors.k010101),
-                onPressed: enabled ? onSend : null,
+                icon: Icon(
+                  Icons.send_rounded,
+                  color: sendable ? AppColors.k010101 : AppColors.kb1b1b1,
+                ),
+                onPressed: sendable ? onSend : null,
               ),
             ),
-            onSubmitted: (_) => enabled ? onSend() : null,
-            textInputAction: TextInputAction.send,
+            // 不可发送时回车不触发发送，也不收起键盘，用户可以继续编辑
+            onSubmitted: (_) => sendable ? onSend() : null,
+            textInputAction: sendable ? TextInputAction.send : TextInputAction.newline,
             keyboardType: TextInputType.text,
             maxLines: null,
           ),
