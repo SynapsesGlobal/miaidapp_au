@@ -388,9 +388,12 @@ class _InputBar extends StatelessWidget {
                 onPressed: sendable ? onSend : null,
               ),
             ),
-            // 不可发送时回车不触发发送，也不收起键盘，用户可以继续编辑
-            onSubmitted: (_) => sendable ? onSend() : null,
-            textInputAction: sendable ? TextInputAction.send : TextInputAction.newline,
+            // 用 onEditingComplete 覆盖默认行为：不可发送时回车不触发发送，
+            // 也不收起键盘（默认实现会 unfocus），用户可以继续编辑
+            onEditingComplete: () {
+              if (sendable) onSend();
+            },
+            textInputAction: TextInputAction.send,
             keyboardType: TextInputType.text,
             maxLines: null,
           ),
