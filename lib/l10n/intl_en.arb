@@ -534,5 +534,17 @@
   "visitDoctor": "Doctor",
   "insuranceAccepted": "Yes",
   "insuranceNotAccepted": "No",
-  "bookingSentTo": "Sent to {count} hospitals"
+  "bookingSentTo": "Sent to {count} hospitals",
+  "signInWithApple": "Sign in with Apple",
+  "orDivider": "or",
+  "deleteAccountFailed": "We couldn't delete your account. Please try again.",
+  "loginMethods": "Login Methods",
+  "emailAndPassword": "Email & password",
+  "passwordSetLabel": "Password set",
+  "setPassword": "Set Password",
+  "setPasswordHint": "Your account was created with Apple and has no password yet. Set one to also sign in with your email.",
+  "setPasswordSuccess": "Your password has been set. You can now sign in with your email and password.",
+  "unlink": "Unlink",
+  "unlinkAppleConfirm": "Unlink Apple from your account? You will no longer be able to sign in with Apple.",
+  "unlinkSuccess": "Login method has been unlinked."
 }

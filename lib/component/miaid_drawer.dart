@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:injectable/injectable.dart';
+import 'package:miaid/api_utils/http_exception.dart';
 import 'package:miaid/api_utils/user_provider.dart';
 import 'package:miaid/config/api_settings.dart';
 import 'package:miaid/config/app_colors.dart';
@@ -198,7 +199,7 @@ class MiAidDrawer extends StatelessWidget {
                   ));
                 },
               ),
-              /*_drawerItem(
+              _drawerItem(
                 context,
                 'assets/images/ic_sidebar_corporatecare2.png',
                 S.of(context).marketing,
@@ -208,7 +209,7 @@ class MiAidDrawer extends StatelessWidget {
                     builder: (context) => MarketingCategory(),
                   ));
                 },
-              ),*/
+              ),
               /*_drawerItem(
                 context,
                 'assets/images/ic_sidebar_travelcare.png',
@@ -569,7 +570,12 @@ Future<void> logout(BuildContext context, UserProvider user) async {
 }
 
 Future<void> deleteUser(BuildContext context, UserProvider user) async {
-  await user.deleteAccount();
+  final deleted = await user.deleteAccount();
+  if (!deleted) {
+    // 服务端未删除成功：提示用户，保持登录，不跳转
+    await HttpExceptionNotifyUser.showError(S.of(context).deleteAccountFailed);
+    return;
+  }
   while (Navigator.of(context).canPop()) {
     Navigator.of(context).pop();
   }

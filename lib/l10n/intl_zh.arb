@@ -535,5 +535,17 @@
   "visitDoctor": "医生姓名",
   "insuranceAccepted": "接受",
   "insuranceNotAccepted": "不接受",
-  "bookingSentTo": "已向 {count} 家医院发送预约请求"
+  "bookingSentTo": "已向 {count} 家医院发送预约请求",
+  "signInWithApple": "通过 Apple 登录",
+  "orDivider": "或",
+  "deleteAccountFailed": "账户删除失败，请稍后再试",
+  "loginMethods": "登录方式",
+  "emailAndPassword": "邮箱密码",
+  "passwordSetLabel": "已设置",
+  "setPassword": "设置密码",
+  "setPasswordHint": "你的账户通过 Apple 登录创建，尚未设置密码。设置后也可以用邮箱密码登录。",
+  "setPasswordSuccess": "密码已设置，现在可以用邮箱密码登录。",
+  "unlink": "解除绑定",
+  "unlinkAppleConfirm": "确定解除与 Apple 的绑定？之后将无法通过 Apple 登录。",
+  "unlinkSuccess": "已解除绑定。"
 }

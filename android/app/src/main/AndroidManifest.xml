@@ -85,6 +85,21 @@
             </intent-filter>
         </activity>
 
+        <!-- Sign in with Apple：Android 走网页授权，后端回调页重定向到此 activity 把结果带回 App -->
+        <activity
+            android:exported="true"
+            android:name="com.aboutyou.dart_packages.sign_in_with_apple.SignInWithAppleCallback">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="signinwithapple" />
+                <data android:path="callback" />
+            </intent-filter>
+        </activity>
+
         <!-- FACEBOOK SDK CONFIG -->         
         <meta-data android:name="com.facebook.sdk.ApplicationId" android:value="@string/facebook_app_id"/>
    	    <meta-data android:name="com.facebook.sdk.ClientToken" android:value="@string/facebook_client_token"/>

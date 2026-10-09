@@ -13,9 +13,11 @@ import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/config/api_settings.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
+import 'package:miaid/services/social_account_service.dart';
 import 'package:miaid/store/user/user_profile_screen/user_profile_screen_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/password/change_password.dart';
+import 'package:miaid/view/user/password/set_password.dart';
 import 'package:miaid/view/user/user_profile_screen/edit_user_profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -61,10 +63,65 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   final regularDoctorFullNameController = TextEditingController();
   final regularDoctorEmailController = TextEditingController();
 
+  late final SocialAccountService _socialAccountService =
+      SocialAccountService(widget.services.api);
+
+  /// 登录方式概览（是否已设置密码、绑定的第三方账号）；加载失败保持 null，相关区块不显示
+  SocialAccountSummary? _loginMethods;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance?.addPostFrameCallback((_) => refreshScreenState());
+    _loadLoginMethods();
+  }
+
+  Future<void> _loadLoginMethods() async {
+    try {
+      final summary = await _socialAccountService.fetch();
+      if (mounted) setState(() => _loginMethods = summary);
+    } on SocialAccountException catch (e) {
+      debugPrint('加载登录方式失败: ${e.message}');
+    }
+  }
+
+  Future<void> _openSetPassword() async {
+    final done = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute<bool>(
+        builder: (context) => SetPasswordScreen(service: _socialAccountService),
+      ),
+    );
+    if (done == true) await _loadLoginMethods();
+  }
+
+  Future<void> _unlinkApple() async {
+    final confirmed = await _showConfirmDialog(
+      title: S.of(context).unlink,
+      message: S.of(context).unlinkAppleConfirm,
+      confirmLabel: S.of(context).unlink,
+    );
+    if (confirmed != true) return;
+
+    await EasyLoading.show(
+      status: S.of(context).loading,
+      maskType: EasyLoadingMaskType.black,
+    );
+    try {
+      final summary =
+          await _socialAccountService.unlink(LinkedSocialAccount.providerApple);
+      await EasyLoading.dismiss();
+      if (!mounted) return;
+      setState(() => _loginMethods = summary);
+      await HttpExceptionNotifyUser.showInfo(S.of(context).unlinkSuccess);
+    } on SocialAccountException catch (e) {
+      await EasyLoading.dismiss();
+      if (!mounted) return;
+      // 后端会说明原因，如"请先设置密码"
+      await HttpExceptionNotifyUser.showError(
+        e.message.isNotEmpty ? e.message : S.of(context).somethingWentWrong,
+      );
+    }
   }
 
   Future<void> refreshScreenState() async {
@@ -271,20 +328,36 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     isLast: true),
               ],
             ),
+            if (_loginMethods != null) ...[
+              const SizedBox(height: 16),
+              _sectionCard(
+                title: S.of(context).loginMethods,
+                children: _loginMethodRows(_loginMethods!),
+              ),
+            ],
             const SizedBox(height: 16),
             _sectionCard(
               title: S.of(context).otherSettings,
               children: [
-                _actionTile(
-                  icon: Icons.lock_outline,
-                  label: S.of(context).changePass,
-                  color: AppColors.k0cbcc5,
-                  onTap: () {
-                    Navigator.push(context, MaterialPageRoute<void>(
-                      builder: (context) => getIt<ChangePassword>(),
-                    ),);
-                  },
-                ),
+                // 通过 Apple 登录创建、尚未设置密码的用户显示"设置密码"
+                if (_loginMethods?.hasPassword == false)
+                  _actionTile(
+                    icon: Icons.lock_outline,
+                    label: S.of(context).setPassword,
+                    color: AppColors.k0cbcc5,
+                    onTap: _openSetPassword,
+                  )
+                else
+                  _actionTile(
+                    icon: Icons.lock_outline,
+                    label: S.of(context).changePass,
+                    color: AppColors.k0cbcc5,
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute<void>(
+                        builder: (context) => getIt<ChangePassword>(),
+                      ),);
+                    },
+                  ),
                 Divider(height: 1, color: Colors.grey.shade200),
                 _actionTile(
                   icon: Icons.delete_outline,
@@ -458,6 +531,120 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
+  // 登录方式：邮箱密码一行（未设置密码时给"设置密码"入口）+ 已绑定的第三方账号各一行
+  List<Widget> _loginMethodRows(SocialAccountSummary summary) {
+    final apple = summary.apple;
+    return [
+      _loginMethodRow(
+        icon: Icons.mail_outline,
+        title: S.of(context).emailAndPassword,
+        subtitle: widget.services.user.user?.email ?? '',
+        trailing: summary.hasPassword
+            ? _statusChip(S.of(context).passwordSetLabel)
+            : _linkButton(S.of(context).setPassword, _openSetPassword),
+        isLast: apple == null,
+      ),
+      if (apple != null)
+        _loginMethodRow(
+          icon: Icons.apple,
+          title: 'Apple',
+          subtitle: apple.email ?? '',
+          trailing: _linkButton(S.of(context).unlink, _unlinkApple,
+              color: AppColors.kfa0020),
+          isLast: true,
+        ),
+    ];
+  }
+
+  Widget _loginMethodRow({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Widget trailing,
+    bool isLast = false,
+  }) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: AppColors.k010101),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.rubik(
+                        color: AppColors.k010101,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (subtitle.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.rubik(
+                          color: AppColors.k8f8e94,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              trailing,
+            ],
+          ),
+        ),
+        if (!isLast) Divider(height: 1, color: Colors.grey.shade100),
+      ],
+    );
+  }
+
+  Widget _statusChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.k0cbcc5.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.rubik(
+          color: AppColors.k0cbcc5,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  Widget _linkButton(String text, VoidCallback onTap, {Color? color}) {
+    return TextButton(
+      onPressed: onTap,
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        minimumSize: const Size(0, 32),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.rubik(
+          color: color ?? AppColors.k0cbcc5,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
   // 信息行：小号灰标签在上，值在下，行间细分隔线
   Widget _infoRow(String label, String value, {bool isLast = false}) {
     return Column(
@@ -526,98 +713,100 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   // showDeleteAlertDialog
   void showDeleteAlertDialog(BuildContext context) {
-    Widget okButton = Padding(
-      padding: EdgeInsets.only(left: 64.5, right: 63.5, bottom: 24.5),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: MediaQuery.of(context).size.width,
-            height: 36,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.k0cbcc5.withOpacity(0.2),
-                  blurRadius: 10.0,
-                  spreadRadius: 0.0, //extend the shadow
-                  offset: Offset(
-                    0.0, // Move to right 10  horizontally
-                    4, // Move to bottom 10 Vertically
+    _showConfirmDialog(
+      title: S.of(context).deleteAccount,
+      message: S.of(context).deleteAccountAlertMessage,
+      confirmLabel: S.of(context).deleteAccount,
+    ).then((confirmed) async {
+      if (confirmed ?? false) {
+        await deleteUser(context, widget.services.user);
+      }
+    });
+  }
+
+  /// 危险操作确认弹框（删除账户、解除绑定共用）：
+  /// 标题居中加粗，说明文字居中，下方一个占满宽度的品牌色"取消"按钮，再下面是红色文字的确认操作。
+  /// 确认返回 true，取消或点击遮罩返回 false / null。
+  Future<bool?> _showConfirmDialog({
+    required String title,
+    required String message,
+    required String confirmLabel,
+  }) {
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+        title: Text(
+          title,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.rubik(
+              color: AppColors.k010101, fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.rubik(fontSize: 13),
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(left: 64.5, right: 63.5, bottom: 24.5),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: MediaQuery.of(dialogContext).size.width,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(15),
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.k0cbcc5.withOpacity(0.2),
+                        blurRadius: 10.0,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: TextButton(
+                    style: ButtonStyle(
+                      backgroundColor:
+                          MaterialStateProperty.all(AppColors.k0cbcc5),
+                      shape: MaterialStateProperty.all(
+                        RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                      ),
+                    ),
+                    onPressed: () => Navigator.pop(dialogContext, false),
+                    child: Text(
+                      S.of(context).cancel,
+                      style: GoogleFonts.rubik(
+                        color: AppColors.kffffff,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Center(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(dialogContext, true),
+                    child: Text(
+                      confirmLabel,
+                      style: GoogleFonts.rubik(
+                        color: AppColors.kfa0020,
+                        fontSize: 14,
+                      ),
+                    ),
                   ),
                 ),
               ],
-            ),
-            child: TextButton(
-              style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.all(AppColors.k0cbcc5),
-                shape: MaterialStateProperty.all(
-                  RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(9),
-                  ),
-                ),
-              ),
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text(
-                S.of(context).cancel,
-                style: GoogleFonts.rubik(
-                  color: AppColors.kffffff,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ),
-          SizedBox(
-            height: 10,
-          ),
-          Center(
-            child: TextButton(
-              onPressed: () async {
-                Navigator.pop(context, true);
-              },
-              child: Text(
-                S.of(context).deleteAccount,
-                style: GoogleFonts.rubik(
-                  color: AppColors.kfa0020,
-                  fontSize: 14,
-                ),
-              ),
             ),
           ),
         ],
       ),
     );
-    var alert = AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(12)),
-      ),
-      title: Text(
-        S.of(context).deleteAccount,
-        textAlign: TextAlign.center,
-        style: GoogleFonts.rubik(
-            color: AppColors.k010101, fontWeight: FontWeight.w700),
-      ),
-      content: Text(
-        S.of(context).deleteAccountAlertMessage,
-        textAlign: TextAlign.center,
-        style: GoogleFonts.rubik(
-          fontSize: 13,
-        ),
-      ),
-      actions: [okButton],
-    );
-
-    showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return alert;
-        }).then((value) async {
-      if (value ?? false) {
-        await deleteUser(context, widget.services.user);
-      }
-    });
   }
 }

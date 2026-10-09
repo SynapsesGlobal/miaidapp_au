@@ -103,6 +103,8 @@ dependencies:
   flutter_dotenv: ^6.0.1
   # 支付宝 App 支付（境内商户号，唤起支付宝 App），目前仅药房订单使用；iOS 回跳 scheme 见下方 tobias 配置
   tobias: 5.2.0
+  sign_in_with_apple: ^7.0.1
+  crypto: ^3.0.3
 
 # tobias（支付宝）配置：pod install 时插件的 tobias_setup.rb 会读取这里的值去改 Info.plist / entitlements：
 # - url_scheme：支付宝付款完成后回跳本 App 的 scheme。Info.plist 里已预先登记（CFBundleURLName=alipay，

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:injectable/injectable.dart';
 import 'package:miaid/generated_api_code/api_client.swagger.dart';
@@ -98,20 +99,30 @@ class UserProvider {
     await EasyLoading.dismiss();
   }
 
-  Future<void> deleteAccount() async {
+  /// 注销账号。服务端删除成功才清本地登录态并返回 true；
+  /// 失败返回 false 且保持登录，由调用方提示用户（避免服务端没删成却在本地"假注销"）。
+  Future<bool> deleteAccount() async {
+    var deleted = false;
     try {
       await EasyLoading.show(
           status: 'Deleting user data...', maskType: EasyLoadingMaskType.clear);
 
       final api = getIt<ApiProvider>();
-      await api.apiClient.authGetDeleteUser(accept: null);
+      final response = await api.apiClient.authGetDeleteUser(accept: null);
+      deleted = response.isSuccessful;
+      if (!deleted) {
+        debugPrint('注销账号失败: ${response.statusCode} ${response.error}');
+      }
     } catch (e) {
-      // print('Could not logout user on the server: $e');
+      debugPrint('注销账号请求异常: $e');
     }
 
-    await _resetUserRelatedData();
+    if (deleted) {
+      await _resetUserRelatedData();
+    }
 
     await EasyLoading.dismiss();
+    return deleted;
   }
 
   Future<void> _setAccessToken(String? accessToken) async {

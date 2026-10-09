@@ -17,13 +17,16 @@ import 'package:miaid/store/app/app_settings.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
+import 'package:miaid/generated_api_code/api_client.swagger.dart';
 import 'package:miaid/notifications/notifications_token_provider.dart';
+import 'package:miaid/services/apple_sign_in_service.dart';
 import 'package:miaid/services/location_upload_service.dart';
 import 'package:miaid/store/user/sign_in/sign_in_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/password/forgot_password.dart';
 import 'package:miaid/view/user/sign_up/sign_up.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:tap_debouncer/tap_debouncer.dart';
 
 import '../../../main.dart';
@@ -61,6 +64,112 @@ class _SignInState extends State<SignIn> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final formKey = GlobalKey<FormState>();
+  late final AppleSignInService _appleSignIn =
+      AppleSignInService(widget.services.api);
+
+  /// 登录成功后的公共处理：保存用户与令牌、恢复定位上传开关、
+  /// 按用户状态进入首页 / 验证码页 / 补全资料页。密码登录与 Apple 登录共用。
+  Future<void> _finishLogin(User user, Map<String, dynamic>? rawPayload) async {
+    widget.services.api.userProvider.onLogIn(user);
+
+    try {
+      final trackingOpened = rawPayload?['open_position_tracking'] == true;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('open_position_tracking', trackingOpened);
+      if (trackingOpened) {
+        unawaited(LocationUploadService.restoreIfEnabled());
+      }
+    } catch (e) {
+      // 解析失败不影响登录流程；首页的后端同步会兜底启动服务。
+      debugPrint('解析登录追踪开关失败: $e');
+    }
+
+    final nextScreen = getHomeFromUser(user);
+    await EasyLoading.dismiss();
+    if (!mounted) return;
+    await Navigator.pushAndRemoveUntil(context,
+      MaterialPageRoute<void>(
+        settings: RouteSettings(name: '/'),
+        builder: (context) => nextScreen,
+      ),
+      (route) => false,
+    );
+  }
+
+  /// 推送 token：启动时没拿到（如 iOS 未授权通知）则登录时再取一次
+  Future<String> _resolvePushToken() async {
+    final tokenProvider = getIt<NotificationsTokenProvider>();
+    if (tokenProvider.token.isEmpty) {
+      try {
+        final token = await FCMTokenService.instance.getToken();
+        tokenProvider.token = token!;
+      } catch (e) {
+        debugPrint('获取token失败: $e');
+      }
+    }
+    debugPrint('设备token:${tokenProvider.token}');
+    return tokenProvider.token;
+  }
+
+  void _showLoginError(String? message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message ?? S.of(context).loginFailed)),
+    );
+  }
+
+  /// Apple 登录：先调起系统授权，拿到令牌后再显示 loading 请求后端
+  Future<void> _signInWithApple() async {
+    final store = widget.services.store;
+    store.signInFailed = false;
+
+    try {
+      final credential = await _appleSignIn.requestCredential();
+      final pushToken = await _resolvePushToken();
+      await EasyLoading.show(
+        status: S.of(context).signingIn,
+        maskType: EasyLoadingMaskType.black,
+      );
+      final result = await _appleSignIn.login(
+        credential,
+        devicePushToken: pushToken,
+      );
+      await _finishLogin(result.user, result.rawPayload);
+    } on AppleSignInCancelled {
+      await EasyLoading.dismiss();
+    } on AppleSignInException catch (e) {
+      await EasyLoading.dismiss();
+      store.signInFailed = true;
+      _showLoginError(e.message.isNotEmpty ? e.message : null);
+    } catch (e) {
+      debugPrint('Apple 登录失败: $e');
+      await EasyLoading.dismiss();
+      store.signInFailed = true;
+      _showLoginError(null);
+    }
+  }
+
+  Widget _orDivider(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          Expanded(child: Divider(color: AppColors.kb1b1b1)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              S.of(context).orDivider,
+              style: GoogleFonts.rubik(
+                color: AppColors.k8f8e94,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          Expanded(child: Divider(color: AppColors.kb1b1b1)),
+        ],
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -537,16 +646,7 @@ class _SignInState extends State<SignIn> {
                         final userPassword = passwordController.text;
 
                         if (formKey.currentState?.validate() ?? false) {
-                          final tokenProvider = getIt<NotificationsTokenProvider>();
-                          if (tokenProvider.token.isEmpty) {
-                            try {
-                              final token = await FCMTokenService.instance.getToken();
-                              tokenProvider.token = token!;
-                            } catch (e) {
-                              debugPrint('获取token失败: $e.toString()');
-                            }
-                          }
-                          debugPrint('设备token:${tokenProvider.token}');
+                          final pushToken = await _resolvePushToken();
 
                           var apiClient = store.userType == 'customer' ? widget.services.api.apiClientSub : widget.services.api.apiClientMain;
                           try {
@@ -557,55 +657,32 @@ class _SignInState extends State<SignIn> {
 
                             var loginResponse = await apiClient.authPostLogin(
                               device_id: widget.services.api.userProvider.deviceId.deviceId,
-                              device_push_token: tokenProvider.token,
+                              device_push_token: pushToken,
                               device_type: widget.services.api.userProvider.deviceId.deviceType,
                               email: userEmail,
                               password: userPassword,
                             );
 
                             if (ApiSuccessParser.isSuccessfulWithPayload(loginResponse)) {
-                              widget.services.api.userProvider.onLogIn(loginResponse.body!.payload!);
-
+                              Map<String, dynamic>? rawPayload;
                               try {
-                                final rawPayload = jsonDecode(loginResponse.bodyString)['payload'];
-                                final trackingOpened =
-                                    rawPayload?['open_position_tracking'] == true;
-                                final prefs = await SharedPreferences.getInstance();
-                                await prefs.setBool('open_position_tracking', trackingOpened);
-                                if (trackingOpened) {
-                                  unawaited(LocationUploadService.restoreIfEnabled());
-                                }
+                                rawPayload = jsonDecode(loginResponse.bodyString)['payload']
+                                    as Map<String, dynamic>?;
                               } catch (e) {
-                                // 解析失败不影响登录流程；首页的后端同步会兜底启动服务。
-                                debugPrint('解析登录追踪开关失败: $e');
+                                debugPrint('解析登录响应失败: $e');
                               }
-
-                              final nextScreen = getHomeFromUser(loginResponse.body!.payload!);
-                              await EasyLoading.dismiss();
-                              await Navigator.pushAndRemoveUntil(context,
-                                MaterialPageRoute<void>(
-                                  settings: RouteSettings(name: '/'),
-                                  builder: (context) => nextScreen,
-                                ),
-                                (route) => false,
-                              );
+                              await _finishLogin(loginResponse.body!.payload!, rawPayload);
                             } else {
                               await EasyLoading.dismiss();
 
                               store.signInFailed = true;
-                              var message = ApiErrorParser.message(loginResponse.error);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(message ?? S.of(context).loginFailed,),),
-                              );
+                              _showLoginError(ApiErrorParser.message(loginResponse.error));
                             }
                           } catch (e) {
-                            print('登陆报错了吗');
-                            print(e);
+                            debugPrint('登录失败: $e');
                             await EasyLoading.dismiss();
                             store.signInFailed = true;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(S.of(context).loginFailed,),),
-                            );
+                            _showLoginError(null);
                           }
                         }
                       },
@@ -623,6 +700,22 @@ class _SignInState extends State<SignIn> {
                     ),
                   ),
                 ),
+                // 第三方登录只对客户开放；医生 / 翻译仍用邮箱密码
+                if (store.userType == 'customer' && AppleSignInService.isSupported) ...[
+                  SizedBox(height: 18,),
+                  _orDivider(context),
+                  SizedBox(height: 18,),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 20, right: 20),
+                    child: SignInWithAppleButton(
+                      text: S.of(context).signInWithApple,
+                      height: 44,
+                      style: SignInWithAppleButtonStyle.black,
+                      borderRadius: BorderRadius.circular(9),
+                      onPressed: _signInWithApple,
+                    ),
+                  ),
+                ],
                 SizedBox(height: 25,),
                 InkWell(
                   onTap: () {
