@@ -547,5 +547,8 @@
   "setPasswordSuccess": "Your password has been set. You can now sign in with your email and password.",
   "unlink": "Unlink",
   "unlinkProviderConfirm": "Unlink {provider} from your account? You will no longer be able to sign in with {provider}.",
-  "unlinkSuccess": "Login method has been unlinked."
+  "unlinkSuccess": "Login method has been unlinked.",
+  "setYourName": "Set your name",
+  "completeNameTitle": "Your Name",
+  "completeNameHint": "We could not get your name from your sign-in provider. Please enter it so doctors and translators know how to address you."
 }

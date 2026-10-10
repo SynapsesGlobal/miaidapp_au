@@ -573,5 +573,8 @@
   "setPasswordSuccess": "Kata sandi telah diatur. Sekarang Anda bisa masuk dengan email dan kata sandi.",
   "unlink": "Putuskan",
   "unlinkProviderConfirm": "Putuskan tautan {provider} dari akun Anda? Anda tidak bisa lagi masuk dengan {provider}.",
-  "unlinkSuccess": "Metode login telah diputuskan."
+  "unlinkSuccess": "Metode login telah diputuskan.",
+  "setYourName": "Atur nama Anda",
+  "completeNameTitle": "Nama Anda",
+  "completeNameHint": "Kami tidak mendapatkan nama Anda dari penyedia login. Silakan isi agar dokter dan penerjemah tahu cara menyapa Anda."
 }

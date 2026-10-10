@@ -548,5 +548,8 @@
   "setPasswordSuccess": "密码已设置，现在可以用邮箱密码登录。",
   "unlink": "解除绑定",
   "unlinkProviderConfirm": "确定解除与 {provider} 的绑定？之后将无法通过 {provider} 登录。",
-  "unlinkSuccess": "已解除绑定。"
+  "unlinkSuccess": "已解除绑定。",
+  "setYourName": "设置姓名",
+  "completeNameTitle": "您的姓名",
+  "completeNameHint": "第三方登录没有提供您的姓名，请填写，以便医生和翻译知道如何称呼您。"
 }

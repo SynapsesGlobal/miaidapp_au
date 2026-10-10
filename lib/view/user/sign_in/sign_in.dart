@@ -73,7 +73,7 @@ class _SignInState extends State<SignIn> {
       GoogleSignInService(widget.services.api);
 
   /// 登录成功后的公共处理：保存用户与令牌、恢复定位上传开关、
-  /// 按用户状态进入首页 / 验证码页 / 补全资料页。密码登录与 Apple 登录共用。
+  /// 按用户状态进入首页 / 验证码页 / 补全资料页。密码登录与第三方登录共用。
   Future<void> _finishLogin(User user, Map<String, dynamic>? rawPayload) async {
     widget.services.api.userProvider.onLogIn(user);
 

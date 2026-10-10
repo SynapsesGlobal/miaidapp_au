@@ -24,6 +24,7 @@ import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/main.dart';
 import 'package:miaid/notifications/notifications_handler.dart';
 import 'package:miaid/payment/additional_services.dart';
+import 'package:miaid/services/social_account_service.dart';
 import 'package:miaid/store/home/active_subscription_store.dart';
 import 'package:miaid/store/home/home_screen_store.dart';
 import 'package:miaid/store/home/user_info_store.dart';
@@ -38,6 +39,7 @@ import 'package:miaid/view/user/calling/call_screen_helper.dart';
 import 'package:miaid/view/user/e_shop/e_shop.dart';
 import 'package:miaid/view/user/home/qrcode_scan.dart';
 import 'package:miaid/view/user/sign_in/sign_in.dart';
+import 'package:miaid/view/user/user_profile_screen/complete_name.dart';
 import 'package:miaid/view/user/user_profile_screen/user_profile_screen.dart';
 import 'package:miaid/widget/custom_dialog.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -235,6 +237,15 @@ class _HomeScreenState extends State<HomeScreen>
       Eraser.clearAllAppNotifications();
       FlutterAppBadger.removeBadge();
     }
+  }
+
+  /// 首页问候语的补填姓名入口；保存后 UserInfoStore 已更新，问候语自动显示名字
+  Future<void> _openCompleteName() async {
+    await Navigator.push(context, MaterialPageRoute<bool>(
+      builder: (context) => CompleteNameScreen(
+        service: SocialAccountService(widget.services.api),
+      ),
+    ),);
   }
 
   @override
@@ -475,25 +486,39 @@ class _HomeScreenState extends State<HomeScreen>
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                        TextSpan(
-                          recognizer: TapGestureRecognizer()..onTap = () {
-                            if (store.user.isLoggedIn) {
-                              Navigator.push(context, MaterialPageRoute<void>(
-                                builder: (context) => getIt<UserProfileScreen>(),
-                              ),);
-                            } else {
-                              Navigator.push(context, MaterialPageRoute<void>(
-                                builder: (context) => getIt<SignIn>(),
-                              ),);
-                            }
-                          },
-                          text: store.user.isLoggedIn ? '${widget.services.userInfoStore.firstName ?? ''}' : S.of(context).signIn,
-                          style: GoogleFonts.rubik(
-                            color: AppColors.k010101,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                        if (store.user.isLoggedIn && widget.services.userInfoStore.firstName.trim().isEmpty)
+                          // 第三方登录可能拿不到姓名：问候语后面给一个补填入口，不让"您好，"后面空着
+                          TextSpan(
+                            recognizer: TapGestureRecognizer()..onTap = _openCompleteName,
+                            text: S.of(context).setYourName,
+                            style: GoogleFonts.rubik(
+                              color: AppColors.k0cbcc5,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline,
+                              decorationColor: AppColors.k0cbcc5,
+                            ),
+                          )
+                        else
+                          TextSpan(
+                            recognizer: TapGestureRecognizer()..onTap = () {
+                              if (store.user.isLoggedIn) {
+                                Navigator.push(context, MaterialPageRoute<void>(
+                                  builder: (context) => getIt<UserProfileScreen>(),
+                                ),);
+                              } else {
+                                Navigator.push(context, MaterialPageRoute<void>(
+                                  builder: (context) => getIt<SignIn>(),
+                                ),);
+                              }
+                            },
+                            text: store.user.isLoggedIn ? widget.services.userInfoStore.firstName : S.of(context).signIn,
+                            style: GoogleFonts.rubik(
+                              color: AppColors.k010101,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ),),

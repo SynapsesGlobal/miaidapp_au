@@ -17,6 +17,7 @@ import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/generated_api_code/api_client.swagger.dart';
+import 'package:miaid/services/social_account_service.dart';
 import 'package:miaid/store/user/sign_up/sign_up_2_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/home/home_screen.dart';
@@ -59,6 +60,8 @@ class _SignUp2State extends State<SignUp2> {
   final doctorPreferenceController = TextEditingController();
   final travelAgencyNameController = TextEditingController();
   final medicareNumberController = TextEditingController();
+  final firstNameController = TextEditingController();
+  final lastNameController = TextEditingController();
   final fullNameController = TextEditingController();
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
@@ -68,10 +71,45 @@ class _SignUp2State extends State<SignUp2> {
   final formKey = GlobalKey<FormState>();
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
+  /// 通过第三方登录创建的账号可能没有姓名（Apple 只在首次授权时返回），
+  /// 这种情况在本页顶部多出名、姓两个必填项，和其它资料一起提交。
+  bool get _needsName =>
+      (widget.services.user.user?.firstName ?? '').trim().isEmpty;
+
   @override
   void initState() {
     widget.services.store.fetchOnInit();
+    final user = widget.services.user.user;
+    firstNameController.text = user?.firstName ?? '';
+    lastNameController.text = user?.lastName ?? '';
     super.initState();
+  }
+
+  /// 姓名走单独的 /profile/name 接口保存（补全资料接口不含姓名）。
+  /// 失败时关闭 loading 并提示，返回 false 由调用方中止后续提交。
+  Future<bool> _saveName() async {
+    final firstName = firstNameController.text.trim();
+    final lastName = lastNameController.text.trim();
+    try {
+      await SocialAccountService(widget.services.api)
+          .updateName(firstName: firstName, lastName: lastName);
+    } on SocialAccountException catch (e) {
+      await EasyLoading.dismiss();
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: AppColors.k0cbcc5,
+        content: Text(
+          e.message.isNotEmpty ? e.message : S.of(context).somethingWentWrong,
+        ),
+      ));
+      return false;
+    }
+
+    // 先更新本地用户，补全资料接口返回的用户信息随后会覆盖
+    final updated = widget.services.user.user
+        ?.copyWith(firstName: firstName, lastName: lastName);
+    if (updated != null) widget.services.user.onUserUpdated(updated);
+    return true;
   }
 
   // 语言多选底部弹窗：选项卡片式，高度自适应内容
@@ -461,6 +499,8 @@ class _SignUp2State extends State<SignUp2> {
                             maskType: EasyLoadingMaskType.black,
                           );
 
+                          if (_needsName && !await _saveName()) return;
+
                           var response = await widget.services.api.apiClient.profilePostCompleteProfile(
                             dob: DateFormat('y-MM-d').format(store.selectedDate!),
                             language_id: store.selectedLanguage!.id,
@@ -523,6 +563,67 @@ class _SignUp2State extends State<SignUp2> {
     );
   }
 
+  /// 名、姓两个必填项，样式与下方生日等输入框一致
+  List<Widget> _nameFields() {
+    return [
+      _nameLabel(S.of(context).fname + ' *'),
+      SizedBox(height: 8,),
+      _nameField(
+        controller: firstNameController,
+        emptyMessage: S.of(context).signupEmptyFirstName,
+      ),
+      SizedBox(height: 19,),
+      _nameLabel(S.of(context).lName + ' *'),
+      SizedBox(height: 8,),
+      _nameField(
+        controller: lastNameController,
+        emptyMessage: S.of(context).signupEmptyLastName,
+      ),
+      SizedBox(height: 19,),
+    ];
+  }
+
+  Widget _nameLabel(String text) {
+    return Text(
+      text,
+      textAlign: TextAlign.left,
+      style: GoogleFonts.rubik(
+        color: AppColors.k010101,
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+  }
+
+  Widget _nameField({
+    required TextEditingController controller,
+    required String emptyMessage,
+  }) {
+    OutlineInputBorder border(Color color, {double width = 1}) =>
+        OutlineInputBorder(
+          borderSide: BorderSide(color: color, width: width),
+          borderRadius: BorderRadius.circular(10),
+        );
+    return TextFormField(
+      controller: controller,
+      maxLength: 100,
+      textCapitalization: TextCapitalization.words,
+      textInputAction: TextInputAction.next,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+      validator: (value) =>
+          (value == null || value.trim().isEmpty) ? emptyMessage : null,
+      style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 14),
+      decoration: InputDecoration(
+        counterText: '',
+        contentPadding: EdgeInsets.only(left: 16, top: 5, bottom: 5),
+        focusedBorder: border(AppColors.k010101),
+        enabledBorder: border(AppColors.kb1b1b1, width: 0.5),
+        errorBorder: border(AppColors.kfa0020),
+        focusedErrorBorder: border(AppColors.kfa0020),
+      ),
+    );
+  }
+
   Widget generalDetails() {
     final store = widget.services.store;
     return Padding(
@@ -542,6 +643,7 @@ class _SignUp2State extends State<SignUp2> {
                 ),),
               ),
               SizedBox(height: 19,),
+              if (_needsName) ..._nameFields(),
               Text(
                 S.of(context).dob + ' *',
                 textAlign: TextAlign.left,

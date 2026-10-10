@@ -572,5 +572,8 @@
   "setPasswordSuccess": "비밀번호가 설정되었습니다. 이제 이메일과 비밀번호로 로그인할 수 있습니다.",
   "unlink": "연결 해제",
   "unlinkProviderConfirm": "{provider} 연결을 해제하시겠습니까? 더 이상 {provider}(으)로 로그인할 수 없습니다.",
-  "unlinkSuccess": "로그인 방법 연결이 해제되었습니다."
+  "unlinkSuccess": "로그인 방법 연결이 해제되었습니다.",
+  "setYourName": "이름 설정",
+  "completeNameTitle": "이름",
+  "completeNameHint": "로그인 제공업체에서 이름을 받지 못했습니다. 의사와 통역사가 호칭할 수 있도록 이름을 입력해 주세요."
 }

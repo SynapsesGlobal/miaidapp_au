@@ -542,5 +542,8 @@
   "setPasswordSuccess": "密碼已設定，現在可以用電子郵件密碼登入。",
   "unlink": "解除綁定",
   "unlinkProviderConfirm": "確定解除與 {provider} 的綁定？之後將無法透過 {provider} 登入。",
-  "unlinkSuccess": "已解除綁定。"
+  "unlinkSuccess": "已解除綁定。",
+  "setYourName": "設定姓名",
+  "completeNameTitle": "您的姓名",
+  "completeNameHint": "第三方登入沒有提供您的姓名，請填寫，以便醫生和翻譯知道如何稱呼您。"
 }

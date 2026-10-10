@@ -78,7 +78,7 @@ class SocialAccountSummary {
 
 }
 
-/// 登录方式管理：查询绑定、解绑、为无密码用户设置密码。
+/// 第三方登录相关的账号接口：查询绑定、解绑、为无密码用户设置密码、补填姓名。
 ///
 /// 这几个接口是本次新增的，生成的 swagger 客户端里没有，直接用 http 调客户端 API。
 class SocialAccountService {
@@ -109,6 +109,19 @@ class SocialAccountService {
       'POST',
       '/password/set',
       body: {'password': password, 'password_confirmation': confirmation},
+    );
+  }
+
+  /// 只更新姓名。第三方登录拿不到姓名时，登录后和首页问候语处引导用户补填；
+  /// 完整的资料更新接口要求电话、生日等必填，对还没补全资料的新用户不适用。
+  Future<void> updateName({
+    required String firstName,
+    required String lastName,
+  }) async {
+    await _request(
+      'POST',
+      '/profile/name',
+      body: {'first_name': firstName, 'last_name': lastName},
     );
   }
 
