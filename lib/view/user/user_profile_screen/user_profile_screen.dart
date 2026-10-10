@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:miaid/api_utils/api_provider.dart';
 import 'package:miaid/api_utils/http_exception.dart';
 import 'package:miaid/api_utils/user_provider.dart';
+import 'package:miaid/component/google_logo.dart';
 import 'package:miaid/component/miaid_drawer.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/config/api_settings.dart';
@@ -95,10 +96,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     if (done == true) await _loadLoginMethods();
   }
 
-  Future<void> _unlinkApple() async {
+  Future<void> _unlink(LinkedSocialAccount account) async {
     final confirmed = await _showConfirmDialog(
       title: S.of(context).unlink,
-      message: S.of(context).unlinkAppleConfirm,
+      message: S.of(context).unlinkProviderConfirm(account.label),
       confirmLabel: S.of(context).unlink,
     );
     if (confirmed != true) return;
@@ -108,8 +109,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       maskType: EasyLoadingMaskType.black,
     );
     try {
-      final summary =
-          await _socialAccountService.unlink(LinkedSocialAccount.providerApple);
+      final summary = await _socialAccountService.unlink(account.provider);
       await EasyLoading.dismiss();
       if (!mounted) return;
       setState(() => _loginMethods = summary);
@@ -533,31 +533,44 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   // 登录方式：邮箱密码一行（未设置密码时给"设置密码"入口）+ 已绑定的第三方账号各一行
   List<Widget> _loginMethodRows(SocialAccountSummary summary) {
-    final apple = summary.apple;
+    final accounts = summary.accounts;
     return [
       _loginMethodRow(
-        icon: Icons.mail_outline,
+        leading: Icon(Icons.mail_outline, size: 20, color: AppColors.k010101),
         title: S.of(context).emailAndPassword,
         subtitle: widget.services.user.user?.email ?? '',
         trailing: summary.hasPassword
             ? _statusChip(S.of(context).passwordSetLabel)
             : _linkButton(S.of(context).setPassword, _openSetPassword),
-        isLast: apple == null,
+        isLast: accounts.isEmpty,
       ),
-      if (apple != null)
+      for (var i = 0; i < accounts.length; i++)
         _loginMethodRow(
-          icon: Icons.apple,
-          title: 'Apple',
-          subtitle: apple.email ?? '',
-          trailing: _linkButton(S.of(context).unlink, _unlinkApple,
-              color: AppColors.kfa0020),
-          isLast: true,
+          leading: _providerIcon(accounts[i].provider),
+          title: accounts[i].label,
+          subtitle: accounts[i].email ?? '',
+          trailing: _linkButton(
+            S.of(context).unlink,
+            () => _unlink(accounts[i]),
+            color: AppColors.kfa0020,
+          ),
+          isLast: i == accounts.length - 1,
         ),
     ];
   }
 
+  Widget _providerIcon(String provider) {
+    switch (provider) {
+      case LinkedSocialAccount.providerGoogle:
+        return const GoogleLogo(size: 20);
+      case LinkedSocialAccount.providerApple:
+      default:
+        return Icon(Icons.apple, size: 20, color: AppColors.k010101);
+    }
+  }
+
   Widget _loginMethodRow({
-    required IconData icon,
+    required Widget leading,
     required String title,
     required String subtitle,
     required Widget trailing,
@@ -569,7 +582,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           padding: const EdgeInsets.symmetric(vertical: 10),
           child: Row(
             children: [
-              Icon(icon, size: 20, color: AppColors.k010101),
+              SizedBox(width: 20, child: Center(child: leading)),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(

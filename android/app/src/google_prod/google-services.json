@@ -2,7 +2,7 @@
   "project_info": {
     "project_number": "294522101103",
     "project_id": "miaid-prod",
-    "storage_bucket": "miaid-prod.appspot.com"
+    "storage_bucket": "miaid-prod.firebasestorage.app"
   },
   "client": [
     {
@@ -14,7 +14,15 @@
       },
       "oauth_client": [
         {
-          "client_id": "294522101103-vpindbeolp9rqrpdfj1km9m6h5bdna1d.apps.googleusercontent.com",
+          "client_id": "294522101103-an8paokdbr13ai7ioeekb8jbo22ojubi.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.em.bright.miaid",
+            "certificate_hash": "5c7acbce9204b6e4623edd712a11e196350fc810"
+          }
+        },
+        {
+          "client_id": "294522101103-p91tj3f8g9alddh8dlsurv9ae59tr5bt.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -27,14 +35,14 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "294522101103-vpindbeolp9rqrpdfj1km9m6h5bdna1d.apps.googleusercontent.com",
+              "client_id": "294522101103-p91tj3f8g9alddh8dlsurv9ae59tr5bt.apps.googleusercontent.com",
               "client_type": 3
             },
             {
-              "client_id": "294522101103-fvof3pmupji94n10ilh6jdgbmak3ilqo.apps.googleusercontent.com",
+              "client_id": "294522101103-2ephs2nsismorecm75jf3dfl1i2v4js1.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.em.bright.ios.prod.miaid"
+                "bundle_id": "com.em.bright.ios.miaid"
               }
             }
           ]

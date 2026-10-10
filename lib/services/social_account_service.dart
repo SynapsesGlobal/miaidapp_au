@@ -33,6 +33,7 @@ class LinkedSocialAccount {
   }
 
   static const String providerApple = 'apple';
+  static const String providerGoogle = 'google';
 
   final String provider;
   final String? email;
@@ -40,6 +41,18 @@ class LinkedSocialAccount {
   /// Apple「隐藏邮箱」转发地址
   final bool isPrivateEmail;
   final DateTime? linkedAt;
+
+  /// 平台显示名（Apple / Google）
+  String get label {
+    switch (provider) {
+      case providerApple:
+        return 'Apple';
+      case providerGoogle:
+        return 'Google';
+      default:
+        return provider;
+    }
+  }
 }
 
 /// 当前用户的登录方式概览：是否已设置密码、绑定了哪些第三方账号。
@@ -63,10 +76,6 @@ class SocialAccountSummary {
   final bool hasPassword;
   final List<LinkedSocialAccount> accounts;
 
-  LinkedSocialAccount? get apple => accounts
-      .cast<LinkedSocialAccount?>()
-      .firstWhere((a) => a!.provider == LinkedSocialAccount.providerApple,
-          orElse: () => null);
 }
 
 /// 登录方式管理：查询绑定、解绑、为无密码用户设置密码。

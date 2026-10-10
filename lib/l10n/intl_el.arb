@@ -535,15 +535,16 @@
   "insuranceNotAccepted": "Όχι",
   "bookingSentTo": "Στάλθηκε σε {count} νοσοκομεία",
   "signInWithApple": "Σύνδεση με Apple",
+  "signInWithGoogle": "Σύνδεση με Google",
   "orDivider": "ή",
   "deleteAccountFailed": "Δεν ήταν δυνατή η διαγραφή του λογαριασμού σας. Παρακαλώ δοκιμάστε ξανά.",
   "loginMethods": "Τρόποι σύνδεσης",
   "emailAndPassword": "Email και κωδικός",
   "passwordSetLabel": "Ορίστηκε",
   "setPassword": "Ορισμός κωδικού",
-  "setPasswordHint": "Ο λογαριασμός σας δημιουργήθηκε μέσω Apple και δεν έχει ακόμη κωδικό. Ορίστε έναν για να συνδέεστε και με email.",
+  "setPasswordHint": "Ο λογαριασμός σας δημιουργήθηκε μέσω σύνδεσης τρίτου και δεν έχει ακόμη κωδικό. Ορίστε έναν για να συνδέεστε και με email.",
   "setPasswordSuccess": "Ο κωδικός ορίστηκε. Μπορείτε πλέον να συνδεθείτε με email και κωδικό.",
   "unlink": "Αποσύνδεση",
-  "unlinkAppleConfirm": "Αποσύνδεση του Apple από τον λογαριασμό σας; Δεν θα μπορείτε πλέον να συνδέεστε με Apple.",
+  "unlinkProviderConfirm": "Αποσύνδεση του {provider} από τον λογαριασμό σας; Δεν θα μπορείτε πλέον να συνδέεστε με {provider}.",
   "unlinkSuccess": "Ο τρόπος σύνδεσης αποσυνδέθηκε."
 }

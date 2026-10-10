@@ -536,15 +536,16 @@
   "insuranceNotAccepted": "No",
   "bookingSentTo": "Sent to {count} hospitals",
   "signInWithApple": "Sign in with Apple",
+  "signInWithGoogle": "Sign in with Google",
   "orDivider": "or",
   "deleteAccountFailed": "We couldn't delete your account. Please try again.",
   "loginMethods": "Login Methods",
   "emailAndPassword": "Email & password",
   "passwordSetLabel": "Password set",
   "setPassword": "Set Password",
-  "setPasswordHint": "Your account was created with Apple and has no password yet. Set one to also sign in with your email.",
+  "setPasswordHint": "Your account was created with a third-party login and has no password yet. Set one to also sign in with your email.",
   "setPasswordSuccess": "Your password has been set. You can now sign in with your email and password.",
   "unlink": "Unlink",
-  "unlinkAppleConfirm": "Unlink Apple from your account? You will no longer be able to sign in with Apple.",
+  "unlinkProviderConfirm": "Unlink {provider} from your account? You will no longer be able to sign in with {provider}.",
   "unlinkSuccess": "Login method has been unlinked."
 }

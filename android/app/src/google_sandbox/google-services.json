@@ -12,7 +12,12 @@
           "package_name": "com.em.bright.miaid.test"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "556738280205-ldecgvjc4e5ie1aa6qrmakh4oit458e7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAsPJIsUFAsL5ZRxSoG85leDvRLXolJP8E"
@@ -20,7 +25,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "556738280205-ldecgvjc4e5ie1aa6qrmakh4oit458e7.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "556738280205-lb1ts9dao517igt843ejgu6qrl50p7rb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.em.bright.ios.dev.miaid"
+              }
+            }
+          ]
         }
       }
     }

@@ -531,15 +531,16 @@
   "insuranceNotAccepted": "不接受",
   "bookingSentTo": "已向 {count} 家醫院發送預約請求",
   "signInWithApple": "使用 Apple 登入",
+  "signInWithGoogle": "使用 Google 登入",
   "orDivider": "或",
   "deleteAccountFailed": "帳戶刪除失敗，請稍後再試",
   "loginMethods": "登入方式",
   "emailAndPassword": "電子郵件密碼",
   "passwordSetLabel": "已設定",
   "setPassword": "設定密碼",
-  "setPasswordHint": "你的帳戶透過 Apple 登入建立，尚未設定密碼。設定後也可以用電子郵件密碼登入。",
+  "setPasswordHint": "你的帳戶透過第三方登入建立，尚未設定密碼。設定後也可以用電子郵件密碼登入。",
   "setPasswordSuccess": "密碼已設定，現在可以用電子郵件密碼登入。",
   "unlink": "解除綁定",
-  "unlinkAppleConfirm": "確定解除與 Apple 的綁定？之後將無法透過 Apple 登入。",
+  "unlinkProviderConfirm": "確定解除與 {provider} 的綁定？之後將無法透過 {provider} 登入。",
   "unlinkSuccess": "已解除綁定。"
 }

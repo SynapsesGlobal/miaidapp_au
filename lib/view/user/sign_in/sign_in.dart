@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:convert';
 
 import 'package:email_validator/email_validator.dart';
@@ -14,19 +15,21 @@ import 'package:intl/intl.dart';
 import 'package:miaid/api_utils/api_parser.dart';
 import 'package:miaid/api_utils/api_provider.dart';
 import 'package:miaid/store/app/app_settings.dart';
+import 'package:miaid/component/social_sign_in_button.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/generated_api_code/api_client.swagger.dart';
 import 'package:miaid/notifications/notifications_token_provider.dart';
 import 'package:miaid/services/apple_sign_in_service.dart';
+import 'package:miaid/services/google_sign_in_service.dart';
 import 'package:miaid/services/location_upload_service.dart';
+import 'package:miaid/services/social_sign_in.dart';
 import 'package:miaid/store/user/sign_in/sign_in_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/password/forgot_password.dart';
 import 'package:miaid/view/user/sign_up/sign_up.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:tap_debouncer/tap_debouncer.dart';
 
 import '../../../main.dart';
@@ -66,6 +69,8 @@ class _SignInState extends State<SignIn> {
   final formKey = GlobalKey<FormState>();
   late final AppleSignInService _appleSignIn =
       AppleSignInService(widget.services.api);
+  late final GoogleSignInService _googleSignIn =
+      GoogleSignInService(widget.services.api);
 
   /// 登录成功后的公共处理：保存用户与令牌、恢复定位上传开关、
   /// 按用户状态进入首页 / 验证码页 / 补全资料页。密码登录与 Apple 登录共用。
@@ -118,35 +123,77 @@ class _SignInState extends State<SignIn> {
     );
   }
 
-  /// Apple 登录：先调起系统授权，拿到令牌后再显示 loading 请求后端
-  Future<void> _signInWithApple() async {
+  Future<void> _signInWithApple() => _signInWithProvider<AppleCredential>(
+        providerName: 'Apple',
+        requestCredential: _appleSignIn.requestCredential,
+        login: (credential, pushToken) =>
+            _appleSignIn.login(credential, devicePushToken: pushToken),
+      );
+
+  Future<void> _signInWithGoogle() => _signInWithProvider<GoogleCredential>(
+        providerName: 'Google',
+        requestCredential: _googleSignIn.requestCredential,
+        login: (credential, pushToken) =>
+            _googleSignIn.login(credential, devicePushToken: pushToken),
+      );
+
+  /// 第三方登录的公共流程：先调起平台授权，拿到凭据后再显示 loading 请求后端。
+  /// [T] 是平台返回的凭据类型。
+  Future<void> _signInWithProvider<T>({
+    required String providerName,
+    required Future<T> Function() requestCredential,
+    required Future<SocialSignInResult> Function(T credential, String pushToken)
+        login,
+  }) async {
     final store = widget.services.store;
     store.signInFailed = false;
 
     try {
-      final credential = await _appleSignIn.requestCredential();
+      final credential = await requestCredential();
       final pushToken = await _resolvePushToken();
       await EasyLoading.show(
         status: S.of(context).signingIn,
         maskType: EasyLoadingMaskType.black,
       );
-      final result = await _appleSignIn.login(
-        credential,
-        devicePushToken: pushToken,
-      );
+      final result = await login(credential, pushToken);
       await _finishLogin(result.user, result.rawPayload);
-    } on AppleSignInCancelled {
+    } on SocialSignInCancelled {
       await EasyLoading.dismiss();
-    } on AppleSignInException catch (e) {
+    } on SocialSignInException catch (e) {
       await EasyLoading.dismiss();
       store.signInFailed = true;
       _showLoginError(e.message.isNotEmpty ? e.message : null);
     } catch (e) {
-      debugPrint('Apple 登录失败: $e');
+      debugPrint('$providerName 登录失败: $e');
       await EasyLoading.dismiss();
       store.signInFailed = true;
       _showLoginError(null);
     }
+  }
+
+  /// 第三方登录按钮。iOS 按苹果审核要求 Apple 排在前面；Android 上 Google 是原生授权，排在前面。
+  List<Widget> _socialSignInButtons(BuildContext context) {
+    final apple = Padding(
+      padding: const EdgeInsets.only(left: 20, right: 20),
+      child: SocialSignInButton.apple(
+        text: S.of(context).signInWithApple,
+        onPressed: _signInWithApple,
+      ),
+    );
+    final google = Padding(
+      padding: const EdgeInsets.only(left: 20, right: 20),
+      child: SocialSignInButton.google(
+        text: S.of(context).signInWithGoogle,
+        onPressed: _signInWithGoogle,
+      ),
+    );
+    final buttons = Platform.isAndroid ? [google, apple] : [apple, google];
+    return [
+      for (var i = 0; i < buttons.length; i++) ...[
+        if (i > 0) SizedBox(height: 12,),
+        buttons[i],
+      ],
+    ];
   }
 
   Widget _orDivider(BuildContext context) {
@@ -701,20 +748,11 @@ class _SignInState extends State<SignIn> {
                   ),
                 ),
                 // 第三方登录只对客户开放；医生 / 翻译仍用邮箱密码
-                if (store.userType == 'customer' && AppleSignInService.isSupported) ...[
+                if (store.userType == 'customer') ...[
                   SizedBox(height: 18,),
                   _orDivider(context),
                   SizedBox(height: 18,),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 20, right: 20),
-                    child: SignInWithAppleButton(
-                      text: S.of(context).signInWithApple,
-                      height: 44,
-                      style: SignInWithAppleButtonStyle.black,
-                      borderRadius: BorderRadius.circular(9),
-                      onPressed: _signInWithApple,
-                    ),
-                  ),
+                  ..._socialSignInButtons(context),
                 ],
                 SizedBox(height: 25,),
                 InkWell(

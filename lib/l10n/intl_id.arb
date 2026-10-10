@@ -562,15 +562,16 @@
   "insuranceNotAccepted": "Tidak",
   "bookingSentTo": "Dikirim ke {count} rumah sakit",
   "signInWithApple": "Masuk dengan Apple",
+  "signInWithGoogle": "Masuk dengan Google",
   "orDivider": "atau",
   "deleteAccountFailed": "Gagal menghapus akun. Silakan coba lagi.",
   "loginMethods": "Metode Login",
   "emailAndPassword": "Email & kata sandi",
   "passwordSetLabel": "Sudah diatur",
   "setPassword": "Atur Kata Sandi",
-  "setPasswordHint": "Akun Anda dibuat dengan Apple dan belum memiliki kata sandi. Atur kata sandi agar bisa masuk dengan email juga.",
+  "setPasswordHint": "Akun Anda dibuat dengan login pihak ketiga dan belum memiliki kata sandi. Atur kata sandi agar bisa masuk dengan email juga.",
   "setPasswordSuccess": "Kata sandi telah diatur. Sekarang Anda bisa masuk dengan email dan kata sandi.",
   "unlink": "Putuskan",
-  "unlinkAppleConfirm": "Putuskan tautan Apple dari akun Anda? Anda tidak bisa lagi masuk dengan Apple.",
+  "unlinkProviderConfirm": "Putuskan tautan {provider} dari akun Anda? Anda tidak bisa lagi masuk dengan {provider}.",
   "unlinkSuccess": "Metode login telah diputuskan."
 }

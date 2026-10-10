@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>556738280205-7l6fnc3a0nnb5ok8bt40l33lk74h6l62.apps.googleusercontent.com</string>
+	<string>556738280205-lb1ts9dao517igt843ejgu6qrl50p7rb.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.556738280205-7l6fnc3a0nnb5ok8bt40l33lk74h6l62</string>
+	<string>com.googleusercontent.apps.556738280205-lb1ts9dao517igt843ejgu6qrl50p7rb</string>
 	<key>API_KEY</key>
 	<string>AIzaSyCJogOmvr5g6aH3YkpKt-LV5xl8uDnmxl0</string>
 	<key>GCM_SENDER_ID</key>
@@ -17,7 +17,7 @@
 	<key>PROJECT_ID</key>
 	<string>miaid-dev</string>
 	<key>STORAGE_BUCKET</key>
-	<string>miaid-dev.appspot.com</string>
+	<string>miaid-dev.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>

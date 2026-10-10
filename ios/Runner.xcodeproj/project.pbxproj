@@ -448,6 +448,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/Flutter",
 				);
+				GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.294522101103-2ephs2nsismorecm75jf3dfl1i2v4js1;
 				INFOPLIST_FILE = Runner/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -544,6 +545,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/Flutter",
 				);
+				GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.294522101103-2ephs2nsismorecm75jf3dfl1i2v4js1;
 				INFOPLIST_FILE = Runner/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -641,6 +643,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/Flutter",
 				);
+				GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.556738280205-lb1ts9dao517igt843ejgu6qrl50p7rb;
 				INFOPLIST_FILE = Runner/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -735,6 +738,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/Flutter",
 				);
+				GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.556738280205-lb1ts9dao517igt843ejgu6qrl50p7rb;
 				INFOPLIST_FILE = Runner/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -828,6 +832,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/Flutter",
 				);
+				GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.294522101103-2ephs2nsismorecm75jf3dfl1i2v4js1;
 				INFOPLIST_FILE = Runner/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -977,6 +982,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/Flutter",
 				);
+				GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.556738280205-lb1ts9dao517igt843ejgu6qrl50p7rb;
 				INFOPLIST_FILE = Runner/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1018,6 +1024,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/Flutter",
 				);
+				GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.294522101103-2ephs2nsismorecm75jf3dfl1i2v4js1;
 				INFOPLIST_FILE = Runner/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1114,6 +1121,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/Flutter",
 				);
+				GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.556738280205-lb1ts9dao517igt843ejgu6qrl50p7rb;
 				INFOPLIST_FILE = Runner/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1208,6 +1216,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/Flutter",
 				);
+				GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.556738280205-lb1ts9dao517igt843ejgu6qrl50p7rb;
 				INFOPLIST_FILE = Runner/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (

@@ -62,6 +62,18 @@
 				<string>$(PRODUCT_BUNDLE_IDENTIFIER).alipay</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>google-sign-in</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- Google 登录回跳 scheme = 当前 flavor 的 REVERSED_CLIENT_ID，
+				     值在 Xcode 各 configuration 的 GOOGLE_REVERSED_CLIENT_ID 里，正式与 dev 不同 -->
+				<string>$(GOOGLE_REVERSED_CLIENT_ID)</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>

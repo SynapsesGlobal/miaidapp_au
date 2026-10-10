@@ -561,15 +561,16 @@
   "insuranceNotAccepted": "불가",
   "bookingSentTo": "병원 {count}곳에 요청 전송됨",
   "signInWithApple": "Apple로 로그인",
+  "signInWithGoogle": "Google로 로그인",
   "orDivider": "또는",
   "deleteAccountFailed": "계정을 삭제하지 못했습니다. 잠시 후 다시 시도해주세요.",
   "loginMethods": "로그인 방법",
   "emailAndPassword": "이메일 및 비밀번호",
   "passwordSetLabel": "설정됨",
   "setPassword": "비밀번호 설정",
-  "setPasswordHint": "계정이 Apple 로그인으로 생성되어 아직 비밀번호가 없습니다. 설정하면 이메일로도 로그인할 수 있습니다.",
+  "setPasswordHint": "계정이 소셜 로그인으로 생성되어 아직 비밀번호가 없습니다. 설정하면 이메일로도 로그인할 수 있습니다.",
   "setPasswordSuccess": "비밀번호가 설정되었습니다. 이제 이메일과 비밀번호로 로그인할 수 있습니다.",
   "unlink": "연결 해제",
-  "unlinkAppleConfirm": "Apple 연결을 해제하시겠습니까? 더 이상 Apple로 로그인할 수 없습니다.",
+  "unlinkProviderConfirm": "{provider} 연결을 해제하시겠습니까? 더 이상 {provider}(으)로 로그인할 수 없습니다.",
   "unlinkSuccess": "로그인 방법 연결이 해제되었습니다."
 }

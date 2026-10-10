@@ -105,6 +105,7 @@ dependencies:
   tobias: 5.2.0
   sign_in_with_apple: ^7.0.1
   crypto: ^3.0.3
+  google_sign_in: ^6.2.2
 
 # tobias（支付宝）配置：pod install 时插件的 tobias_setup.rb 会读取这里的值去改 Info.plist / entitlements：
 # - url_scheme：支付宝付款完成后回跳本 App 的 scheme。Info.plist 里已预先登记（CFBundleURLName=alipay，
