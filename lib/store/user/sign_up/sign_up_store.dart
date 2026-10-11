@@ -22,8 +22,5 @@ abstract class _SignUpStore with Store {
   bool obscureConfirmPasswordText = true;
 
   @observable
-  bool showIndividualUserTab = true;
-
-  @observable
   CountryCode? selectedCountry;
 }

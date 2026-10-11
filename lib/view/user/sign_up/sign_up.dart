@@ -10,7 +10,6 @@ import 'package:injectable/injectable.dart';
 import 'package:miaid/api_utils/api_parser.dart';
 import 'package:miaid/api_utils/api_provider.dart';
 import 'package:miaid/api_utils/user_provider.dart';
-import 'package:miaid/component/custom_segmented_control.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
@@ -66,8 +65,6 @@ class _SignUpState extends State<SignUp> {
 
   @override
   Widget build(BuildContext context) {
-    final store = widget.services.store;
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -121,84 +118,7 @@ class _SignUpState extends State<SignUp> {
         child: Observer(
           builder: (context) => Column(
             children: [
-              Container(
-                alignment: Alignment.center,
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                    left: 5,
-                    right: 5,
-                    top: 10,
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: MiAidCupertinoSegmentedControl<bool>(
-                      selectedColor: AppColors.k0cbcc5,
-                      unselectedColor: Colors.white,
-                      borderColor: AppColors.k0cbcc5,
-                      children: {
-                        true: Container(
-                          decoration: BoxDecoration(
-                            color: store.showIndividualUserTab
-                                ? AppColors.k0cbcc5
-                                : Colors.white,
-                            borderRadius: BorderRadius.only(
-                              bottomLeft: Radius.circular(10),
-                              topLeft: Radius.circular(10),
-                            ),
-                            border: Border.all(
-                              color: AppColors.k0cbcc5,
-                            ),
-                          ),
-                          width: MediaQuery.of(context).size.width,
-                          padding: EdgeInsets.all(8),
-                          child: Text(
-                            S.of(context).individual,
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.rubik(
-                                fontSize: 17,
-                                color: store.showIndividualUserTab
-                                    ? AppColors.kffffff
-                                    : AppColors.k0cbcc5),
-                          ),
-                        ),
-                        false: Container(
-                          decoration: BoxDecoration(
-                            color: !store.showIndividualUserTab
-                                ? AppColors.k0cbcc5
-                                : Colors.white,
-                            borderRadius: BorderRadius.only(
-                              bottomRight: Radius.circular(10),
-                              topRight: Radius.circular(10),
-                            ),
-                            border: Border.all(
-                              color: AppColors.k0cbcc5,
-                            ),
-                          ),
-                          width: MediaQuery.of(context).size.width,
-                          padding: EdgeInsets.all(8),
-                          child: Text(
-                            S.of(context).corporate,
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.rubik(
-                                fontSize: 17,
-                                color: !store.showIndividualUserTab
-                                    ? AppColors.kffffff
-                                    : AppColors.k0cbcc5),
-                          ),
-                        ),
-                      },
-                      onValueChanged: (value) {
-                        store.showIndividualUserTab = value;
-                      },
-                      groupValue: store.showIndividualUserTab,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(
-                height: 20,
-              ),
-              store.showIndividualUserTab ? individualUser() : corporateUser(),
+              individualUser(),
             ],
           ),
         ),
@@ -921,36 +841,4 @@ class _SignUpState extends State<SignUp> {
       width: 0.5,
     ),
   );
-
-  Widget corporateUser() {
-    return Container(
-      child: Column(children: [
-        Padding(
-          padding: const EdgeInsets.only(
-            left: 73.58,
-            right: 72.57,
-            top: 143,
-          ),
-          child: Image(
-            image: AssetImage('assets/images/Img_signin_corporateuser.png'),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(
-            left: 62,
-            right: 61,
-            top: 21,
-          ),
-          child: Text(
-            S.of(context).corporateText,
-            textAlign: TextAlign.justify,
-            style: GoogleFonts.rubik(
-              color: AppColors.k5e5e5e,
-              fontSize: 17,
-            ),
-          ),
-        ),
-      ]),
-    );
-  }
 }
