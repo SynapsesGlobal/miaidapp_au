@@ -431,7 +431,19 @@ class _SignUp2State extends State<SignUp2> {
   Widget build(BuildContext context) {
     final store = widget.services.store;
 
-    return Scaffold(
+    // 统一必填项校验提示的样式：语言、性别两项是自定义 FormField，错误文字手写为
+    // Rubik 12 号红色（kfa0020）；其余 TextFormField 的错误文字默认走主题的暗红色，
+    // 这里通过 InputDecorationTheme 让它们保持一致。
+    return Theme(
+      data: Theme.of(context).copyWith(
+        inputDecorationTheme: InputDecorationTheme(
+          errorStyle: GoogleFonts.rubik(
+            color: AppColors.kfa0020,
+            fontSize: 12,
+          ),
+        ),
+      ),
+      child: Scaffold(
       key: scaffoldKey,
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -578,6 +590,7 @@ class _SignUp2State extends State<SignUp2> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

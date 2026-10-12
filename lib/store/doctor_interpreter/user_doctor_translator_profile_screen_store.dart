@@ -80,7 +80,7 @@ String extractPhoneWithoutCountryCode(String? phone) {
 }
 
 CountryCode extractCountryCodeFromPhoneNumber(String? phone) {
-  final defaultCountryCode = CountryCode.fromCountryCode('CN');
+  final defaultCountryCode = CountryCode.fromCountryCode('AU'); // AU 版无法从号码解析区号时默认澳大利亚
   if (phone == null) {
     return defaultCountryCode;
   }

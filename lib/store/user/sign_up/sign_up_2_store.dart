@@ -25,7 +25,7 @@ abstract class _SignUp2Store with Store {
   DateTime? selectedDate;
 
   @observable
-  CountryCode selectedCountry = CountryCode.fromCountryCode('CN');
+  CountryCode selectedCountry = CountryCode.fromCountryCode('AU'); // AU 版紧急联系人电话区号默认澳大利亚
 
   @observable
   Language? selectedLanguage;
