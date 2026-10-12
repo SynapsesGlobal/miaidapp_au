@@ -61,7 +61,7 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
 
     try {
       await EasyLoading.show(
-        status: 'Loading',
+        status: S.current.loading,
         maskType: EasyLoadingMaskType.black,
       );
 
@@ -96,7 +96,7 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
 
     try {
       await EasyLoading.show(
-        status: 'Loading',
+        status: S.current.loading,
         maskType: EasyLoadingMaskType.black,
       );
 
@@ -115,7 +115,7 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
       await EasyLoading.dismiss();
 
       if (response.statusCode == 200) {
-        await HttpExceptionNotifyUser.showInfo('Added to wish list.');
+        await HttpExceptionNotifyUser.showInfo(S.current.addedToWishList);
       } else {
         await HttpExceptionNotifyUser.showInfo(
           S.of(context).somethingWentWrong,
@@ -135,7 +135,7 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
 
     try {
       await EasyLoading.show(
-        status: 'Loading',
+        status: S.current.loading,
         maskType: EasyLoadingMaskType.black,
       );
 
@@ -153,7 +153,7 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
       await EasyLoading.dismiss();
 
       if (response.statusCode == 200) {
-        await HttpExceptionNotifyUser.showInfo('Removed from wish list.');
+        await HttpExceptionNotifyUser.showInfo(S.current.removedFromWishList);
       } else {
         await HttpExceptionNotifyUser.showInfo(
           S.of(context).somethingWentWrong,
@@ -294,12 +294,12 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
                       padding: EdgeInsets.zero,
                       labelPadding: EdgeInsets.only(right: 25),
                       indicatorPadding: EdgeInsets.zero,
-                      tabs: const [
-                        Tab(text: 'Description'),
-                        Tab(text: 'Instructions'),
-                        Tab(text: 'Eligibility'),
-                        Tab(text: 'Location'),
-                        Tab(text: 'Company Info'),
+                      tabs: [
+                        Tab(text: S.of(context).productDescription),
+                        Tab(text: S.of(context).productInstructions),
+                        Tab(text: S.of(context).productEligibility),
+                        Tab(text: S.of(context).location),
+                        Tab(text: S.of(context).companyInfo),
                       ],
                     ),
                     SizedBox(height: 12),
@@ -451,12 +451,12 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
                                     }
                                   },
                                   color: AppColors.k0cbcc5,
-                                  child: Text('拨打电话', style: GoogleFonts.rubik(color: Colors.white),),
+                                  child: Text(S.of(context).dial_phone, style: GoogleFonts.rubik(color: Colors.white),),
                                 ))
                               ],
                             ),
                             SizedBox(height: 10,),
-                            Text('注意： 想要获取路线请首先在您的手机上安装导航工具，比如苹果地图、谷歌地图、百度地图、高德地图等', style: GoogleFonts.rubik(
+                            Text(S.of(context).direction_caption, style: GoogleFonts.rubik(
                               color: Colors.grey,
                               fontSize: 14,
                               fontWeight: FontWeight.normal,
@@ -549,35 +549,35 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
 
   Widget _buildTabContent(int _tabIndex) {
     if (_tabIndex == 0) {
-      return Text(detail['description']?.toString() ?? 'No more information.', style: GoogleFonts.rubik(
+      return Text(detail['description']?.toString() ?? S.of(context).noMoreInformation, style: GoogleFonts.rubik(
         color: Colors.grey,
         height: 1.4,
       ),);
     }
 
     if (_tabIndex == 1) {
-      return Text(detail['instruction']?.toString() ?? 'No more information.', style: GoogleFonts.rubik(
+      return Text(detail['instruction']?.toString() ?? S.of(context).noMoreInformation, style: GoogleFonts.rubik(
         color: Colors.grey,
         height: 1.4,
       ),);
     }
 
     if (_tabIndex == 2) {
-      return Text(detail['eligibility']?.toString() ?? 'No more information.', style: GoogleFonts.rubik(
+      return Text(detail['eligibility']?.toString() ?? S.of(context).noMoreInformation, style: GoogleFonts.rubik(
         color: Colors.grey,
         height: 1.4,
       ),);
     }
 
     if (_tabIndex == 3) {
-      return Text(detail['locations']?.toString() ?? 'No more information.', style: GoogleFonts.rubik(
+      return Text(detail['locations']?.toString() ?? S.of(context).noMoreInformation, style: GoogleFonts.rubik(
         color: Colors.grey,
         height: 1.4,
       ),);
     }
 
     if (_tabIndex == 4) {
-      return Text(detail['companyInfo']?.toString() ?? 'No more information.', style: GoogleFonts.rubik(
+      return Text(detail['companyInfo']?.toString() ?? S.of(context).noMoreInformation, style: GoogleFonts.rubik(
         color: Colors.grey,
         height: 1.4,
       ),);

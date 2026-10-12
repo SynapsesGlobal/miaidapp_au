@@ -549,5 +549,13 @@
   "setYourName": "设置姓名",
   "completeNameTitle": "您的姓名",
   "completeNameHint": "第三方登录没有提供您的姓名，请填写，以便医生和翻译知道如何称呼您。",
-  "allProducts": "全部商品"
+  "allProducts": "全部商品",
+  "productDescription": "商品描述",
+  "productInstructions": "使用说明",
+  "productEligibility": "适用条件",
+  "companyInfo": "公司信息",
+  "addedToWishList": "已加入心愿单。",
+  "removedFromWishList": "已从心愿单移除。",
+  "noMoreInformation": "暂无更多信息。",
+  "selectAtLeastOneProduct": "请至少选择一件商品。"
 }

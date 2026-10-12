@@ -43,7 +43,7 @@ class _WishesState extends State<Wishes> {
     final headers = MarketingApi.headers();
 
     await EasyLoading.show(
-      status: 'Loading',
+      status: S.current.loading,
       maskType: EasyLoadingMaskType.black,
     );
 
@@ -109,12 +109,12 @@ class _WishesState extends State<Wishes> {
     }
 
     if (deleteProductIds.isEmpty) {
-      await HttpExceptionNotifyUser.showInfo('please select one product at least.');
+      await HttpExceptionNotifyUser.showInfo(S.current.selectAtLeastOneProduct);
       return;
     }
 
     try {
-      await EasyLoading.show(status: 'Loading');
+      await EasyLoading.show(status: S.current.loading);
 
       final api = getIt<ApiProvider>();
       final url = Uri.parse('${getIt<ApiSettings>().marketingApiHost}/product/batch/remove/wish');
@@ -130,7 +130,7 @@ class _WishesState extends State<Wishes> {
 
       if (response.statusCode == 200) {
         await _getWishes();
-        await HttpExceptionNotifyUser.showInfo('Removed from wish list.');
+        await HttpExceptionNotifyUser.showInfo(S.current.removedFromWishList);
       } else {
         await EasyLoading.dismiss();
         await HttpExceptionNotifyUser.showInfo(S.of(context).somethingWentWrong);
@@ -156,7 +156,7 @@ class _WishesState extends State<Wishes> {
     }
 
     if (purchaseProducts.isEmpty) {
-      await HttpExceptionNotifyUser.showInfo('please select one product at least.');
+      await HttpExceptionNotifyUser.showInfo(S.current.selectAtLeastOneProduct);
       return;
     }
 
@@ -284,14 +284,14 @@ class _WishesState extends State<Wishes> {
                     onPressed: () => _purchase(wishes[index]['companyId'].toString()),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     color: AppColors.k0cbcc5,
-                    child: Text('Purchase', style: GoogleFonts.rubik(color: Colors.white),),
+                    child: Text(S.of(context).purchase, style: GoogleFonts.rubik(color: Colors.white),),
                   ),),
                   SizedBox(width: 10),
                   Expanded(child: MaterialButton(
                     onPressed: () => _removeFromWishlist(wishes[index]['companyId'].toString()),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     color: AppColors.kfa0020,
-                    child: Text('Delete', style: GoogleFonts.rubik(color: Colors.white),
+                    child: Text(S.of(context).delete, style: GoogleFonts.rubik(color: Colors.white),
                     ),
                   ),),
                 ],),
