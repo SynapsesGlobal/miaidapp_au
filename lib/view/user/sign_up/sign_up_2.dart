@@ -19,6 +19,8 @@ import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/generated_api_code/api_client.swagger.dart';
 import 'package:miaid/services/social_account_service.dart';
 import 'package:miaid/store/user/sign_up/sign_up_2_store.dart';
+import 'package:miaid/store/user/user_profile_screen/user_profile_screen_store.dart'
+    show extractCountryCodeFromPhoneNumber, extractPhoneWithoutCountryCode;
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/home/home_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -68,31 +70,48 @@ class _SignUp2State extends State<SignUp2> {
   final regularDoctorFullNameController = TextEditingController();
   final regularDoctorEmailController = TextEditingController();
 
+  /// 本人电话（区别于下方紧急联系人的 phoneController）
+  final accountPhoneController = TextEditingController();
+  CountryCode _accountPhoneCountry = CountryCode.fromCountryCode('AU');
+
   final formKey = GlobalKey<FormState>();
   final scaffoldKey = GlobalKey<ScaffoldState>();
-
-  /// 通过第三方登录创建的账号可能没有姓名（Apple 只在首次授权时返回），
-  /// 这种情况在本页顶部多出名、姓两个必填项，和其它资料一起提交。
-  bool get _needsName =>
-      (widget.services.user.user?.firstName ?? '').trim().isEmpty;
 
   @override
   void initState() {
     widget.services.store.fetchOnInit();
+    // 名、姓、电话始终显示并必填：Apple 只在首次授权时返回姓名，Google 虽带姓名但
+    // 可能不是用户希望医生/翻译使用的称呼，第三方账号也都没有电话；已有的值预填，用户确认或修改。
     final user = widget.services.user.user;
     firstNameController.text = user?.firstName ?? '';
     lastNameController.text = user?.lastName ?? '';
+    final phone = user?.phone;
+    if (phone != null && phone.trim().isNotEmpty) {
+      accountPhoneController.text = extractPhoneWithoutCountryCode(phone);
+      _accountPhoneCountry = extractCountryCodeFromPhoneNumber(phone);
+    }
     super.initState();
   }
 
-  /// 姓名走单独的 /profile/name 接口保存（补全资料接口不含姓名）。
-  /// 失败时关闭 loading 并提示，返回 false 由调用方中止后续提交。
-  Future<bool> _saveName() async {
+  String get _accountPhone =>
+      _accountPhoneCountry.dialCode! + '-' + accountPhoneController.text.trim();
+
+  /// 姓名、电话走单独的 /profile/name 接口保存（补全资料接口不含这两项）。
+  /// 与当前用户信息相同时跳过请求。失败时关闭 loading 并提示，返回 false 由调用方中止后续提交。
+  Future<bool> _saveNameAndPhone() async {
     final firstName = firstNameController.text.trim();
     final lastName = lastNameController.text.trim();
+    final phone = _accountPhone;
+    final user = widget.services.user.user;
+    if (user != null &&
+        user.firstName == firstName &&
+        user.lastName == lastName &&
+        user.phone == phone) {
+      return true;
+    }
     try {
       await SocialAccountService(widget.services.api)
-          .updateName(firstName: firstName, lastName: lastName);
+          .updateName(firstName: firstName, lastName: lastName, phone: phone);
     } on SocialAccountException catch (e) {
       await EasyLoading.dismiss();
       if (!mounted) return false;
@@ -107,7 +126,7 @@ class _SignUp2State extends State<SignUp2> {
 
     // 先更新本地用户，补全资料接口返回的用户信息随后会覆盖
     final updated = widget.services.user.user
-        ?.copyWith(firstName: firstName, lastName: lastName);
+        ?.copyWith(firstName: firstName, lastName: lastName, phone: phone);
     if (updated != null) widget.services.user.onUserUpdated(updated);
     return true;
   }
@@ -499,7 +518,7 @@ class _SignUp2State extends State<SignUp2> {
                             maskType: EasyLoadingMaskType.black,
                           );
 
-                          if (_needsName && !await _saveName()) return;
+                          if (!await _saveNameAndPhone()) return;
 
                           var response = await widget.services.api.apiClient.profilePostCompleteProfile(
                             dob: DateFormat('y-MM-d').format(store.selectedDate!),
@@ -563,8 +582,8 @@ class _SignUp2State extends State<SignUp2> {
     );
   }
 
-  /// 名、姓两个必填项，样式与下方生日等输入框一致
-  List<Widget> _nameFields() {
+  /// 名、姓、电话三个必填项，样式与下方生日等输入框一致
+  List<Widget> _accountFields() {
     return [
       _nameLabel(S.of(context).fname + ' *'),
       SizedBox(height: 8,),
@@ -580,7 +599,78 @@ class _SignUp2State extends State<SignUp2> {
         emptyMessage: S.of(context).signupEmptyLastName,
       ),
       SizedBox(height: 19,),
+      _nameLabel(S.of(context).phone + ' *'),
+      SizedBox(height: 8,),
+      _accountPhoneField(),
+      SizedBox(height: 19,),
     ];
+  }
+
+  /// 本人电话：国家区号 + 号码，提交格式 "+61-412345678"，与注册页一致
+  Widget _accountPhoneField() {
+    OutlineInputBorder border(Color color, {double width = 1}) =>
+        OutlineInputBorder(
+          borderSide: BorderSide(color: color, width: width),
+          borderRadius: BorderRadius.circular(10),
+        );
+    return TextFormField(
+      controller: accountPhoneController,
+      keyboardType: TextInputType.phone,
+      textInputAction: TextInputAction.next,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+      validator: (value) => (value == null || value.trim().isEmpty)
+          ? S.of(context).signupEmptyPhone
+          : null,
+      style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 14),
+      decoration: InputDecoration(
+        hintText: '1234567890',
+        hintStyle: GoogleFonts.rubik(color: AppColors.kb1b1b1, fontSize: 14),
+        contentPadding: EdgeInsets.only(left: 16, top: 5, bottom: 5),
+        focusedBorder: border(AppColors.k010101),
+        enabledBorder: border(AppColors.kb1b1b1, width: 0.5),
+        errorBorder: border(AppColors.kfa0020),
+        focusedErrorBorder: border(AppColors.kfa0020),
+        prefixIconConstraints: BoxConstraints(maxWidth: 120),
+        prefixIcon: Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: CountryCodePicker(
+            showDropDownButton: true,
+            alignLeft: false,
+            textStyle: GoogleFonts.rubik(color: AppColors.kb1b1b1, fontSize: 14),
+            initialSelection: _accountPhoneCountry.code,
+            showCountryOnly: false,
+            closeIcon: Icon(Icons.close, color: AppColors.k0cbcc5),
+            showOnlyCountryWhenClosed: false,
+            padding: EdgeInsets.zero,
+            builder: (country) {
+              return Row(
+                children: [
+                  Image.asset(
+                    country!.flagUri!,
+                    package: 'country_code_picker',
+                    width: 32,
+                  ),
+                  SizedBox(width: 3.69,),
+                  Text(
+                    country.dialCode!,
+                    style: GoogleFonts.rubik(color: AppColors.kb1b1b1, fontSize: 14),
+                  ),
+                  SizedBox(width: 6,),
+                  Image.asset('assets/images/ic_pharmacy_location_expand.png'),
+                  SizedBox(width: 6,),
+                  Container(
+                    height: 35,
+                    width: 1,
+                    color: AppColors.kb1b1b1.withOpacity(0.1),
+                  )
+                ],
+              );
+            },
+            onChanged: (value) => _accountPhoneCountry = value,
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _nameLabel(String text) {
@@ -643,7 +733,7 @@ class _SignUp2State extends State<SignUp2> {
                 ),),
               ),
               SizedBox(height: 19,),
-              if (_needsName) ..._nameFields(),
+              ..._accountFields(),
               Text(
                 S.of(context).dob + ' *',
                 textAlign: TextAlign.left,

@@ -114,14 +114,21 @@ class SocialAccountService {
 
   /// 只更新姓名。第三方登录拿不到姓名时，登录后和首页问候语处引导用户补填；
   /// 完整的资料更新接口要求电话、生日等必填，对还没补全资料的新用户不适用。
+  /// 更新姓名，可一并更新电话（国际格式 "+61-412345678"）。
+  /// 后端 /profile/name 的电话为可选，不传则不改。
   Future<void> updateName({
     required String firstName,
     required String lastName,
+    String? phone,
   }) async {
     await _request(
       'POST',
       '/profile/name',
-      body: {'first_name': firstName, 'last_name': lastName},
+      body: {
+        'first_name': firstName,
+        'last_name': lastName,
+        if (phone != null && phone.isNotEmpty) 'phone': phone,
+      },
     );
   }
 
