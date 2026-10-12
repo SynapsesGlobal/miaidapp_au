@@ -101,19 +101,49 @@ class _SignInState extends State<SignIn> {
     );
   }
 
-  /// 推送 token：启动时没拿到（如 iOS 未授权通知）则登录时再取一次
+  /// 登录时最多等推送 token 这么久。首次登录 FCM token 往往还没就绪（iOS 要先等 APNs，
+  /// 最长十几秒），不能让用户干等：超时就先用空 token 登录，之后由
+  /// [_registerPushTokenLater] 在后台补注册。
+  static const _pushTokenWait = Duration(seconds: 5);
+
+  /// 推送 token：启动时没拿到（如 iOS 未授权通知）则再取一次，并缓存到 tokenProvider。
+  /// 不限时；登录流程用 [_resolvePushTokenWithTimeout]，页面初始化时用它预热。
   Future<String> _resolvePushToken() async {
     final tokenProvider = getIt<NotificationsTokenProvider>();
     if (tokenProvider.token.isEmpty) {
       try {
         final token = await FCMTokenService.instance.getToken();
-        tokenProvider.token = token!;
+        tokenProvider.token = token ?? '';
       } catch (e) {
         debugPrint('获取token失败: $e');
       }
     }
     debugPrint('设备token:${tokenProvider.token}');
     return tokenProvider.token;
+  }
+
+  Future<String> _resolvePushTokenWithTimeout() =>
+      _resolvePushToken().timeout(_pushTokenWait, onTimeout: () => '');
+
+  /// 登录时没拿到推送 token：登录成功后继续等 token 就绪，再调更新 token 接口补注册，
+  /// 否则要到下次启动 App 才会上报，期间收不到推送。不依赖页面 context，页面销毁后仍可完成。
+  Future<void> _registerPushTokenLater() async {
+    final token = await _resolvePushToken();
+    if (token.isEmpty) return;
+    final api = getIt<ApiProvider>();
+    final userProvider = api.userProvider;
+    if (!userProvider.isLoggedIn) return;
+    try {
+      final res = await api.apiClient.authPostUpdateToken(
+        device_id: userProvider.deviceId.deviceId,
+        device_type: getIt<NotificationsTokenProvider>().deviceType,
+        device_push_token: token,
+      );
+      final payload = await ApiSuccessParser.payloadOrThrowWithMessage<Map<String, dynamic>>(res);
+      await userProvider.updateUserToken(payload['access_token'] as String);
+    } catch (e) {
+      debugPrint('登录后补注册推送 token 失败: $e');
+    }
   }
 
   void _showLoginError(String? message) {
@@ -137,8 +167,11 @@ class _SignInState extends State<SignIn> {
             _googleSignIn.login(credential, devicePushToken: pushToken),
       );
 
-  /// 第三方登录的公共流程：先调起平台授权，拿到凭据后再显示 loading 请求后端。
-  /// [T] 是平台返回的凭据类型。
+  /// 第三方登录的公共流程。[T] 是平台返回的凭据类型。
+  ///
+  /// 平台授权页关闭、拿到凭据后立刻显示 loading，再去等推送 token 和请求后端，
+  /// 避免"授权页没了、App 却没反应"的空档（原来是等完推送 token 才显示 loading，
+  /// 首次登录可能长达十几秒）。推送 token 最多等 [_pushTokenWait]，超时先登录、事后补注册。
   Future<void> _signInWithProvider<T>({
     required String providerName,
     required Future<T> Function() requestCredential,
@@ -150,13 +183,14 @@ class _SignInState extends State<SignIn> {
 
     try {
       final credential = await requestCredential();
-      final pushToken = await _resolvePushToken();
       await EasyLoading.show(
         status: S.of(context).signingIn,
         maskType: EasyLoadingMaskType.black,
       );
+      final pushToken = await _resolvePushTokenWithTimeout();
       final result = await login(credential, pushToken);
       await _finishLogin(result.user, result.rawPayload);
+      if (pushToken.isEmpty) unawaited(_registerPushTokenLater());
     } on SocialSignInCancelled {
       await EasyLoading.dismiss();
     } on SocialSignInException catch (e) {
@@ -221,6 +255,9 @@ class _SignInState extends State<SignIn> {
   @override
   void initState() {
     super.initState();
+    // 预热推送 token：首次启动 FCM token 常常要等 APNs 几秒，提前取好，
+    // 用户点登录时多半已缓存，不用再等
+    unawaited(_resolvePushToken());
   }
 
   @override
@@ -693,14 +730,14 @@ class _SignInState extends State<SignIn> {
                         final userPassword = passwordController.text;
 
                         if (formKey.currentState?.validate() ?? false) {
-                          final pushToken = await _resolvePushToken();
-
                           var apiClient = store.userType == 'customer' ? widget.services.api.apiClientSub : widget.services.api.apiClientMain;
                           try {
                             await EasyLoading.show(
                               status: S.of(context).signingIn,
                               maskType: EasyLoadingMaskType.black,
                             );
+                            // 先显示 loading 再等推送 token（限时），避免按钮按下后无反馈
+                            final pushToken = await _resolvePushTokenWithTimeout();
 
                             var loginResponse = await apiClient.authPostLogin(
                               device_id: widget.services.api.userProvider.deviceId.deviceId,
