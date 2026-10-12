@@ -16,6 +16,7 @@ import '../../services/marketing_payment_service.dart';
 import '../../utils/configure_dependencies.dart';
 import 'company_products.dart';
 import 'package:miaid/config/api_settings.dart';
+import 'package:miaid/services/marketing_api.dart';
 
 class Wishes extends StatefulWidget {
   const Wishes({super.key});
@@ -39,10 +40,7 @@ class _WishesState extends State<Wishes> {
   }
 
   Future<void> _getWishes() async {
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'x-api-key': getIt<ApiSettings>().marketingApiKey,
-    };
+    final headers = MarketingApi.headers();
 
     await EasyLoading.show(
       status: 'Loading',
@@ -95,10 +93,7 @@ class _WishesState extends State<Wishes> {
   }
 
   Future<void> _removeFromWishlist(String companyId) async {
-    final headers = {
-      'Content-Type': 'application/json',
-      'x-api-key': getIt<ApiSettings>().marketingApiKey,
-    };
+    final headers = MarketingApi.headers();
 
     var companyProductIds = [];
 

@@ -20,6 +20,7 @@ import '../../generated/l10n.dart';
 import '../../utils/configure_dependencies.dart';
 import '../../widget/quantity_dialog.dart';
 import 'package:miaid/config/api_settings.dart';
+import 'package:miaid/services/marketing_api.dart';
 
 class CompanyProducts extends StatefulWidget {
   final dynamic company;
@@ -72,10 +73,7 @@ class _CompanyProductsState extends State<CompanyProducts> {
 
     setState(() => isLoading = true);
 
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'x-api-key': getIt<ApiSettings>().marketingApiKey,
-    };
+    final headers = MarketingApi.headers();
 
     final showMask = page == 1 && showLoading;
     if (showMask) {
@@ -432,7 +430,9 @@ class _CompanyProductsState extends State<CompanyProducts> {
                 padding: const EdgeInsets.only(left: 10, right: 10,),
                 alignment: Alignment.center,
                 child: Text(
-                  category['cateName']?.toString() ?? '',
+                  category['cateId'] == 0
+                      ? S.of(context).allProducts
+                      : category['cateName']?.toString() ?? '',
                   style: GoogleFonts.rubik(
                     color: selected ? AppColors.kffffff : AppColors.k010101,
                     fontWeight: FontWeight.w500,

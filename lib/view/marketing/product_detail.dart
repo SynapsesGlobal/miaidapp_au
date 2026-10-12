@@ -16,6 +16,7 @@ import '../../config/app_colors.dart';
 import '../../component/nav_bar_icons.dart';
 import 'package:map_launcher/map_launcher.dart' as ml;
 import 'package:miaid/config/api_settings.dart';
+import 'package:miaid/services/marketing_api.dart';
 
 class ProductDetail extends StatefulWidget {
   final String productId;
@@ -56,10 +57,7 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
   }
 
   Future<void> _getProductDtl() async {
-    final headers = {
-      'Content-Type': 'application/json',
-      'x-api-key': getIt<ApiSettings>().marketingApiKey,
-    };
+    final headers = MarketingApi.headers();
 
     try {
       await EasyLoading.show(
@@ -94,10 +92,7 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
   }
 
   Future<void> _addToWishlist() async {
-    final headers = {
-      'Content-Type': 'application/json',
-      'x-api-key': getIt<ApiSettings>().marketingApiKey,
-    };
+    final headers = MarketingApi.headers();
 
     try {
       await EasyLoading.show(
@@ -136,10 +131,7 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
   }
 
   Future<void> _removeFromWishlist() async {
-    final headers = {
-      'Content-Type': 'application/json',
-      'x-api-key': getIt<ApiSettings>().marketingApiKey,
-    };
+    final headers = MarketingApi.headers();
 
     try {
       await EasyLoading.show(
@@ -175,10 +167,7 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
   }
 
   Future<void> _getCreditRewards() async {
-    final headers = {
-      'Content-Type': 'application/json',
-      'x-api-key': getIt<ApiSettings>().marketingApiKey,
-    };
+    final headers = MarketingApi.headers();
 
     try {
       final api = getIt<ApiProvider>();

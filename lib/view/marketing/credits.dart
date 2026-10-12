@@ -14,6 +14,7 @@ import '../../config/app_colors.dart';
 import '../../generated/l10n.dart';
 import '../../utils/configure_dependencies.dart';
 import 'package:miaid/config/api_settings.dart';
+import 'package:miaid/services/marketing_api.dart';
 
 class Credits extends StatefulWidget {
   const Credits({super.key});
@@ -57,10 +58,7 @@ class _CreditsState extends State<Credits> {
 
     setState(() => _loading = true);
 
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'x-api-key': getIt<ApiSettings>().marketingApiKey,
-    };
+    final headers = MarketingApi.headers();
 
     if (_currentPage == 1) {
       await EasyLoading.show(
@@ -97,10 +95,7 @@ class _CreditsState extends State<Credits> {
   }
 
   Future<void> _getCreditsRules() async {
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'x-api-key': getIt<ApiSettings>().marketingApiKey,
-    };
+    final headers = MarketingApi.headers();
 
     try {
       final url = Uri.parse(getIt<ApiSettings>().marketingApiHost+'/credit/rules');

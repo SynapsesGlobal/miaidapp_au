@@ -13,6 +13,7 @@ import '../../config/app_colors.dart';
 import '../../generated/l10n.dart';
 import '../../utils/configure_dependencies.dart';
 import 'package:miaid/config/api_settings.dart';
+import 'package:miaid/services/marketing_api.dart';
 
 class CreditsTransfer extends StatefulWidget {
   const CreditsTransfer({super.key});
@@ -42,10 +43,7 @@ class _CreditsTransferState extends State<CreditsTransfer> {
   }
 
   Future<void> _getCreditPoints() async {
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'x-api-key': getIt<ApiSettings>().marketingApiKey,
-    };
+    final headers = MarketingApi.headers();
 
     await EasyLoading.show(
       status: 'Loading',
@@ -78,10 +76,7 @@ class _CreditsTransferState extends State<CreditsTransfer> {
   }
 
   Future<void> _transferCredit() async {
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'x-api-key': getIt<ApiSettings>().marketingApiKey,
-    };
+    final headers = MarketingApi.headers();
 
     await EasyLoading.show(
       status: 'Loading',

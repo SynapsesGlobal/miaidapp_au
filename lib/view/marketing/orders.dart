@@ -16,6 +16,7 @@ import 'package:http/http.dart' as http;
 
 import 'company_products.dart';
 import 'package:miaid/config/api_settings.dart';
+import 'package:miaid/services/marketing_api.dart';
 
 class Orders extends StatefulWidget {
   const Orders({super.key});
@@ -39,10 +40,7 @@ class _OrdersState extends State<Orders> {
 
     setState(() => isLoading = true);
 
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'x-api-key': getIt<ApiSettings>().marketingApiKey,
-    };
+    final headers = MarketingApi.headers();
 
     if (page == 1) {
       await EasyLoading.show(
@@ -87,10 +85,7 @@ class _OrdersState extends State<Orders> {
   }
 
   Future<void> _cancelOrder(String orderId, String reason) async {
-    final headers = {
-      'Content-Type': 'application/json',
-      'x-api-key': getIt<ApiSettings>().marketingApiKey,
-    };
+    final headers = MarketingApi.headers();
 
     try {
       final url = Uri.parse('${getIt<ApiSettings>().marketingApiHost}/order/refund');
@@ -507,10 +502,7 @@ class _OrdersState extends State<Orders> {
   }
 
   Future<void> _deleteOrder(String orderId) async {
-    final headers = {
-      'Content-Type': 'application/json',
-      'x-api-key': getIt<ApiSettings>().marketingApiKey,
-    };
+    final headers = MarketingApi.headers();
 
     try {
       final url = Uri.parse('${getIt<ApiSettings>().marketingApiHost}/order/delete');

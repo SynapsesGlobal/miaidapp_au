@@ -547,5 +547,6 @@
   "unlinkSuccess": "Login method has been unlinked.",
   "setYourName": "Set your name",
   "completeNameTitle": "Your Name",
-  "completeNameHint": "We could not get your name from your sign-in provider. Please enter it so doctors and translators know how to address you."
+  "completeNameHint": "We could not get your name from your sign-in provider. Please enter it so doctors and translators know how to address you.",
+  "allProducts": "All Products"
 }

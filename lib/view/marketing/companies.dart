@@ -17,6 +17,7 @@ import 'package:http/http.dart' as http;
 import '../../generated/l10n.dart';
 import '../../store/home/home_screen_store.dart';
 import 'package:miaid/config/api_settings.dart';
+import 'package:miaid/services/marketing_api.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 
 class Companies extends StatefulWidget {
@@ -38,10 +39,7 @@ class _CompaniesState extends State<Companies> {
   final FocusNode _searchFocus = FocusNode();
 
   Future<void> _getCompanies({bool showLoading = true}) async {
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'x-api-key': getIt<ApiSettings>().marketingApiKey,
-    };
+    final headers = MarketingApi.headers();
 
     if (showLoading) {
       await EasyLoading.show(

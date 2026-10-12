@@ -16,6 +16,7 @@ import '../../utils/configure_dependencies.dart';
 import 'package:http/http.dart' as http;
 import 'package:map_launcher/map_launcher.dart' as ml;
 import 'package:miaid/config/api_settings.dart';
+import 'package:miaid/services/marketing_api.dart';
 
 class OrderDetail extends StatefulWidget {
   final String orderId;
@@ -30,10 +31,7 @@ class _OrderDetailState extends State<OrderDetail> {
   Map<String, dynamic> detail = {};
 
   Future<void> _getOrderDtl() async {
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'x-api-key': getIt<ApiSettings>().marketingApiKey,
-    };
+    final headers = MarketingApi.headers();
 
     await EasyLoading.show(
       status: 'Loading',

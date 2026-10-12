@@ -542,5 +542,6 @@
   "unlinkSuccess": "已解除綁定。",
   "setYourName": "設定姓名",
   "completeNameTitle": "您的姓名",
-  "completeNameHint": "第三方登入沒有提供您的姓名，請填寫，以便醫生和翻譯知道如何稱呼您。"
+  "completeNameHint": "第三方登入沒有提供您的姓名，請填寫，以便醫生和翻譯知道如何稱呼您。",
+  "allProducts": "全部商品"
 }

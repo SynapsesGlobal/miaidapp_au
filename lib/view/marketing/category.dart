@@ -16,6 +16,7 @@ import '../../component/nav_bar_icons.dart';
 import '../../config/app_colors.dart';
 import '../../generated/l10n.dart';
 import 'package:miaid/config/api_settings.dart';
+import 'package:miaid/services/marketing_api.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 
 class MarketingCategory extends StatefulWidget {
@@ -29,10 +30,7 @@ class _MarketingCategoryState extends State<MarketingCategory> {
   List categories = [];
 
   Future<void> _getMarketingCategories() async {
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'x-api-key': getIt<ApiSettings>().marketingApiKey,
-    };
+    final headers = MarketingApi.headers();
 
     await EasyLoading.show(
       status: 'Loading',

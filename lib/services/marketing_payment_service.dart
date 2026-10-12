@@ -12,6 +12,7 @@ import '../utils/configure_dependencies.dart';
 import '../generated/l10n.dart';
 import '../view/marketing/orders.dart';
 import 'package:miaid/config/api_settings.dart';
+import 'package:miaid/services/marketing_api.dart';
 
 class MarketingPaymentService {
   MarketingPaymentService._();
@@ -23,10 +24,7 @@ class MarketingPaymentService {
     required String companyId,
     String? points
   }) async {
-    final headers = {
-      'Content-Type': 'application/json',
-      'x-api-key': getIt<ApiSettings>().marketingApiKey,
-    };
+    final headers = MarketingApi.headers();
 
     try {
       await EasyLoading.show(status: 'Loading');

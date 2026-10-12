@@ -12,6 +12,7 @@ import '../../component/nav_bar_icons.dart';
 import '../../config/app_colors.dart';
 import '../../generated/l10n.dart';
 import 'package:miaid/config/api_settings.dart';
+import 'package:miaid/services/marketing_api.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 
 class SubCategories extends StatefulWidget {
@@ -28,10 +29,7 @@ class _SubCategoriesState extends State<SubCategories> {
   List categories = [];
 
   Future<void> _getSubCategories() async {
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'x-api-key': getIt<ApiSettings>().marketingApiKey,
-    };
+    final headers = MarketingApi.headers();
 
     await EasyLoading.show(
       status: 'Loading',
