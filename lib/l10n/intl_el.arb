@@ -555,5 +555,9 @@
   "addedToWishList": "Προστέθηκε στη λίστα επιθυμιών.",
   "removedFromWishList": "Αφαιρέθηκε από τη λίστα επιθυμιών.",
   "noMoreInformation": "Δεν υπάρχουν περισσότερες πληροφορίες.",
-  "selectAtLeastOneProduct": "Επιλέξτε τουλάχιστον ένα προϊόν."
+  "selectAtLeastOneProduct": "Επιλέξτε τουλάχιστον ένα προϊόν.",
+  "targetedPushTitle": "Προτάσεις κοντά σας",
+  "targetedPushViewProduct": "Προβολή προϊόντος",
+  "targetedPushDontShowAgain": "Να μην εμφανίζεται ξανά αυτό το προϊόν",
+  "targetedPushDistance": "{distance} km από εσάς"
 }

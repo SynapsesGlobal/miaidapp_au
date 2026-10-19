@@ -582,5 +582,9 @@
   "addedToWishList": "Ditambahkan ke daftar keinginan.",
   "removedFromWishList": "Dihapus dari daftar keinginan.",
   "noMoreInformation": "Tidak ada informasi lebih lanjut.",
-  "selectAtLeastOneProduct": "Pilih minimal satu produk."
+  "selectAtLeastOneProduct": "Pilih minimal satu produk.",
+  "targetedPushTitle": "Rekomendasi di sekitar Anda",
+  "targetedPushViewProduct": "Lihat produk",
+  "targetedPushDontShowAgain": "Jangan tampilkan produk ini lagi",
+  "targetedPushDistance": "{distance} km dari Anda"
 }

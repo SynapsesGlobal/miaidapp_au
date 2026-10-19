@@ -557,5 +557,9 @@
   "addedToWishList": "已加入心愿单。",
   "removedFromWishList": "已从心愿单移除。",
   "noMoreInformation": "暂无更多信息。",
-  "selectAtLeastOneProduct": "请至少选择一件商品。"
+  "selectAtLeastOneProduct": "请至少选择一件商品。",
+  "targetedPushTitle": "附近推荐",
+  "targetedPushViewProduct": "查看商品",
+  "targetedPushDontShowAgain": "不再显示此商品",
+  "targetedPushDistance": "距您 {distance} 公里"
 }

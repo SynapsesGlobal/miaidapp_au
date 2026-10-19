@@ -19,6 +19,7 @@ import 'package:miaid/component/miaid_drawer.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/dialogs/consultation_language_dialog.dart';
+import 'package:miaid/dialogs/targeted_push_dialog.dart';
 import 'package:miaid/country/emergency_numbers.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/main.dart';
@@ -222,8 +223,16 @@ class _HomeScreenState extends State<HomeScreen>
   void afterFirstLayout(BuildContext context) {
     _checkAppVersion();
     _checkAndShowIncomingCalls();
-    // 情况1：打开 App 时弹出语言选择框（仅冷启动后第一个首页生效，抽屉重建首页不弹）。
-    ConsultationLanguageDialog.showOnHomeEntry(context, isColdLaunch: true);
+    _showHomeEntryDialogs();
+  }
+
+  /// 进入首页时按顺序弹出的对话框：先语言选择，再商品定向推送，避免两个弹框叠在一起。
+  /// 语言选择仅冷启动后第一个首页生效；商品定向推送只在 App 启动后和登录成功后
+  /// 第一次进入首页弹（见 TargetedPushTrigger），抽屉重建首页、后台恢复都不弹。
+  Future<void> _showHomeEntryDialogs() async {
+    await ConsultationLanguageDialog.showOnHomeEntry(context, isColdLaunch: true);
+    if (!mounted) return;
+    await TargetedPushDialog.showOnHomeEntry(context);
   }
 
   @override

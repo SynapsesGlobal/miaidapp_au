@@ -3,6 +3,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:injectable/injectable.dart';
 import 'package:miaid/generated_api_code/api_client.swagger.dart';
 import 'package:miaid/services/location_upload_service.dart';
+import 'package:miaid/services/targeted_push_service.dart';
 import 'package:miaid/store/home/active_subscription_store.dart';
 import 'package:miaid/store/home/user_info_store.dart';
 import 'package:miaid/store/user/calling/ongoing_call_store.dart';
@@ -67,6 +68,9 @@ class UserProvider {
 
     final userInfoStore = getIt<UserInfoStore>();
     userInfoStore.setFirstName(_user?.firstName ?? '');
+
+    // 登录成功后进入首页弹一次商品定向推送
+    TargetedPushTrigger.arm();
   }
 
   /// Call this function when the user is updated

@@ -556,5 +556,9 @@
   "addedToWishList": "Added to wish list.",
   "removedFromWishList": "Removed from wish list.",
   "noMoreInformation": "No more information.",
-  "selectAtLeastOneProduct": "Please select at least one product."
+  "selectAtLeastOneProduct": "Please select at least one product.",
+  "targetedPushTitle": "Recommended near you",
+  "targetedPushViewProduct": "View product",
+  "targetedPushDontShowAgain": "Don't show this product again",
+  "targetedPushDistance": "{distance} km away"
 }

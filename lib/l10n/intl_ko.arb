@@ -581,5 +581,9 @@
   "addedToWishList": "위시리스트에 추가했습니다.",
   "removedFromWishList": "위시리스트에서 삭제했습니다.",
   "noMoreInformation": "추가 정보가 없습니다.",
-  "selectAtLeastOneProduct": "상품을 하나 이상 선택해 주세요."
+  "selectAtLeastOneProduct": "상품을 하나 이상 선택해 주세요.",
+  "targetedPushTitle": "내 주변 추천",
+  "targetedPushViewProduct": "상품 보기",
+  "targetedPushDontShowAgain": "이 상품 다시 보지 않기",
+  "targetedPushDistance": "{distance} km 거리"
 }
