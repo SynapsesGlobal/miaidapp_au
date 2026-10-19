@@ -561,5 +561,7 @@
   "targetedPushTitle": "附近推荐",
   "targetedPushViewProduct": "查看商品",
   "targetedPushDontShowAgain": "不再显示此商品",
+  "targetedPushAddToWishlist": "加入心愿单",
+  "targetedPushAlreadyInWishList": "已在心愿单中。",
   "targetedPushDistance": "距您 {distance} 公里"
 }

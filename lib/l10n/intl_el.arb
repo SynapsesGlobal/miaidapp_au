@@ -559,5 +559,7 @@
   "targetedPushTitle": "Προτάσεις κοντά σας",
   "targetedPushViewProduct": "Προβολή προϊόντος",
   "targetedPushDontShowAgain": "Να μην εμφανίζεται ξανά αυτό το προϊόν",
+  "targetedPushAddToWishlist": "Προσθήκη στη λίστα επιθυμιών",
+  "targetedPushAlreadyInWishList": "Υπάρχει ήδη στη λίστα επιθυμιών.",
   "targetedPushDistance": "{distance} km από εσάς"
 }

@@ -586,5 +586,7 @@
   "targetedPushTitle": "Rekomendasi di sekitar Anda",
   "targetedPushViewProduct": "Lihat produk",
   "targetedPushDontShowAgain": "Jangan tampilkan produk ini lagi",
+  "targetedPushAddToWishlist": "Tambah ke daftar keinginan",
+  "targetedPushAlreadyInWishList": "Sudah ada di daftar keinginan.",
   "targetedPushDistance": "{distance} km dari Anda"
 }

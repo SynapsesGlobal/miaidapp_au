@@ -560,5 +560,7 @@
   "targetedPushTitle": "Recommended near you",
   "targetedPushViewProduct": "View product",
   "targetedPushDontShowAgain": "Don't show this product again",
+  "targetedPushAddToWishlist": "Add to wish list",
+  "targetedPushAlreadyInWishList": "Already in your wish list.",
   "targetedPushDistance": "{distance} km away"
 }

@@ -32,6 +32,8 @@ class TargetedProduct {
   final String? location;
   final String? address;
   final double? distance;
+  /// 该用户是否已把它加入心愿单（接口按 userId 返回）。
+  final bool collected;
 
   const TargetedProduct({
     required this.pushKey,
@@ -48,6 +50,7 @@ class TargetedProduct {
     this.location,
     this.address,
     this.distance,
+    this.collected = false,
   });
 
   bool get hasDiscount => price != discountPrice;
@@ -68,6 +71,7 @@ class TargetedProduct {
       location: json['location']?.toString(),
       address: json['address']?.toString(),
       distance: double.tryParse(json['distance']?.toString() ?? ''),
+      collected: json['collected'] == true,
     );
   }
 
@@ -152,8 +156,39 @@ class TargetedPushTrigger {
   static void reset({bool armed = true}) => _armed = armed;
 }
 
+/// 弹框里「收藏」的结果。
+enum WishResult { added, exists, failed }
+
 class TargetedPushService {
   TargetedPushService._();
+
+  /// 本版 App 写入心愿单时的来源标识（与商品详情页一致）。
+  static const source = 'au';
+
+  /// 把商品加入心愿单（与详情页同一个接口）。已收藏过时后端返回 422。
+  static Future<WishResult> addToWishlist(TargetedProduct product, {http.Client? client}) async {
+    final user = getIt<ApiProvider>().userProvider.user;
+    if (user == null) return WishResult.failed;
+    try {
+      final response = await (client ?? http.Client())
+          .post(
+            Uri.parse('${getIt<ApiSettings>().marketingApiHost}/product/wish'),
+            headers: MarketingApi.headers(),
+            body: jsonEncode({
+              'productId': product.productId,
+              'userId': user.id,
+              'companyId': product.companyId,
+              'source': source,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) return WishResult.added;
+      if (response.statusCode == 422) return WishResult.exists;
+      return WishResult.failed;
+    } catch (_) {
+      return WishResult.failed;
+    }
+  }
 
   /// 查询覆盖给定坐标的定向推送商品，按距离升序。
   /// 网络或后端错误时抛出异常，由调用方静默处理（弹框是锦上添花，不打扰用户）。
@@ -162,11 +197,15 @@ class TargetedPushService {
     required double longitude,
     String? gender,
     String? birthday,
+    String? userId,
+    String? wishSource,
     http.Client? client,
   }) async {
     final params = <String, String>{
       'latitude': latitude.toString(),
       'longitude': longitude.toString(),
+      if (userId != null && userId.isNotEmpty) 'userId': userId,
+      if (wishSource != null && wishSource.isNotEmpty) 'source': wishSource,
       if (gender != null && gender.isNotEmpty) 'gender': gender,
       if (birthday != null && birthday.isNotEmpty) 'birthday': birthday,
     };
@@ -197,6 +236,8 @@ class TargetedPushService {
       latitude: position.latitude,
       longitude: position.longitude,
       birthday: user?.customer?.dob,
+      userId: user?.id?.toString(),
+      wishSource: source,
     );
   }
 }

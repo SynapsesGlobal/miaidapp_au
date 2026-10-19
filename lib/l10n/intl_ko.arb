@@ -585,5 +585,7 @@
   "targetedPushTitle": "내 주변 추천",
   "targetedPushViewProduct": "상품 보기",
   "targetedPushDontShowAgain": "이 상품 다시 보지 않기",
+  "targetedPushAddToWishlist": "위시리스트에 추가",
+  "targetedPushAlreadyInWishList": "이미 위시리스트에 있습니다.",
   "targetedPushDistance": "{distance} km 거리"
 }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:miaid/api_utils/http_exception.dart';
 import 'package:miaid/api_utils/user_provider.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
@@ -14,6 +15,7 @@ import 'package:miaid/view/marketing/product_detail.dart';
 /// 商品定向推送弹框：打开 App 到首页后，用当前位置向 mispace 查一次命中的商品，
 /// 有则弹出卡片轮播（多个商品自动轮播、可左右滑动）。
 ///
+/// - 右上角 ♡ → 加入心愿单（已收藏时提示并显示实心），弹框不关闭；
 /// - 点「查看商品」→ 关闭弹框并进入商品详情页，不做任何记录；
 /// - 点「不再显示此商品」→ 记录该商品当前推送轮次的 pushKey，从轮播中移走，没有剩余时
 ///   自动关闭；后台把推送关掉再开启会换一轮 key，于是会再次提醒；
@@ -69,7 +71,11 @@ class TargetedPushDialog {
     final selected = await showDialog<TargetedProduct>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => TargetedPushCarousel(products: products, history: history),
+      builder: (_) => TargetedPushCarousel(
+        products: products,
+        history: history,
+        onWish: TargetedPushService.addToWishlist,
+      ),
     );
 
     if (selected != null && context.mounted) {
@@ -89,10 +95,14 @@ class TargetedPushCarousel extends StatefulWidget {
   final List<TargetedProduct> products;
   final TargetedPushHistory history;
 
+  /// 「收藏」动作；为 null 时不显示收藏按钮。
+  final Future<WishResult> Function(TargetedProduct product)? onWish;
+
   const TargetedPushCarousel({
     super.key,
     required this.products,
     required this.history,
+    this.onWish,
   });
 
   @override
@@ -104,10 +114,15 @@ class _TargetedPushCarouselState extends State<TargetedPushCarousel> {
   final PageController _controller = PageController();
   Timer? _autoPlay;
   int _index = 0;
+  /// 本次弹框里已收藏（或本来就在心愿单里）的商品 id。
+  final Set<String> _wished = {};
+  bool _wishing = false;
 
   @override
   void initState() {
     super.initState();
+    // 接口已告知哪些商品在心愿单里，一开始就显示实心
+    _wished.addAll(widget.products.where((p) => p.collected).map((p) => p.productId));
     _restartAutoPlay();
   }
 
@@ -134,6 +149,34 @@ class _TargetedPushCarouselState extends State<TargetedPushCarousel> {
 
   /// 查看商品：带着当前商品关闭弹框，由调用方跳转详情页；不做任何记录。
   void _viewCurrent() => Navigator.pop(context, _items[_index]);
+
+  /// 收藏当前商品：成功或已收藏都标为实心，弹框保持打开。
+  Future<void> _wishCurrent() async {
+    final onWish = widget.onWish;
+    if (onWish == null || _wishing) return;
+    final product = _items[_index];
+    if (_wished.contains(product.productId)) {
+      _toast(S.of(context).targetedPushAlreadyInWishList);
+      return;
+    }
+    setState(() => _wishing = true);
+    final result = await onWish(product);
+    if (!mounted) return;
+    setState(() {
+      _wishing = false;
+      if (result != WishResult.failed) _wished.add(product.productId);
+    });
+    _toast(switch (result) {
+      WishResult.added => S.of(context).addedToWishList,
+      WishResult.exists => S.of(context).targetedPushAlreadyInWishList,
+      WishResult.failed => S.of(context).somethingWentWrong,
+    });
+  }
+
+  void _toast(String message) {
+    // 测试环境没有原生插件，提示失败不影响功能
+    HttpExceptionNotifyUser.showInfo(message).catchError((_) {});
+  }
 
   Future<void> _hideCurrent() async {
     final product = _items[_index];
@@ -246,6 +289,16 @@ class _TargetedPushCarouselState extends State<TargetedPushCarousel> {
               ),
             ),
           ),
+          if (widget.onWish != null)
+            IconButton(
+              key: const Key('targeted_push_wish'),
+              tooltip: S.of(context).targetedPushAddToWishlist,
+              icon: Icon(
+                _wished.contains(_items[_index].productId) ? Icons.favorite : Icons.favorite_border,
+                color: _wished.contains(_items[_index].productId) ? AppColors.ke63030 : AppColors.k8f8e94,
+              ),
+              onPressed: _wishing ? null : _wishCurrent,
+            ),
           IconButton(
             key: const Key('targeted_push_close'),
             icon: Icon(Icons.close, color: AppColors.k8f8e94),
