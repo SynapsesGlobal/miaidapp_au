@@ -8,7 +8,7 @@ void main() {
     {"pushKey": "7-1760000000", "productId": 7, "companyId": 3, "companyName": "Beisheng Hair",
      "title": "Hair transplant", "description": "Natural results", "instruction": "Book by phone", "currency": "CNY",
      "price": "1000.00", "discount_price": "900.00", "image": "https://x/storage/products/a.png",
-     "location": "Guangzhou", "address": "Dongfeng East Rd 754", "distance": 6.7},
+     "location": "Guangzhou", "address": "Dongfeng East Rd 754", "distance": 6.7, "collected": true},
     {"pushKey": "9-1760000100", "productId": 9, "companyId": 3, "companyName": null,
      "title": "Hair care", "description": null, "currency": "CNY",
      "price": "200.00", "discount_price": "200.00", "image": "", "location": "Shenzhen",
@@ -32,6 +32,8 @@ void main() {
       expect(first.hasDiscount, isTrue);
       expect(first.distance, closeTo(6.7, 0.001));
       expect(first.location, 'Guangzhou');
+      expect(first.collected, isTrue);
+      expect(products[1].collected, isFalse, reason: 'missing flag means not collected');
 
       expect(products[1].hasDiscount, isFalse);
       expect(products[1].companyName, isNull);

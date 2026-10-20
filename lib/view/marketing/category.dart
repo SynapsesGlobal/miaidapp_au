@@ -5,7 +5,7 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:miaid/api_utils/consts.dart';
 import 'package:miaid/view/marketing/category_airline.dart';
-import 'package:miaid/view/marketing/companies.dart';
+import 'package:miaid/view/marketing/category_products.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:miaid/view/marketing/orders.dart';
@@ -146,8 +146,10 @@ class _MarketingCategoryState extends State<MarketingCategory> {
               builder: (context) => CategoryAirline(),
             ),);
           } else {
+            // 直接进该分类下所有商家的商品列表（商家列表页已跳过，
+            // 商品卡片上的商家行仍可进入单个商家的商品列表）
             Navigator.push(context, MaterialPageRoute<void>(
-              builder: (context) => Companies(
+              builder: (context) => CategoryProducts(
                 categoryId: category['mainCateId'],
                 category: category['mainCate']
               ),

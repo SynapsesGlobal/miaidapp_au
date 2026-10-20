@@ -6,7 +6,7 @@ import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/services/targeted_push_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-TargetedProduct _product(String id, {String? location, String? instruction}) => TargetedProduct(
+TargetedProduct _product(String id, {String? location, String? instruction, bool collected = false}) => TargetedProduct(
       pushKey: '$id-1',
       productId: id,
       companyId: '3',
@@ -17,12 +17,14 @@ TargetedProduct _product(String id, {String? location, String? instruction}) => 
       discountPrice: '900.00',
       image: '',
       instruction: instruction,
+      collected: collected,
       location: location,
       distance: 6.7,
     );
 
 /// 用一个按钮打开弹框，并把返回值（用户点开的商品）记下来。
-Widget _host(List<TargetedProduct> products, TargetedPushHistory history, List<TargetedProduct?> results) {
+Widget _host(List<TargetedProduct> products, TargetedPushHistory history, List<TargetedProduct?> results,
+    {Future<WishResult> Function(TargetedProduct)? onWish}) {
   return MaterialApp(
     localizationsDelegates: const [
       S.delegate,
@@ -38,7 +40,7 @@ Widget _host(List<TargetedProduct> products, TargetedPushHistory history, List<T
             final selected = await showDialog<TargetedProduct>(
               context: context,
               barrierDismissible: false,
-              builder: (_) => TargetedPushCarousel(products: products, history: history),
+              builder: (_) => TargetedPushCarousel(products: products, history: history, onWish: onWish),
             );
             results.add(selected);
           },
@@ -143,6 +145,74 @@ void main() {
     expect(find.byType(TargetedPushCarousel), findsNothing);
     expect(history.hiddenKeys, {'7-1', '9-1'});
     expect(results, [null]);
+  });
+
+  testWidgets('wish button adds the current product to the wishlist once', (tester) async {
+    final history = await TargetedPushHistory.load();
+    final wished = <String>[];
+    var result = WishResult.added;
+    await tester.pumpWidget(_host([_product('7'), _product('9')], history, [], onWish: (p) async {
+      wished.add(p.productId);
+      return result;
+    }));
+    await _open(tester);
+
+    final heart = find.byKey(const Key('targeted_push_wish'));
+    expect(heart, findsOneWidget);
+    expect(tester.widget<IconButton>(heart).icon, isA<Icon>().having((i) => i.icon, 'icon', Icons.favorite_border));
+
+    await tester.tap(heart);
+    await tester.pump(); await tester.pump(const Duration(milliseconds: 300));
+    expect(wished, ['7']);
+    expect(tester.widget<IconButton>(heart).icon, isA<Icon>().having((i) => i.icon, 'icon', Icons.favorite));
+    expect(find.byType(TargetedPushCarousel), findsOneWidget, reason: 'the popup stays open');
+
+    // tapping again does not call the API a second time
+    await tester.tap(heart);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(wished, ['7']);
+
+    // the second product has its own state; "already in wishlist" from the backend also fills the heart
+    result = WishResult.exists;
+    await tester.pump(TargetedPushDialog.autoPlayInterval);
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Product 9'), findsOneWidget);
+    expect(tester.widget<IconButton>(heart).icon, isA<Icon>().having((i) => i.icon, 'icon', Icons.favorite_border));
+    await tester.tap(heart);
+    await tester.pump(); await tester.pump(const Duration(milliseconds: 300));
+    expect(wished, ['7', '9']);
+    expect(tester.widget<IconButton>(heart).icon, isA<Icon>().having((i) => i.icon, 'icon', Icons.favorite));
+
+    await tester.tap(find.byKey(const Key('targeted_push_close')));
+    await tester.pump(); await tester.pump(const Duration(milliseconds: 400));
+  });
+
+  testWidgets('a product already in the wishlist opens with a filled heart', (tester) async {
+    final history = await TargetedPushHistory.load();
+    final wished = <String>[];
+    await tester.pumpWidget(_host([_product('7', collected: true)], history, [], onWish: (p) async {
+      wished.add(p.productId);
+      return WishResult.added;
+    }));
+    await _open(tester);
+
+    final heart = find.byKey(const Key('targeted_push_wish'));
+    expect(tester.widget<IconButton>(heart).icon, isA<Icon>().having((i) => i.icon, 'icon', Icons.favorite));
+    await tester.tap(heart);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(wished, isEmpty, reason: 'already collected: no second request');
+
+    await tester.tap(find.byKey(const Key('targeted_push_close')));
+    await tester.pump(); await tester.pump(const Duration(milliseconds: 400));
+  });
+
+  testWidgets('no wish button without a handler', (tester) async {
+    final history = await TargetedPushHistory.load();
+    await tester.pumpWidget(_host([_product('7')], history, []));
+    await _open(tester);
+    expect(find.byKey(const Key('targeted_push_wish')), findsNothing);
+    await tester.tap(find.byKey(const Key('targeted_push_close')));
+    await tester.pump(); await tester.pump(const Duration(milliseconds: 400));
   });
 
   testWidgets('multiple products auto-advance', (tester) async {
