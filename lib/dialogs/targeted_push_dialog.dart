@@ -228,7 +228,7 @@ class _TargetedPushCarouselState extends State<TargetedPushCarousel> {
           ),
           if (_items.length > 1) _buildDots(),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton(
