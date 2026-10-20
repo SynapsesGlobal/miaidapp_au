@@ -34,15 +34,19 @@ class _OrdersState extends State<Orders> {
   bool isLoading = false;
   bool hasMore = true;
   final ScrollController _scrollController = ScrollController();
+  /// 退款原因输入框的 controller 由页面持有：弹窗关闭时还有收起动画和键盘回落的重建，
+  /// 不能在弹窗一关就 dispose
+  final TextEditingController _reasonController = TextEditingController();
 
-  Future<void> _getHistoryOrders() async {
+  Future<void> _getHistoryOrders({bool showLoading = true}) async {
     if (isLoading || !hasMore) return;
 
     setState(() => isLoading = true);
 
     final headers = MarketingApi.headers();
 
-    if (page == 1) {
+    final showMask = page == 1 && showLoading;
+    if (showMask) {
       await EasyLoading.show(
         status: 'Loading',
         maskType: EasyLoadingMaskType.black,
@@ -63,7 +67,7 @@ class _OrdersState extends State<Orders> {
 
       final response = await http.get(url, headers: headers);
 
-      if (page == 1) await EasyLoading.dismiss();
+      if (showMask) await EasyLoading.dismiss();
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
@@ -78,40 +82,62 @@ class _OrdersState extends State<Orders> {
         if (page == 1) await HttpExceptionNotifyUser.showInfo(S.of(context).somethingWentWrong);
       }
     } catch (e) {
-      if (page == 1) await EasyLoading.dismiss();
+      if (showMask) await EasyLoading.dismiss();
     }
 
-    setState(() => isLoading = false);
+    if (mounted) setState(() => isLoading = false);
   }
 
-  Future<void> _cancelOrder(String orderId, String reason) async {
-    final headers = MarketingApi.headers();
+  /// 重置分页后重新拉第一页（下拉刷新、取消订单后）。不弹遮罩，避免和下拉指示器叠加
+  Future<void> _refreshOrders() async {
+    if (!mounted) return;
+    setState(() {
+      page = 1;
+      isLoading = false;
+      hasMore = true;
+      historyOrders = [];
+    });
+    await _getHistoryOrders(showLoading: false);
+  }
 
+  /// 提交退款申请。成功后只把这一单就地改成「退款中」并隐藏取消按钮，
+  /// 不清空列表重新拉取（之前先清空再加载，页面会先空白再转圈）。
+  Future<void> _cancelOrder(String orderId, String reason) async {
+    await EasyLoading.show(status: S.of(context).processing, maskType: EasyLoadingMaskType.clear);
     try {
       final url = Uri.parse('${getIt<ApiSettings>().marketingApiHost}/order/refund');
+      final response = await http
+          .post(url, headers: MarketingApi.headers(), body: jsonEncode({'orderId': orderId, 'reason': reason}))
+          .timeout(const Duration(seconds: 20));
+      await EasyLoading.dismiss();
+      if (!mounted) return;
 
-      final body = jsonEncode({
-        'orderId': orderId,
-        'reason': reason,
-      });
-      final response = await http.post(url, headers: headers, body: body);
-
-      var responseData = jsonDecode(response.body);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(responseData['message'])),
-      );
-
-      if (response.statusCode == 200) {
-        setState(() {
-          page = 1;
-          isLoading = false;
-          hasMore = true;
-          historyOrders = [];
-        });
-        await _getHistoryOrders();
+      String? message;
+      try {
+        message = (jsonDecode(response.body) as Map)['message']?.toString();
+      } catch (_) {
+        // 非 JSON 响应（网关错误页等），下面用通用文案
       }
+
+      if (response.statusCode != 200) {
+        await HttpExceptionNotifyUser.showInfo(message ?? S.of(context).somethingWentWrong);
+        return;
+      }
+
+      setState(() {
+        for (final order in historyOrders) {
+          if (order['orderId'].toString() != orderId) continue;
+          order['status'] = 2; // 退款中，与后端 Orders::REFUNDING 一致
+          order['can_cancel'] = false;
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message ?? S.of(context).refunding)),
+      );
     } catch (e) {
-      await HttpExceptionNotifyUser.showInfo(S.of(context).somethingWentWrong);
+      await EasyLoading.dismiss();
+      debugPrint('[Orders] refund request failed: $e');
+      if (mounted) await HttpExceptionNotifyUser.showInfo(S.of(context).somethingWentWrong);
     }
   }
 
@@ -131,6 +157,7 @@ class _OrdersState extends State<Orders> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _reasonController.dispose();
     super.dispose();
   }
 
@@ -159,12 +186,20 @@ class _OrdersState extends State<Orders> {
         ),
       ),
 
-      // ★ 没有订单时展示空状态
-      body: (historyOrders.isEmpty && !isLoading)
-          ? _emptyOrders()
+      // 下拉刷新：支付后 webhook 可能稍有延迟，用户可以手动刷新看到订单
+      body: RefreshIndicator(
+        color: AppColors.k0cbcc5,
+        onRefresh: _refreshOrders,
+        // ★ 没有订单时展示空状态（包一层可滚动容器，空状态下也能下拉）
+        child: (historyOrders.isEmpty && !isLoading)
+          ? ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [_emptyOrders()],
+            )
           // ★ 使用 ListView.builder + 分页 footer
           : ListView.builder(
         controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
         itemCount: historyOrders.length + 1,
         itemBuilder: (context, index) {
@@ -198,6 +233,7 @@ class _OrdersState extends State<Orders> {
 
           return const SizedBox.shrink();
         },
+      ),
       ),
     );
   }
@@ -295,11 +331,9 @@ class _OrdersState extends State<Orders> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(children: [
-                  order['payment_method'] == 'alipay'
-                      ? Image.asset('assets/images/ic_payment_alipay.png', width: 18, height: 18)
-                      : Image.asset('assets/images/ic_payment_wechatpay.png', width: 18, height: 18),
+                  _paymentMethodIcon(order['payment_method']?.toString()),
                   const SizedBox(width: 5),
-                  Text(order['payment_method'] == 'alipay' ? S.of(context).alipay : S.of(context).wechatPay, style: GoogleFonts.rubik(color: Colors.grey, fontSize: 13)),
+                  Text(_paymentMethodLabel(context, order['payment_method']?.toString()), style: GoogleFonts.rubik(color: Colors.grey, fontSize: 13)),
                 ]),
                 Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
                   Text('${S.of(context).orderTotal}  ', style: GoogleFonts.rubik(color: Colors.grey, fontSize: 13)),
@@ -328,13 +362,14 @@ class _OrdersState extends State<Orders> {
                   label: S.of(context).deleteOrder,
                   onTap: () => _confirmDeleteOrder(order['orderId'].toString()),
                 ),
-                /*if (canCancel) const SizedBox(width: 10),
+                // 申请退款：仅已支付订单（后端 can_cancel），提交后订单进入退款中等后台审批
+                if (canCancel) const SizedBox(width: 10),
                 if (canCancel)
                   _orderActionButton(
                     label: S.of(context).cancelOrder,
                     primary: true,
                     onTap: () => _showCancelOrderSheet(order),
-                  ),*/
+                  ),
               ],
             ),
           ],
@@ -344,6 +379,34 @@ class _OrdersState extends State<Orders> {
   }
 
   // 商品图片预览：单件显示详情，多件横排缩略图（最多 3 张，自适应宽度防溢出）
+  /// 支付方式图标：后端 orders.payment_method 取值 stripe / apple_pay / alipay / wechat
+  Widget _paymentMethodIcon(String? method) {
+    switch (method) {
+      case 'apple_pay':
+        return const Icon(Icons.apple, size: 18, color: Colors.black);
+      case 'alipay':
+        return Image.asset('assets/images/ic_payment_alipay.png', width: 18, height: 18);
+      case 'wechat':
+        return Image.asset('assets/images/ic_payment_wechatpay.png', width: 18, height: 18);
+      default:
+        // stripe 刷卡及历史上未记录方式的订单
+        return Image.asset('assets/images/ic_payment_card.png', width: 18, height: 18);
+    }
+  }
+
+  String _paymentMethodLabel(BuildContext context, String? method) {
+    switch (method) {
+      case 'apple_pay':
+        return S.of(context).applePay;
+      case 'alipay':
+        return S.of(context).alipay;
+      case 'wechat':
+        return S.of(context).wechatPay;
+      default:
+        return S.of(context).creditOrDebit;
+    }
+  }
+
   Widget _buildProductsPreview(dynamic order) {
     final products = order['products'] as List;
     if (products.isEmpty) return const SizedBox.shrink();
@@ -531,7 +594,8 @@ class _OrdersState extends State<Orders> {
 
   // 取消订单弹框
   Future<void> _showCancelOrderSheet(dynamic order) async {
-    final _reasonController = TextEditingController();
+    _reasonController.clear();
+    String? reason;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -642,11 +706,10 @@ class _OrdersState extends State<Orders> {
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
                 child: MaterialButton(
                   onPressed: () {
-                    var reason = _reasonController.text;
-                    if (reason.isNotEmpty) {
-                      Navigator.of(context).pop();
-                      _cancelOrder(order['orderId'].toString(), reason);
-                    }
+                    final text = _reasonController.text.trim();
+                    if (text.isEmpty) return;
+                    reason = text;
+                    Navigator.of(context).pop();
                   },
                   minWidth: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -668,6 +731,10 @@ class _OrdersState extends State<Orders> {
         );
       },
     );
+    // 弹窗完全关闭后再发请求，loading 遮罩不会和弹窗的收起动画打架
+    if (reason != null && mounted) {
+      await _cancelOrder(order['orderId'].toString(), reason!);
+    }
   }
 
   Widget _buildOrderItemLayout(dynamic product) => Container(
