@@ -24,7 +24,6 @@ import 'package:miaid/view/user/calling/call_history/call_history.dart';
 import 'package:miaid/view/user/corporate_care_packages/corporate_care_packages.dart';
 import 'package:miaid/view/user/home/home_screen.dart';
 import 'package:miaid/view/user/notification/notification_screen.dart';
-import 'package:miaid/view/user/sign_in/sign_in.dart';
 import 'package:miaid/view/user/travel_care_packages/travel_care_packages.dart';
 import 'package:miaid/view/user/user_profile_screen/user_profile_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -136,93 +135,89 @@ class MiAidDrawer extends StatelessWidget {
             ),
 
             // ── Account ─────────────────────────────────────────
-            if (services.user.isLoggedIn) ...[
-              //_sectionDivider(),
-              _drawerItem(
-                context,
-                'assets/images/ic_sidebar_profile.png',
-                S.of(context).myProfile,
-                () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute<void>(
-                    builder: (context) => getIt<UserProfileScreen>(),
-                  ));
-                },
-              ),
-              _drawerItem(
-                context,
-                'assets/images/ic_sidebar_callhistory.png',
-                S.of(context).callHistory,
-                () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute<void>(
-                    builder: (context) => getIt<CallHistory>(),
-                  ));
-                },
-              ),
-              _drawerItem(
-                context,
-                'assets/images/ic_sidebar_notifications.png',
-                S.of(context).notificationList,
-                () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute<void>(
-                    settings: const RouteSettings(name: '/'),
-                    builder: (context) => getIt<NotificationScreen>(),
-                  ));
-                },
-              ),
-            ],
+            //_sectionDivider(),
+            _drawerItem(
+              context,
+              'assets/images/ic_sidebar_profile.png',
+              S.of(context).myProfile,
+              () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute<void>(
+                  builder: (context) => getIt<UserProfileScreen>(),
+                ));
+              },
+            ),
+            _drawerItem(
+              context,
+              'assets/images/ic_sidebar_callhistory.png',
+              S.of(context).callHistory,
+              () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute<void>(
+                  builder: (context) => getIt<CallHistory>(),
+                ));
+              },
+            ),
+            _drawerItem(
+              context,
+              'assets/images/ic_sidebar_notifications.png',
+              S.of(context).notificationList,
+              () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute<void>(
+                  settings: const RouteSettings(name: '/'),
+                  builder: (context) => getIt<NotificationScreen>(),
+                ));
+              },
+            ),
 
             // ── Services ─────────────────────────────────────────
-            if (services.user.isLoggedIn) ...[
-              //_sectionDivider(),
-              _drawerItem(
-                context,
-                'assets/images/ic_sidebar_travelcare.png',
-                S.of(context).travelCare,
-                () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute<void>(
-                    builder: (context) => getIt<TravelCarePackages>(),
-                  ));
-                },
-              ),
-              getCorporateWidgets(context),
-              _drawerItem(
-                context,
-                'assets/images/ic_sidebar_terms.png',
-                S.of(context).positionTracking,
-                () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute<void>(
-                    builder: (context) => LocationTracking(),
-                  ));
-                },
-              ),
-              _drawerItem(
-                context,
-                'assets/images/ic_sidebar_corporatecare2.png',
-                S.of(context).marketing,
-                () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute<void>(
-                    builder: (context) => MarketingCategory(),
-                  ));
-                },
-              ),
-              /*_drawerItem(
-                context,
-                'assets/images/ic_sidebar_travelcare.png',
-                S.of(context).affiliate_title,
-                () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute<void>(
-                    builder: (context) => AffiliatePage(),
-                  ));
-                },
-              ),*/
-            ],
+            //_sectionDivider(),
+            _drawerItem(
+              context,
+              'assets/images/ic_sidebar_travelcare.png',
+              S.of(context).travelCare,
+              () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute<void>(
+                  builder: (context) => getIt<TravelCarePackages>(),
+                ));
+              },
+            ),
+            getCorporateWidgets(context),
+            _drawerItem(
+              context,
+              'assets/images/ic_sidebar_terms.png',
+              S.of(context).positionTracking,
+              () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute<void>(
+                  builder: (context) => LocationTracking(),
+                ));
+              },
+            ),
+            _drawerItem(
+              context,
+              'assets/images/ic_sidebar_corporatecare2.png',
+              S.of(context).marketing,
+              () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute<void>(
+                  builder: (context) => MarketingCategory(),
+                ));
+              },
+            ),
+            /*_drawerItem(
+              context,
+              'assets/images/ic_sidebar_travelcare.png',
+              S.of(context).affiliate_title,
+              () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute<void>(
+                  builder: (context) => AffiliatePage(),
+                ));
+              },
+            ),*/
 
             // ── Info ─────────────────────────────────────────────
             //_sectionDivider(),
@@ -252,22 +247,20 @@ class MiAidDrawer extends StatelessWidget {
             ),
 
             // ── Social & logout ───────────────────────────────────
-            if (services.user.isLoggedIn) ...[
-              //_sectionDivider(),
-              _drawerItem(
-                context,
-                'assets/images/invite.png',
-                S.of(context).inviteFriends,
-                () => _showInviteSheet(context),
-              ),
-              _drawerItem(
-                context,
-                'assets/images/ic_sidebar_logout.png',
-                S.of(context).logout,
-                () => showAlertDialog(context),
-                labelColor: AppColors.kfa0020,
-              ),
-            ],
+            //_sectionDivider(),
+            _drawerItem(
+              context,
+              'assets/images/invite.png',
+              S.of(context).inviteFriends,
+              () => _showInviteSheet(context),
+            ),
+            _drawerItem(
+              context,
+              'assets/images/ic_sidebar_logout.png',
+              S.of(context).logout,
+              () => showAlertDialog(context),
+              labelColor: AppColors.kfa0020,
+            ),
 
             const SizedBox(height: 24),
           ],
@@ -283,12 +276,10 @@ class MiAidDrawer extends StatelessWidget {
         children: [
           GestureDetector(
             onTap: () {
-              if (services.user.isLoggedIn) {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute<void>(
-                  builder: (context) => getIt<UserProfileScreen>(),
-                ));
-              }
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute<void>(
+                builder: (context) => getIt<UserProfileScreen>(),
+              ));
             },
             child: Container(
               width: 64,
@@ -296,33 +287,20 @@ class MiAidDrawer extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(color: AppColors.k0cbcc5, width: 2),
-                image: services.user.isLoggedIn
-                    ? profileDecorationImage(context, services.user.user!, getIt<ApiSettings>())
-                    : const DecorationImage(
-                        image: AssetImage('assets/images/logo_auth.png'),
-                        fit: BoxFit.cover,
-                      ),
+                image: profileDecorationImage(context, services.user.user!, getIt<ApiSettings>()),
               ),
             ),
           ),
           const SizedBox(height: 10),
           GestureDetector(
             onTap: () {
-              if (services.user.isLoggedIn) {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute<void>(
-                  builder: (context) => getIt<UserProfileScreen>(),
-                ));
-              } else {
-                Navigator.push(context, MaterialPageRoute<void>(
-                  builder: (context) => getIt<SignIn>(),
-                ));
-              }
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute<void>(
+                builder: (context) => getIt<UserProfileScreen>(),
+              ));
             },
             child: Text(
-              services.user.isLoggedIn
-                  ? services.user.user?.fullName ?? ''
-                  : S.of(context).signIn,
+              services.user.user?.fullName ?? '',
               style: GoogleFonts.rubik(
                 color: AppColors.k010101,
                 fontSize: 16,

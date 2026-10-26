@@ -39,10 +39,8 @@ import 'package:miaid/view/map/map_screen.dart';
 import 'package:miaid/view/user/calling/call_screen_helper.dart';
 import 'package:miaid/view/user/e_shop/e_shop.dart';
 import 'package:miaid/view/user/home/qrcode_scan.dart';
-import 'package:miaid/view/user/sign_in/sign_in.dart';
 import 'package:miaid/view/user/user_profile_screen/complete_name.dart';
 import 'package:miaid/view/user/user_profile_screen/user_profile_screen.dart';
-import 'package:miaid/widget/custom_dialog.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tap_debouncer/tap_debouncer.dart';
@@ -289,29 +287,25 @@ class _HomeScreenState extends State<HomeScreen>
             child: InkWell(
               child: Icon(Icons.qr_code, color: AppColors.k0cbcc5, size: isTablet ? 32 : 24,),
               onTap: () async {
-                if (store.user.isLoggedIn) {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => QrCodeScan()),
-                  );
-                  // 扫码页可能返回三种值：Map(成功)、''(扫到非法码)、null(用户点返回)。
-                  // 此前用 result.toString().isNotEmpty 判断，null 会被当成有效值再取下标导致崩溃。
-                  if (result is Map) {
-                    var hospitalName = result['hospital_name'];
-                    if (result['type'] == Consts.CheckInQrcode) {
-                      await AppointCheckInDialog.show(hospitalName);
-                    }
-                    if (result['type'] == Consts.RedemptionQrcode) {
-                      var hospitalId = result['hospital_id'];
-                      await PackageRedemptionDialog.show(hospitalId, hospitalName);
-                    }
-                  } else if (result == '') {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(S.of(context).qrcode_invalid)),
-                    );
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => QrCodeScan()),
+                );
+                // 扫码页可能返回三种值：Map(成功)、''(扫到非法码)、null(用户点返回)。
+                // 此前用 result.toString().isNotEmpty 判断，null 会被当成有效值再取下标导致崩溃。
+                if (result is Map) {
+                  var hospitalName = result['hospital_name'];
+                  if (result['type'] == Consts.CheckInQrcode) {
+                    await AppointCheckInDialog.show(hospitalName);
                   }
-                } else {
-                  showAlertDialog(context);
+                  if (result['type'] == Consts.RedemptionQrcode) {
+                    var hospitalId = result['hospital_id'];
+                    await PackageRedemptionDialog.show(hospitalId, hospitalName);
+                  }
+                } else if (result == '') {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(S.of(context).qrcode_invalid)),
+                  );
                 }
               },
             ),
@@ -486,16 +480,15 @@ class _HomeScreenState extends State<HomeScreen>
                   Observer(builder: (context) => RichText(
                     text: TextSpan(
                       children: [
-                        if (store.user.isLoggedIn)
-                          TextSpan(
-                            text: S.of(context).hi+', ',
-                            style: GoogleFonts.rubik(
-                              color: AppColors.k010101,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        TextSpan(
+                          text: S.of(context).hi+', ',
+                          style: GoogleFonts.rubik(
+                            color: AppColors.k010101,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
                           ),
-                        if (store.user.isLoggedIn && widget.services.userInfoStore.firstName.trim().isEmpty)
+                        ),
+                        if (widget.services.userInfoStore.firstName.trim().isEmpty)
                           // 第三方登录可能拿不到姓名：问候语后面给一个补填入口，不让"您好，"后面空着
                           TextSpan(
                             recognizer: TapGestureRecognizer()..onTap = _openCompleteName,
@@ -511,17 +504,11 @@ class _HomeScreenState extends State<HomeScreen>
                         else
                           TextSpan(
                             recognizer: TapGestureRecognizer()..onTap = () {
-                              if (store.user.isLoggedIn) {
-                                Navigator.push(context, MaterialPageRoute<void>(
-                                  builder: (context) => getIt<UserProfileScreen>(),
-                                ),);
-                              } else {
-                                Navigator.push(context, MaterialPageRoute<void>(
-                                  builder: (context) => getIt<SignIn>(),
-                                ),);
-                              }
+                              Navigator.push(context, MaterialPageRoute<void>(
+                                builder: (context) => getIt<UserProfileScreen>(),
+                              ),);
                             },
-                            text: store.user.isLoggedIn ? widget.services.userInfoStore.firstName : S.of(context).signIn,
+                            text: widget.services.userInfoStore.firstName,
                             style: GoogleFonts.rubik(
                               color: AppColors.k010101,
                               fontSize: 20,
@@ -725,14 +712,10 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             child: TapDebouncer(
               onTap: () async {
-                if (_checkLoginStatus()) {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => ChatbotHistory(services: widget.services.activeSubscriptionStore,)),
-                  );
-                } else {
-                  showAlertDialog(context);
-                }
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ChatbotHistory(services: widget.services.activeSubscriptionStore,)),
+                );
               },
               builder: (context, onTap) => InkWell(
                 onTap: onTap,
@@ -814,13 +797,9 @@ class _HomeScreenState extends State<HomeScreen>
                     // Customer Care
                     Expanded(child: TapDebouncer(
                       onTap: () async {
-                        if (_checkLoginStatus()){
-                          var sharedPreferences = await SharedPreferences.getInstance();
-                          await sharedPreferences.setString('video-call-source', 'home');
-                          await navigateToCallScreen(context, widget.services.activeSubscriptionStore, VIDEO_CALL_TYPE.CONSULT_A_DOCTOR,);
-                        } else {
-                          showAlertDialog(context);
-                        }
+                        var sharedPreferences = await SharedPreferences.getInstance();
+                        await sharedPreferences.setString('video-call-source', 'home');
+                        await navigateToCallScreen(context, widget.services.activeSubscriptionStore, VIDEO_CALL_TYPE.CONSULT_A_DOCTOR,);
                       },
                       builder: (context, onTap) => InkWell(
                         onTap: onTap,
@@ -919,13 +898,9 @@ class _HomeScreenState extends State<HomeScreen>
                     // MiAid Service
                     Expanded(child: InkWell(
                       onTap: () {
-                        if (_checkLoginStatus()) {
-                          Navigator.push(context, MaterialPageRoute<void>(
-                            builder: (context) => getIt<AdditionalServices>(),
-                          ),);
-                        } else {
-                          showAlertDialog(context);
-                        }
+                        Navigator.push(context, MaterialPageRoute<void>(
+                          builder: (context) => getIt<AdditionalServices>(),
+                        ),);
                       },
                       child: miAidCard(Padding(
                         padding: const EdgeInsets.all(16),
@@ -1033,29 +1008,5 @@ class _HomeScreenState extends State<HomeScreen>
     if (appVersionResponse != null && appVersionResponse.status != true) {
       await widget.services.ongoingCallStore.ongoingCallStore(context, appVersionResponse);
     }
-  }
-
-  bool _checkLoginStatus() {
-    final user = getIt<UserProvider>();
-    if (!user.isLoggedIn) return false;
-
-    return true;
-  }
-
-  void showAlertDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) => CustomDialog(
-        title: S.of(context).alert,
-        content: S.of(context).pleaseSignInFirst,
-        buttonText: S.of(context).signIn,
-        showCancel: false,
-        onPressed: () {
-          Navigator.push(context, MaterialPageRoute<void>(
-            builder: (context) => getIt<SignIn>(),
-          ),);
-        },
-      ),
-    );
   }
 }

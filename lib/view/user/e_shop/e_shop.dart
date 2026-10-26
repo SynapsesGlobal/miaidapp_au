@@ -30,8 +30,6 @@ import 'package:miaid/view/user/e_shop/delivery_method_sheet.dart';
 import 'package:miaid/view/user/e_shop/e_shop_details.dart';
 import 'package:miaid/view/user/e_shop/purchase.dart';
 import 'package:miaid/view/user/location/location.dart';
-import 'package:miaid/view/user/sign_in/sign_in.dart';
-import 'package:miaid/widget/custom_dialog.dart';
 import 'package:miaid/widget/image_widget.dart';
 import 'package:miaid/widget/popover.dart';
 import 'package:mobx/mobx.dart';
@@ -336,12 +334,10 @@ class _EShopState extends State<EShop> with SingleTickerProviderStateMixin {
     eShopStore.getCurrentUserLocation(context);
     eShopStore.fetchPharmacies(widget.services.api, context);
 
-    if (widget.services.api.userProvider.isLoggedIn) {
-      cartEShopStore = widget.services.cartEShopStore;
-      cartEShopStore.fetchDeliveryFee(widget.services.api);
-      cartEShopStore
-          .setSubscriptionStatus(widget.services.activeSubscriptionStore);
-    }
+    cartEShopStore = widget.services.cartEShopStore;
+    cartEShopStore.fetchDeliveryFee(widget.services.api);
+    cartEShopStore
+        .setSubscriptionStatus(widget.services.activeSubscriptionStore);
 
     _disposers = [
       reaction(
@@ -432,12 +428,6 @@ class _EShopState extends State<EShop> with SingleTickerProviderStateMixin {
                 children: [
                   InkWell(
                     onTap: () {
-                      if (!widget.services.api.userProvider.isLoggedIn) {
-                        showAlertDialog(context);
-
-                        return;
-                      }
-
                       Navigator.push(
                         context,
                         MaterialPageRoute<void>(
@@ -452,12 +442,6 @@ class _EShopState extends State<EShop> with SingleTickerProviderStateMixin {
                   ),
                   InkWell(
                     onTap: () async {
-                      if (!widget.services.api.userProvider.isLoggedIn) {
-                        showAlertDialog(context);
-
-                        return;
-                      }
-
                       await Navigator.push(
                         context,
                         MaterialPageRoute<void>(
@@ -471,7 +455,6 @@ class _EShopState extends State<EShop> with SingleTickerProviderStateMixin {
                       width: 25,
                       child: Stack(children: [
                         navBarIcon(iconAssetName: 'ic_nb_cart_normal.png'),
-                        if (widget.services.api.userProvider.isLoggedIn)
                           Observer(
                             builder: (_)  => cartEShopStore.cartItems.isNotEmpty ? Align(
                               alignment: Alignment.topRight,
@@ -1207,28 +1190,6 @@ class _EShopState extends State<EShop> with SingleTickerProviderStateMixin {
         mapController.move(eShopStore.mapDefaultCenter, 14.0);
       }
     }
-  }
-
-  void showAlertDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return CustomDialog(
-          title: S.of(context).alert,
-          content: S.of(context).pleaseSignInFirst,
-          buttonText: S.of(context).signIn,
-          showCancel: false,
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute<void>(
-                builder: (context) => getIt<SignIn>(),
-              ),
-            );
-          },
-        );
-      },
-    );
   }
 }
 

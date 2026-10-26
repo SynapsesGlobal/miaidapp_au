@@ -16,8 +16,6 @@ import 'package:miaid/utils/utils.dart';
 import 'package:miaid/view/user/e_shop/cart_eshop.dart';
 import 'package:miaid/view/user/e_shop/product_details.dart';
 import 'package:miaid/view/user/e_shop/purchase.dart';
-import 'package:miaid/view/user/sign_in/sign_in.dart';
-import 'package:miaid/widget/custom_dialog.dart';
 import 'package:miaid/widget/image_widget.dart';
 import 'package:tap_debouncer/tap_debouncer.dart';
 
@@ -119,11 +117,6 @@ class _EShopDetailsState extends State<EShopDetails> {
               child: Row(children: [
                 InkWell(
                   onTap: () {
-                    if (!widget.services.api.userProvider.isLoggedIn) {
-                      showAlertDialog(context);
-                      return;
-                    }
-
                     Navigator.push(context, MaterialPageRoute<void>(
                       builder: (context) => getIt<PurchaseItem>(),
                     ),);
@@ -133,11 +126,6 @@ class _EShopDetailsState extends State<EShopDetails> {
                 SizedBox(width: 23,),
                 InkWell(
                   onTap: () async {
-                    if (!widget.services.api.userProvider.isLoggedIn) {
-                      showAlertDialog(context);
-                      return;
-                    }
-
                     await Navigator.push(context, MaterialPageRoute<void>(
                       builder: (context) => getIt<CartEShop>(),
                     ),);
@@ -148,7 +136,6 @@ class _EShopDetailsState extends State<EShopDetails> {
                     width: 25,
                     child: Stack(children: [
                       navBarIcon(iconAssetName: 'ic_nb_cart_normal.png'),
-                      if (widget.services.api.userProvider.isLoggedIn)
                         Observer(builder: (_) => cartEShopStore.cartItems.isNotEmpty ? Align(
                           alignment: Alignment.topRight,
                           child: Container(
@@ -572,10 +559,6 @@ class _EShopDetailsState extends State<EShopDetails> {
                                 ),
                               OutlinedButton(
                                 onPressed: () {
-                                  if (!widget.services.api.userProvider.isLoggedIn) {
-                                    showAlertDialog(context);
-                                    return;
-                                  }
                                   var modifiedProduct = product;
 
                                   if (product.isPrescriptionItem == true) {
@@ -629,25 +612,6 @@ class _EShopDetailsState extends State<EShopDetails> {
           ),
         ),
       ),
-    );
-  }
-
-  void showAlertDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return CustomDialog(
-          title: S.of(context).alert,
-          content: S.of(context).pleaseSignInFirst,
-          buttonText: S.of(context).signIn,
-          showCancel: false,
-          onPressed: () {
-            Navigator.push(context, MaterialPageRoute<void>(
-              builder: (context) => getIt<SignIn>(),
-            ),);
-          },
-        );
-      },
     );
   }
 }

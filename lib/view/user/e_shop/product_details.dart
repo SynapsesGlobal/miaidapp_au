@@ -15,8 +15,6 @@ import 'package:miaid/store/product/product_details_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/e_shop/cart_eshop.dart';
 import 'package:miaid/view/user/e_shop/product_image_preview.dart';
-import 'package:miaid/view/user/sign_in/sign_in.dart';
-import 'package:miaid/widget/custom_dialog.dart';
 import 'package:miaid/widget/image_widget.dart';
 import 'package:tap_debouncer/tap_debouncer.dart';
 
@@ -341,12 +339,6 @@ class _ProductDetailsState extends State<ProductDetails> {
               Expanded(
                 child: TapDebouncer(
                   onTap: () async {
-                    if (!widget.services.api.userProvider.isLoggedIn) {
-                      showAlertDialog(context);
-
-                      return;
-                    }
-
                     var cartEShopStore = getIt<CartEShopStore>();
 
                     setState(() {
@@ -394,12 +386,6 @@ class _ProductDetailsState extends State<ProductDetails> {
               Expanded(
                 child: InkWell(
                   onTap: () {
-                    if (!widget.services.api.userProvider.isLoggedIn) {
-                      showAlertDialog(context);
-
-                      return;
-                    }
-
                     var cartEShopStore = getIt<CartEShopStore>();
                     setState(() {
                       cartEShopStore.addItem(
@@ -532,28 +518,6 @@ class _ProductDetailsState extends State<ProductDetails> {
           ),
         ],
       ),
-    );
-  }
-
-  void showAlertDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return CustomDialog(
-          title: S.of(context).alert,
-          content: S.of(context).pleaseSignInFirst,
-          buttonText: S.of(context).signIn,
-          showCancel: false,
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute<void>(
-                builder: (context) => getIt<SignIn>(),
-              ),
-            );
-          },
-        );
-      },
     );
   }
 }
