@@ -2,6 +2,7 @@ import 'package:chopper/chopper.dart';
 import 'package:miaid/api_utils/http_exception.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/main.dart';
+import 'package:miaid/utils/auth_gate.dart';
 
 class ApiSuccessParser {
   static bool isSuccessfulWithPayload(Response<dynamic> response) {
@@ -19,11 +20,15 @@ class ApiSuccessParser {
     try {
       return payloadOrThrow(response);
     } on HttpException catch (e) {
-      final message = S.current.apiError(e.statusCode, e.message ?? '');
+      // App 还没 runApp（启动时更新推送 token）时没有 context，只处理登录态不弹提示
+      final context = navigatorKey.currentContext;
+      if (context != null) {
+        await HttpExceptionNotifyUser.showInfo(
+            e.statusCode == 401 ? S.of(context).relogin : S.of(context).somethingWentWrong);
+      }
       if (e.statusCode == 401) {
-        await HttpExceptionNotifyUser.showInfo(S.of(navigatorKey.currentContext!).relogin);
-      } else {
-        await HttpExceptionNotifyUser.showInfo(S.of(navigatorKey.currentContext!).somethingWentWrong);
+        // 已登录用户令牌失效：清登录态并回登录页；登录页自身的 401（密码错误）不受影响
+        await AuthGate.onUnauthorized();
       }
       rethrow;
     }

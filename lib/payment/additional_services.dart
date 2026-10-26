@@ -19,6 +19,7 @@ import 'package:miaid/store/payment/additional_services_store.dart';
 import 'package:miaid/store/payment/payment_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:miaid/utils/auth_gate.dart';
 import 'package:miaid/view/user/home/home_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -81,20 +82,22 @@ class _AdditionalServicesState extends State<AdditionalServices> {
       if (e is HttpException && e.statusCode == 401) {
         await widget.services.store.user.logOut();
         await HttpExceptionNotifyUser.showInfo(S.of(context).relogin);
+        // 令牌失效：未登录只能停留在登录页
+        if (mounted) await AuthGate.toSignIn(context);
       } else {
         await HttpExceptionNotifyUser.showInfo(S.of(context).somethingWentWrong);
-      }
-      if (mounted) {
-        // 在 builder 外创建，避免 MaterialApp 重建时路由 builder 重新执行生成新实例
-        final homeScreen = getIt<HomeScreen>();
-        await Navigator.pushAndRemoveUntil(
-          context,
-          // ignore: inference_failure_on_instance_creation
-          MaterialPageRoute(
-            builder: (context) => homeScreen,
-          ),
-          (route) => false,
-        );
+        if (mounted) {
+          // 在 builder 外创建，避免 MaterialApp 重建时路由 builder 重新执行生成新实例
+          final homeScreen = getIt<HomeScreen>();
+          await Navigator.pushAndRemoveUntil(
+            context,
+            // ignore: inference_failure_on_instance_creation
+            MaterialPageRoute(
+              builder: (context) => homeScreen,
+            ),
+            (route) => false,
+          );
+        }
       }
     } finally {
       await EasyLoading.dismiss();

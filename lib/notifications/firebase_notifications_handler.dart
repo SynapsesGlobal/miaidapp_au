@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:miaid/api_utils/user_provider.dart';
 import 'package:miaid/dialogs/arrival_hospital.dart';
 import 'package:miaid/store/user/calling/ongoing_call_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
@@ -109,6 +110,8 @@ class FirebaseNotificationHandler extends NotificationHandler {
   }
 
   void _handleMessageTap(RemoteMessage message) {
+    // 未登录只能停留在登录页，不响应通知点击打开业务弹窗
+    if (!getIt<UserProvider>().isLoggedIn) return;
     String? eventName;
     if (message.data.containsKey('event_name')) {
       eventName = message.data['event_name'];

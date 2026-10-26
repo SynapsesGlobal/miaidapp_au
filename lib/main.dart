@@ -25,6 +25,7 @@ import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/calling/call_history/call_history.dart';
 import 'package:miaid/view/user/home/home_screen.dart';
 import 'package:miaid/view/user/password/reset_password.dart';
+import 'package:miaid/view/user/sign_in/sign_in.dart';
 import 'package:miaid/view/user/sign_up/otp_screen.dart';
 import 'package:miaid/view/user/sign_up/sign_up_2.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -117,7 +118,7 @@ Future<void> runAppFromEnvironment() async {
   });
 
   await LogEventService.init();
-  final home = await getHome();
+  var home = await getHome();
 
   // update user device push token when app starts
   final userProvider = getIt<UserProvider>();
@@ -137,6 +138,11 @@ Future<void> runAppFromEnvironment() async {
       await userProvider.updateUserToken(payload['access_token']);
     } catch (e) {
       debugPrint('Error updating token: $e');
+    }
+    // 更新 token 返回 401 时本地登录态已被清掉（AuthGate.onUnauthorized），
+    // 此时还没 runApp 无法跳转，这里把首页换成登录页
+    if (!userProvider.isLoggedIn) {
+      home = getHomeFromUser(null);
     }
   }
 
@@ -225,9 +231,10 @@ Future<Widget> getHome() async {
   return getHomeFromUser(user);
 }
 
+/// 按登录状态选首页。未登录一律进登录页（所有页面都要求先登录，注册、
+/// 找回密码从登录页进入）；已登录按用户状态进验证码页 / 补全资料页 / 首页。
 Widget getHomeFromUser(User? user) {
-  Widget home = getIt<HomeScreen>();
-  // Widget home = getIt<SignIn>();
+  Widget home = getIt<SignIn>();
   if (user != null) {
     if (user.emailVerifiedAt == null && user.translator == null && user.doctor == null) {
       home = getIt<OtpScreen>();

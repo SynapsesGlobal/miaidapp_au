@@ -14,6 +14,7 @@ import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/generated_api_code/api_client.swagger.dart';
 import 'package:miaid/store/home/active_subscription_store.dart';
+import 'package:miaid/utils/auth_gate.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/affiliate/affiliate.dart';
 import 'package:miaid/view/drawer/about.dart';
@@ -553,20 +554,8 @@ Future<void> logout(BuildContext context, UserProvider user) async {
   // logOut() 内部（_resetUserRelatedData）会统一停止定位上传服务并清缓存。
   await user.logOut();
 
-  while (Navigator.of(context).canPop()) {
-    Navigator.of(context).pop();
-  }
-  // 在 builder 外创建，避免 MaterialApp 重建时路由 builder 重新执行生成新实例
-  final homeScreen = getIt<HomeScreen>();
-  await Navigator.pushAndRemoveUntil(
-    context,
-    // ignore: inference_failure_on_instance_creation
-    MaterialPageRoute(
-      // builder: (context) => getIt<SignIn>(),
-      builder: (context) => homeScreen,
-    ),
-    (route) => false,
-  );
+  // 未登录只能停留在登录页：清空路由栈回登录页
+  await AuthGate.toSignIn(context);
 }
 
 Future<void> deleteUser(BuildContext context, UserProvider user) async {
@@ -576,20 +565,7 @@ Future<void> deleteUser(BuildContext context, UserProvider user) async {
     await HttpExceptionNotifyUser.showError(S.of(context).deleteAccountFailed);
     return;
   }
-  while (Navigator.of(context).canPop()) {
-    Navigator.of(context).pop();
-  }
-  // 在 builder 外创建，避免 MaterialApp 重建时路由 builder 重新执行生成新实例
-  final homeScreen = getIt<HomeScreen>();
-  await Navigator.pushAndRemoveUntil(
-    context,
-    // ignore: inference_failure_on_instance_creation
-    MaterialPageRoute(
-      // builder: (context) => getIt<SignIn>(),
-      builder: (context) => homeScreen,
-    ),
-    (route) => false,
-  );
+  await AuthGate.toSignIn(context);
 }
 
 Widget getDrawer(UserProvider user) {

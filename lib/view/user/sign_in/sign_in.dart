@@ -277,16 +277,21 @@ class _SignInState extends State<SignIn> {
             fontWeight: FontWeight.w500,
           ),
         ),
-        leading: Builder(
-          builder: (BuildContext context) {
-            return InkWell(
-              onTap: () {
-                Navigator.pop(context);
-              },
-              child: navBarIcon(iconAssetName: 'ic_nb_back.png'),
-            );
-          },
-        ),
+        // 登录页是未登录时的根页面（没有可返回的页面），此时不显示返回键；
+        // 从注册 / 重置密码等页进来时仍可返回
+        automaticallyImplyLeading: false,
+        leading: !Navigator.canPop(context)
+            ? null
+            : Builder(
+                builder: (BuildContext context) {
+                  return InkWell(
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                    child: navBarIcon(iconAssetName: 'ic_nb_back.png'),
+                  );
+                },
+              ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(

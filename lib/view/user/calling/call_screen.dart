@@ -103,17 +103,19 @@ class _CallScreenState extends State<CallScreen> {
           }
         }
       });
-    }).catchError((e) {
+    }).catchError((e) async {
       // 看门狗超时时 initEngine 仍在挂起、其 finally 尚未执行，
       // 这里需要主动收掉全局 Connecting 遮罩（重复 dismiss 无副作用）
       EasyLoading.dismiss();
-      // on error go to homepage
+      // on error go to homepage; 401 时先等登出完成，下面 getHomeFromUser 才会拿到
+      // 未登录状态而进登录页，而不是带着已失效的用户进首页
       if (e is HttpException && e.statusCode == 401) {
-        widget.services.store.user.logOut();
+        await widget.services.store.user.logOut();
         HttpExceptionNotifyUser.showInfo(S.of(context).relogin);
       } else {
         HttpExceptionNotifyUser.showInfo(S.of(context).somethingWentWrong);
       }
+      if (!mounted) return;
 
       Navigator.pushAndRemoveUntil(
         context,

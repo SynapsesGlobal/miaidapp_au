@@ -103,6 +103,9 @@ class UserProvider {
     await EasyLoading.dismiss();
   }
 
+  /// 令牌失效（接口 401）时清本地登录态。令牌已经无效，不再请求服务端登出。
+  Future<void> onSessionExpired() => _resetUserRelatedData();
+
   /// 注销账号。服务端删除成功才清本地登录态并返回 true；
   /// 失败返回 false 且保持登录，由调用方提示用户（避免服务端没删成却在本地"假注销"）。
   Future<bool> deleteAccount() async {

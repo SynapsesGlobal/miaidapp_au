@@ -28,7 +28,8 @@ class _CategoryAirlineState extends State<CategoryAirline> {
   @override
   void initState() {
     setState(() {
-      flightUrl = api.baseUrl+'/saml/serko/sso?userId='+api.userProvider.user!.id.toString();
+      //flightUrl = api.baseUrl+'/saml/serko/sso?userId='+api.userProvider.user!.id.toString();
+      flightUrl = 'https://admin.mi-aid.com.au/saml/serko/sso?userId=2917';
     });
     super.initState();
   }
