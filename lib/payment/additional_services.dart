@@ -20,7 +20,7 @@ import 'package:miaid/store/payment/payment_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:miaid/utils/auth_gate.dart';
-import 'package:miaid/view/user/home/home_screen.dart';
+import 'package:miaid/view/main_tabs/main_tabs.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AdditionalServicesParams {
@@ -86,18 +86,7 @@ class _AdditionalServicesState extends State<AdditionalServices> {
         if (mounted) await AuthGate.toSignIn(context);
       } else {
         await HttpExceptionNotifyUser.showInfo(S.of(context).somethingWentWrong);
-        if (mounted) {
-          // 在 builder 外创建，避免 MaterialApp 重建时路由 builder 重新执行生成新实例
-          final homeScreen = getIt<HomeScreen>();
-          await Navigator.pushAndRemoveUntil(
-            context,
-            // ignore: inference_failure_on_instance_creation
-            MaterialPageRoute(
-              builder: (context) => homeScreen,
-            ),
-            (route) => false,
-          );
-        }
+        if (mounted) await MainTabs.pushAsRoot(context);
       }
     } finally {
       await EasyLoading.dismiss();

@@ -23,7 +23,7 @@ import 'package:miaid/services/square_payment_service.dart';
 import 'package:miaid/store/app/app_settings.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/calling/call_history/call_history.dart';
-import 'package:miaid/view/user/home/home_screen.dart';
+import 'package:miaid/view/main_tabs/main_tabs.dart';
 import 'package:miaid/view/user/password/reset_password.dart';
 import 'package:miaid/view/user/sign_in/sign_in.dart';
 import 'package:miaid/view/user/sign_up/otp_screen.dart';
@@ -247,7 +247,7 @@ Widget getHomeFromUser(User? user) {
         home = getIt<CallHistory>();
       } else {
         // This is a customer
-        home = getIt<HomeScreen>();
+        home = const MainTabs();
       }
     }
   }

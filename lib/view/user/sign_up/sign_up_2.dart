@@ -21,8 +21,7 @@ import 'package:miaid/services/social_account_service.dart';
 import 'package:miaid/store/user/sign_up/sign_up_2_store.dart';
 import 'package:miaid/store/user/user_profile_screen/user_profile_screen_store.dart'
     show extractCountryCodeFromPhoneNumber, extractPhoneWithoutCountryCode;
-import 'package:miaid/utils/configure_dependencies.dart';
-import 'package:miaid/view/user/home/home_screen.dart';
+import 'package:miaid/view/main_tabs/main_tabs.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tap_debouncer/tap_debouncer.dart';
 
@@ -554,17 +553,7 @@ class _SignUp2State extends State<SignUp2> {
                             final user = await ApiSuccessParser.payloadOrThrowWithMessage(response);
                             widget.services.user.onUserUpdated(user);
 
-                            // 在 builder 外创建，避免 MaterialApp 重建时路由 builder 重新执行生成新实例
-                            final homeScreen = getIt<HomeScreen>();
-                            await Navigator.pushAndRemoveUntil(
-                              context,
-                              // ignore: inference_failure_on_instance_creation
-                              MaterialPageRoute(
-                                settings: RouteSettings(name: "/"),
-                                builder: (context) => homeScreen,
-                              ),
-                              (route) => false,
-                            );
+                            await MainTabs.pushAsRoot(context);
                           } else {
                             final message = ApiErrorParser.message(response.error);
                             ScaffoldMessenger.of(context).showSnackBar(

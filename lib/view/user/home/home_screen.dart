@@ -15,7 +15,6 @@ import 'package:miaid/api_utils/api_parser.dart';
 import 'package:miaid/api_utils/api_provider.dart';
 import 'package:miaid/api_utils/user_provider.dart';
 import 'package:miaid/component/miaid_card.dart';
-import 'package:miaid/component/miaid_drawer.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/dialogs/consultation_language_dialog.dart';
@@ -262,7 +261,6 @@ class _HomeScreenState extends State<HomeScreen>
     final isTablet = MediaQuery.of(context).size.shortestSide >= 600;
     return Scaffold(
       backgroundColor: Colors.white,
-      drawer: getDrawer(store.user),
       appBar: AppBar(
         automaticallyImplyLeading: false,
         elevation: 0,
@@ -459,12 +457,11 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
         ],
-        leading: Builder(builder: (BuildContext context) => InkWell(
-          onTap: () {
-            Scaffold.of(context).openDrawer();
-          },
+        leading: InkWell(
+          // 抽屉挂在外层 MainTabs 的 Scaffold 上（才能盖住底部导航），这里打开最外层那个
+          onTap: () => context.findRootAncestorStateOfType<ScaffoldState>()?.openDrawer(),
           child: navBarIcon(iconAssetName: 'ic_nb_menu.png'),
-        )),
+        ),
       ),
       body: WithNotificationHandlerWidget(
         handler: getIt<NotificationHandler>(),

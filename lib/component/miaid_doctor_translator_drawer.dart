@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:injectable/injectable.dart';
@@ -29,6 +28,7 @@ class MiAidDoctorTranslatorDrawerServices {
   final UserProvider user;
 }
 
+/// 医生 / 翻译端侧边抽屉。条目样式和间距与客户端抽屉 [MiAidDrawer] 保持一致。
 @injectable
 class MiAidDoctorTranslatorDrawer extends StatelessWidget {
   MiAidDoctorTranslatorDrawer({
@@ -43,369 +43,143 @@ class MiAidDoctorTranslatorDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Drawer(
       child: SingleChildScrollView(
-        scrollDirection: Axis.vertical,
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 60),
-              child: Container(
-                height: 70,
-                width: 70,
-                decoration:
-                    BoxDecoration(shape: BoxShape.circle, color: Colors.white),
-                child: InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute<void>(
-                        builder: (context) =>
-                            getIt<UserDoctorTranslatorProfileScreen>(),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    margin: EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.k0cbcc5),
-                      shape: BoxShape.circle,
-                      image: profileDecorationImage(
-                          context, services.user.user!, getIt<ApiSettings>()),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(
-              height: 15,
-            ),
-            InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (context) =>
-                        getIt<UserDoctorTranslatorProfileScreen>(),
-                  ),
-                );
-              },
-              child: Text(
-                services.user.user?.fullName ?? '',
-                style: GoogleFonts.rubik(
-                  color: AppColors.k010101,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            SizedBox(
-              height: 15,
-            ),
-            Divider(
-              color: Colors.grey,
-            ),
-            InkWell(
-              onTap: () {
+            _buildHeader(context),
+            const Divider(height: 1),
+            _drawerItem(
+              context,
+              'assets/images/ic_sidebar_home.png',
+              S.of(context).home,
+              () {
                 Navigator.pop(context);
                 Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute<void>(
-                      settings: RouteSettings(name: "/"),
-                      builder: (context) => getIt<CallHistory>(),
-                    ),
-                    (route) => false);
-              },
-              child: ListTile(
-                title: Padding(
-                  padding: const EdgeInsets.only(top: 12, bottom: 23),
-                  child: Text(
-                    S.of(context).home,
-                    style: GoogleFonts.rubik(
-                      color: AppColors.k010101,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                leading: Padding(
-                  padding:
-                      const EdgeInsets.only(left: 20, bottom: 9, right: 20),
-                  child: Image(
-                    image: AssetImage('assets/images/ic_sidebar_home.png'),
-                  ),
-                ),
-              ),
-            ),
-            InkWell(
-              onTap: () {
-                Navigator.push(
                   context,
                   MaterialPageRoute<void>(
-                    builder: (context) =>
-                        getIt<UserDoctorTranslatorProfileScreen>(),
+                    settings: const RouteSettings(name: '/'),
+                    builder: (context) => getIt<CallHistory>(),
                   ),
+                  (route) => false,
                 );
               },
-              child: ListTile(
-                title: Padding(
-                  padding: const EdgeInsets.only(top: 12, bottom: 23),
-                  child: Text(
-                    S.of(context).myProfile,
-                    style: GoogleFonts.rubik(
-                      color: AppColors.k010101,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                leading: Padding(
-                  padding:
-                      const EdgeInsets.only(left: 20, bottom: 9, right: 20),
-                  child: Image(
-                    image: AssetImage('assets/images/ic_sidebar_profile.png'),
-                  ),
-                ),
-              ),
             ),
-            InkWell(
-              onTap: () {
+            _drawerItem(
+              context,
+              'assets/images/ic_sidebar_profile.png',
+              S.of(context).myProfile,
+              () => _openProfile(context),
+            ),
+            _drawerItem(
+              context,
+              'assets/images/ic_sidebar_notifications.png',
+              S.of(context).notificationList,
+              () {
                 Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute<void>(
-                    settings: RouteSettings(name: "/"),
-                    builder: (context) => getIt<NotificationScreen>(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute<void>(
+                  settings: const RouteSettings(name: '/'),
+                  builder: (context) => getIt<NotificationScreen>(),
+                ));
               },
-              child: ListTile(
-                title: Padding(
-                  padding: const EdgeInsets.only(top: 12, bottom: 23),
-                  child: Text(
-                    'Notification',
-                    style: GoogleFonts.rubik(
-                      color: AppColors.k010101,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                leading: Padding(
-                  padding:
-                      const EdgeInsets.only(left: 20, bottom: 9, right: 20),
-                  child: Image(
-                    width: 36,
-                    height: 36,
-                    image: AssetImage(
-                        'assets/images/ic_sidebar_notifications.png'),
-                  ),
-                ),
-              ),
             ),
-            InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (context) => getIt<TermsConditions>(),
-                  ),
-                );
-              },
-              child: ListTile(
-                title: Padding(
-                  padding: const EdgeInsets.only(top: 12, bottom: 23),
-                  child: Text(
-                    S.of(context).tandc,
-                    style: GoogleFonts.rubik(
-                      color: AppColors.k010101,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                leading: Padding(
-                  padding:
-                      const EdgeInsets.only(left: 20, bottom: 9, right: 20),
-                  child: Image(
-                    image: AssetImage('assets/images/ic_sidebar_terms.png'),
-                  ),
-                ),
-              ),
+            _drawerItem(
+              context,
+              'assets/images/ic_sidebar_terms.png',
+              S.of(context).tandc,
+              () => Navigator.push(context, MaterialPageRoute<void>(
+                builder: (context) => getIt<TermsConditions>(),
+              )),
             ),
-            InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (context) => getIt<PrivacyPolicy>(),
-                  ),
-                );
-              },
-              child: ListTile(
-                title: Padding(
-                  padding: const EdgeInsets.only(top: 12, bottom: 23),
-                  child: Text(
-                    S.of(context).privacy,
-                    style: GoogleFonts.rubik(
-                      color: AppColors.k010101,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                leading: Padding(
-                  padding:
-                      const EdgeInsets.only(left: 20, bottom: 9, right: 20),
-                  child: Image(
-                    image: AssetImage('assets/images/ic_sidebar_privacy.png'),
-                  ),
-                ),
-              ),
+            _drawerItem(
+              context,
+              'assets/images/ic_sidebar_privacy.png',
+              S.of(context).privacy,
+              () => Navigator.push(context, MaterialPageRoute<void>(
+                builder: (context) => getIt<PrivacyPolicy>(),
+              )),
             ),
-            InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (context) => getIt<AboutMiAid>(),
-                  ),
-                );
-              },
-              child: ListTile(
-                title: Padding(
-                  padding: const EdgeInsets.only(top: 12, bottom: 23),
-                  child: Text(
-                    S.of(context).about,
-                    style: GoogleFonts.rubik(
-                      color: AppColors.k010101,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                leading: Padding(
-                  padding:
-                      const EdgeInsets.only(left: 20, bottom: 9, right: 20),
-                  child: Image(
-                    image: AssetImage('assets/images/ic_sidebar_about.png'),
-                  ),
-                ),
-              ),
+            _drawerItem(
+              context,
+              'assets/images/ic_sidebar_about.png',
+              S.of(context).about,
+              () => Navigator.push(context, MaterialPageRoute<void>(
+                builder: (context) => getIt<AboutMiAid>(),
+              )),
             ),
-            InkWell(
-              onTap: () {
-                showAlertDialog(context);
-              },
-              child: ListTile(
-                title: Padding(
-                  padding: const EdgeInsets.only(top: 12, bottom: 23),
-                  child: Text(
-                    S.of(context).logout,
-                    style: GoogleFonts.rubik(
-                      color: AppColors.kfa0020,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                leading: Padding(
-                  padding:
-                      const EdgeInsets.only(left: 20, bottom: 9, right: 20),
-                  child: Image(
-                    image: AssetImage('assets/images/ic_sidebar_logout.png'),
-                  ),
-                ),
-              ),
+            _drawerItem(
+              context,
+              'assets/images/ic_sidebar_logout.png',
+              S.of(context).logout,
+              () => confirmLogout(context, services.user),
+              labelColor: AppColors.kfa0020,
             ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
     );
   }
 
-  void showAlertDialog(BuildContext context) {
-    Widget okButton = Padding(
-      padding: EdgeInsets.only(left: 64.5, right: 63.5, bottom: 24.5),
+  void _openProfile(BuildContext context) {
+    Navigator.push(context, MaterialPageRoute<void>(
+      builder: (context) => getIt<UserDoctorTranslatorProfileScreen>(),
+    ));
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 52, 0, 16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            width: MediaQuery.of(context).size.width,
-            height: 36,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.k0cbcc5.withOpacity(0.2),
-                  blurRadius: 10.0,
-                  spreadRadius: 0.0, //extend the shadow
-                  offset: Offset(
-                    0.0, // Move to right 10  horizontally
-                    4, // Move to bottom 10 Vertically
-                  ),
-                ),
-              ],
-            ),
-            child: TextButton(
-              style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.all(AppColors.k0cbcc5),
-                shape: MaterialStateProperty.all(
-                  RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(9),
-                  ),
-                ),
-              ),
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text(
-                S.of(context).no,
-                style: GoogleFonts.rubik(
-                  color: AppColors.kffffff,
-                  fontSize: 14,
-                ),
+          GestureDetector(
+            onTap: () => _openProfile(context),
+            child: Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.k0cbcc5, width: 2),
+                image: profileDecorationImage(context, services.user.user!, getIt<ApiSettings>()),
               ),
             ),
           ),
-          Center(
-            child: TextButton(
-              onPressed: () async {
-                Navigator.pop(context, true);
-              },
-              child: Text(
-                S.of(context).yes,
-                style: GoogleFonts.rubik(
-                  color: AppColors.k0cbcc5,
-                  fontSize: 14,
-                ),
+          const SizedBox(height: 10),
+          GestureDetector(
+            onTap: () => _openProfile(context),
+            child: Text(
+              services.user.user?.fullName ?? '',
+              style: GoogleFonts.rubik(
+                color: AppColors.k010101,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
               ),
+              textAlign: TextAlign.center,
             ),
           ),
         ],
       ),
     );
-    var alert = AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(12)),
-      ),
+  }
+
+  Widget _drawerItem(
+    BuildContext context,
+    String iconPath,
+    String label,
+    VoidCallback onTap, {
+    Color? labelColor,
+  }) {
+    return ListTile(
+      dense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+      minVerticalPadding: 0,
+      leading: Image.asset(iconPath, width: 24, height: 24),
       title: Text(
-        S.of(context).logout,
-        textAlign: TextAlign.center,
+        label,
         style: GoogleFonts.rubik(
-            color: AppColors.k010101, fontWeight: FontWeight.w700),
-      ),
-      content: Text(
-        S.of(context).logoutAlertMessage,
-        textAlign: TextAlign.center,
-        style: GoogleFonts.rubik(
-          fontSize: 13,
+          color: labelColor ?? AppColors.k010101,
+          fontSize: 14,
         ),
       ),
-      actions: [okButton],
+      onTap: onTap,
     );
-
-    showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return alert;
-        }).then((value) async {
-      if (value ?? false) {
-        await logout(context, services.user);
-      }
-    });
   }
 }

@@ -20,7 +20,10 @@ import 'package:miaid/services/marketing_api.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 
 class MarketingCategory extends StatefulWidget {
-  const MarketingCategory({super.key});
+  const MarketingCategory({super.key, this.showBackButton = true});
+
+  /// 作为底部导航的 MiSpace tab 时没有上一页，传 false 隐藏返回键
+  final bool showBackButton;
 
   @override
   State<MarketingCategory> createState() => _MarketingCategoryState();
@@ -75,12 +78,12 @@ class _MarketingCategoryState extends State<MarketingCategory> {
           fontSize: 15,
           fontWeight: FontWeight.w500,
         ),),
-        leading: Builder(
-          builder: (BuildContext context) => InkWell(
-            onTap: () => Navigator.pop(context),
-            child: navBarIcon(iconAssetName: 'ic_nb_back.png'),
-          ),
-        ),
+        leading: widget.showBackButton
+            ? InkWell(
+                onTap: () => Navigator.pop(context),
+                child: navBarIcon(iconAssetName: 'ic_nb_back.png'),
+              )
+            : null,
         actions: [
           Tooltip(
             message: 'My orders',
