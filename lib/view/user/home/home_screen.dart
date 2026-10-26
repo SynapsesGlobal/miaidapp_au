@@ -519,13 +519,22 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),),
                   SizedBox(height: 8,),
-                  Observer(builder: (context) => Text(
-                    S.of(context).youAreInCountry(country(context, store)) + ',  ' + S.of(context).needHelp,
-                    style: GoogleFonts.rubik(
-                      color: AppColors.k5e5e5e,
-                      fontSize: 14,
+                  // 整句固定在一行：放不下时等比缩小字号，不换行
+                  Observer(builder: (context) => SizedBox(
+                    width: double.infinity,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        S.of(context).youAreInCountry(country(context, store)) + ', ' + S.of(context).needHelp,
+                        style: GoogleFonts.rubik(
+                          color: AppColors.k5e5e5e,
+                          fontSize: 14,
+                        ),
+                        maxLines: 1,
+                        softWrap: false,
+                      ),
                     ),
-                    softWrap: true,
                   ),),
                   SizedBox(height: 6,),
                   InkWell(
@@ -704,88 +713,8 @@ class _HomeScreenState extends State<HomeScreen>
           const Divider(height: 1, thickness: 1, indent: 16, endIndent: 16, color: Color(0xFFE8E8E8)),
           SizedBox(height: Utils.isPad(context) ? 12 : 0),
           // AI Banner
-          Padding(
-            padding: EdgeInsets.only(
-              left: Utils.isPad(context) ? 16 : 0,
-              right: Utils.isPad(context) ? 16 : 0,
-              top: 8,
-            ),
-            child: TapDebouncer(
-              onTap: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ChatbotHistory(services: widget.services.activeSubscriptionStore,)),
-                );
-              },
-              builder: (context, onTap) => InkWell(
-                onTap: onTap,
-                child: Stack(
-                  children: [
-                    Image.asset(
-                      Utils.isPad(context) ? 'assets/banner_pad.png' : 'assets/banner.png',
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                    Positioned.fill(
-                      child: Padding(
-                        padding: EdgeInsets.only(left: Utils.isPad(context) ? 60 : 40, top: 14, bottom: 29, right: 130),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                S.of(context).bannerTitle,
-                                style: GoogleFonts.rubik(
-                                  color: Colors.white,
-                                  fontSize: Utils.isPad(context) ? 22 : 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                S.of(context).bannerSubtitle,
-                                style: GoogleFonts.rubik(
-                                  color: Colors.white.withOpacity(0.85),
-                                  fontSize: Utils.isPad(context) ? 18 : 13,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 10),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  S.of(context).bannerButton,
-                                  style: GoogleFonts.rubik(
-                                    color: AppColors.k0cbcc5,
-                                    fontSize: Utils.isPad(context) ? 18 : 13,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: Utils.isPad(context) ? 20 : 0,),
+          _aiBanner(context),
+          SizedBox(height: Utils.isPad(context) ? 24 : 16,),
           // Service cards 2x2 grid
           Padding(
             padding: const EdgeInsets.only(left: 16, right: 16),
@@ -795,171 +724,99 @@ class _HomeScreenState extends State<HomeScreen>
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Customer Care
-                    Expanded(child: TapDebouncer(
+                    _serviceCard(
+                      context,
+                      icon: Icons.favorite,
+                      title: S.of(context).videoDoctor,
                       onTap: () async {
                         var sharedPreferences = await SharedPreferences.getInstance();
                         await sharedPreferences.setString('video-call-source', 'home');
                         await navigateToCallScreen(context, widget.services.activeSubscriptionStore, VIDEO_CALL_TYPE.CONSULT_A_DOCTOR,);
                       },
-                      builder: (context, onTap) => InkWell(
-                        onTap: onTap,
-                        child: miAidCard(Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: AppColors.k0cbcc5,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(Icons.favorite, color: Colors.white, size: 22),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(S.of(context).videoDoctor, style: GoogleFonts.rubik(
-                                color: AppColors.k010101,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ), maxLines: 2, overflow: TextOverflow.ellipsis,),
-                            ],
-                          ),
-                        )),
-                      ),
-                    )),
-                    const SizedBox(width: 15),
+                    ),
+                    const SizedBox(width: 12),
                     // ED and Clinics Near Me
-                    Expanded(child: InkWell(
-                      onTap: () {
-                        Navigator.push(context, MaterialPageRoute<void>(
+                    _serviceCard(
+                      context,
+                      icon: Icons.add,
+                      title: S.of(context).edandClinic,
+                      onTap: () async {
+                        await Navigator.push(context, MaterialPageRoute<void>(
                           builder: (context) => getIt<MapScreen>(),
                         ),);
                       },
-                      child: miAidCard(Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: AppColors.k0cbcc5,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(Icons.add, color: Colors.white, size: 22),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(S.of(context).edandClinic, style: GoogleFonts.rubik(
-                              color: AppColors.k010101,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ), maxLines: 2, overflow: TextOverflow.ellipsis,),
-                          ],
-                        ),
-                      )),
-                    )),
+                    ),
                   ],
                 )),
-                const SizedBox(height: 15),
+                const SizedBox(height: 12),
                 IntrinsicHeight(child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // e-Shop
-                    Expanded(child: InkWell(
-                      onTap: () {
-                        Navigator.push(context, MaterialPageRoute<void>(
+                    _serviceCard(
+                      context,
+                      icon: Icons.shopping_cart,
+                      title: S.of(context).eShop,
+                      onTap: () async {
+                        await Navigator.push(context, MaterialPageRoute<void>(
                           builder: (context) => getIt<EShop>(),
                         ),);
                       },
-                      child: miAidCard(Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: AppColors.k0cbcc5,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(Icons.shopping_cart, color: Colors.white, size: 22),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(S.of(context).eShop, style: GoogleFonts.rubik(
-                              color: AppColors.k010101,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ), maxLines: 2, overflow: TextOverflow.ellipsis,),
-                          ],
-                        ),
-                      )),
-                    )),
-                    const SizedBox(width: 15),
-                    // MiAid Service
-                    Expanded(child: InkWell(
-                      onTap: () {
-                        Navigator.push(context, MaterialPageRoute<void>(
+                    ),
+                    const SizedBox(width: 12),
+                    // Services
+                    _serviceCard(
+                      context,
+                      icon: Icons.medical_services,
+                      title: S.of(context).otherService,
+                      onTap: () async {
+                        await Navigator.push(context, MaterialPageRoute<void>(
                           builder: (context) => getIt<AdditionalServices>(),
                         ),);
                       },
-                      child: miAidCard(Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: AppColors.k0cbcc5,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(Icons.medical_services, color: Colors.white, size: 22),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(S.of(context).otherService, style: GoogleFonts.rubik(
-                              color: AppColors.k010101,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ), maxLines: 2, overflow: TextOverflow.ellipsis,),
-                          ],
-                        ),
-                      )),
-                    )),
+                    ),
                   ],
                 )),
               ],
             ),
           ),
-          // About section
-          Padding(
-            padding: const EdgeInsets.only(top: 30),
-            child: InkWell(
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute<void>(
-                  builder: (context) => getIt<AboutMiAid>(),
-                ),);
-              },
-              child: Container(
-                color: AppColors.k2e2e2e,
-                child: Center(child: Padding(
-                  padding: const EdgeInsets.only(top: 14, bottom: 14,),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Image(image: AssetImage('assets/images/ic_home_about.png'),),
-                      SizedBox(width: 16.33,),
-                      Flexible(child: Text(S.of(context).about, style: GoogleFonts.rubik(
-                        color: AppColors.k0cbcc5,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ), maxLines: 1, overflow: TextOverflow.ellipsis,),),
-                    ],
-                  ),
-                ),),
-              ),
+          // 底部留白：「关于」栏已固定在页面底部（bottomNavigationBar），不再跟着内容滚动
+          const SizedBox(height: 30),
+        ],),),
+      ),
+      bottomNavigationBar: _aboutFooter(context),
+    );
+  }
+
+  /// 「关于脉康连 / About MiAid」固定在页面底部，内容区在其上方滚动。
+  /// 深色底延伸进 iOS 底部安全区，避免 Home 指示条处露出一截白边。
+  Widget _aboutFooter(BuildContext context) {
+    return Material(
+      color: AppColors.k2e2e2e,
+      child: InkWell(
+        onTap: () {
+          Navigator.push(context, MaterialPageRoute<void>(
+            builder: (context) => getIt<AboutMiAid>(),
+          ),);
+        },
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 14, bottom: 14),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Image(image: AssetImage('assets/images/ic_home_about.png')),
+                const SizedBox(width: 16.33),
+                Flexible(child: Text(S.of(context).about, style: GoogleFonts.rubik(
+                  color: AppColors.k0cbcc5,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ), maxLines: 1, overflow: TextOverflow.ellipsis,),),
+              ],
             ),
           ),
-        ],),),
+        ),
       ),
     );
   }
@@ -1008,5 +865,146 @@ class _HomeScreenState extends State<HomeScreen>
     if (appVersionResponse != null && appVersionResponse.status != true) {
       await widget.services.ongoingCallStore.ongoingCallStore(context, appVersionResponse);
     }
+  }
+
+  /// 首页 AI 入口。背景用设计给的 assets/ai_banner.png（6104×1200 原图缩到 3052 宽，
+  /// 机器人与装饰圆都在图里），高度按「旧 banner 在当前宽度下的高度 × 1.2」算；
+  /// 图比这个高度宽得多，用 cover 居中裁切（手机上只显示图中间约 45%，机器人会被裁掉，
+  /// 用户要求先看居中效果；之前是靠右裁切保留机器人）。
+  /// 圆角半径按图片自身的圆角比例换算，避免右侧两个角露出图片的透明边。
+  Widget _aiBanner(BuildContext context) {
+    final isPad = Utils.isPad(context);
+    // 旧 banner 的宽高比：banner.png 1520×568，banner_pad.png 1526×300
+    final oldAspect = isPad ? 1526 / 300 : 1520 / 568;
+    const heightScale = 1.2;
+    // ai_banner.png 的圆角约为图高的 4.6%
+    const imageCornerRatio = 55 / 1200;
+
+    return Padding(
+      padding: EdgeInsets.only(left: 16, right: 16, top: isPad ? 16 : 12),
+      child: LayoutBuilder(builder: (context, constraints) {
+        final height = constraints.maxWidth / oldAspect * heightScale;
+        final radius = BorderRadius.circular(height * imageCornerRatio);
+        return TapDebouncer(
+          onTap: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute<void>(builder: (context) => ChatbotHistory(services: widget.services.activeSubscriptionStore,)),
+            );
+          },
+          builder: (context, onTap) => InkWell(
+            onTap: onTap,
+            borderRadius: radius,
+            child: Container(
+              // 父级 Column 给的是宽松约束，不写死宽度会收缩到文字宽（中文标题短时尤其明显）
+              width: double.infinity,
+              height: height,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                borderRadius: radius,
+                color: const Color(0xFF052A28),
+                // 图片自带浅灰描边，左边被裁掉后这里补一圈同色描边
+                border: Border.all(color: const Color(0xFFB9C6C5), width: 1),
+                image: const DecorationImage(
+                  image: AssetImage('assets/ai_banner.png'),
+                  fit: BoxFit.cover,
+                  alignment: Alignment.center,
+                ),
+              ),
+              child: Padding(
+                // 居中裁切时手机上看不到机器人，右侧只留少量空白；iPad 还能看到大半机器人
+                padding: EdgeInsets.only(
+                  left: isPad ? 40 : 24,
+                  right: constraints.maxWidth * (isPad ? 0.3 : 0.2),
+                  top: 16,
+                  bottom: 16,
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        S.of(context).bannerTitle,
+                        style: GoogleFonts.rubik(
+                          color: Colors.white,
+                          fontSize: isPad ? 24 : 17,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          S.of(context).bannerButton,
+                          style: GoogleFonts.rubik(
+                            color: AppColors.k0cbcc5,
+                            fontSize: isPad ? 18 : 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  /// 服务入口卡片：图标和名称横向一行，比原来上下两行的版本更紧凑。
+  /// 四个入口都经过 TapDebouncer，防止连点重复进入页面。
+  Widget _serviceCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required Future<void> Function() onTap,
+  }) {
+    return Expanded(
+      child: TapDebouncer(
+        onTap: onTap,
+        builder: (context, debouncedTap) => InkWell(
+          onTap: debouncedTap,
+          borderRadius: BorderRadius.circular(15),
+          child: miAidCard(Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.k0cbcc5,
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 20),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(title, style: GoogleFonts.rubik(
+                    color: AppColors.k010101,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ), maxLines: 2, overflow: TextOverflow.ellipsis,),
+                ),
+              ],
+            ),
+          )),
+        ),
+      ),
+    );
   }
 }
