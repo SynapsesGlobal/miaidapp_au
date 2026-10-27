@@ -169,6 +169,7 @@
   "pharmacy": "Pharmacy",
   "dentist": "Dentist",
   "physiotherapy": "Physiotherapy",
+  "mentalHealth": "Mental Health",
   "call": "Call",
   "getDirection": "Get Direction",
   "openingHr": "Opening hours",

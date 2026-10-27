@@ -611,6 +611,8 @@ class _MapScreenState extends State<MapScreen> {
         return S.of(context).dentist;
       case 'physiotherapy':
         return S.of(context).physiotherapy;
+      case 'mental health':
+        return S.of(context).mentalHealth;
       default:
         return name ?? '';
     }
