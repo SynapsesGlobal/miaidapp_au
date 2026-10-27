@@ -33,7 +33,6 @@ import 'package:miaid/store/user/calling/ongoing_call_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/utils/utils.dart';
 import 'package:miaid/view/chatbot/chartbot_history.dart';
-import 'package:miaid/view/drawer/about.dart';
 import 'package:miaid/view/map/map_screen.dart';
 import 'package:miaid/view/user/calling/call_screen_helper.dart';
 import 'package:miaid/view/user/e_shop/e_shop.dart';
@@ -777,46 +776,13 @@ class _HomeScreenState extends State<HomeScreen>
               ],
             ),
           ),
-          // 底部留白：「关于」栏已固定在页面底部（bottomNavigationBar），不再跟着内容滚动
+          // 「关于脉康连」入口在抽屉里，首页底部只留白
           const SizedBox(height: 30),
         ],),),
       ),
-      bottomNavigationBar: _aboutFooter(context),
     );
   }
 
-  /// 「关于脉康连 / About MiAid」固定在页面底部，内容区在其上方滚动。
-  /// 深色底延伸进 iOS 底部安全区，避免 Home 指示条处露出一截白边。
-  Widget _aboutFooter(BuildContext context) {
-    return Material(
-      color: AppColors.k2e2e2e,
-      child: InkWell(
-        onTap: () {
-          Navigator.push(context, MaterialPageRoute<void>(
-            builder: (context) => getIt<AboutMiAid>(),
-          ),);
-        },
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 14, bottom: 14),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Image(image: AssetImage('assets/images/ic_home_about.png')),
-                const SizedBox(width: 16.33),
-                Flexible(child: Text(S.of(context).about, style: GoogleFonts.rubik(
-                  color: AppColors.k0cbcc5,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ), maxLines: 1, overflow: TextOverflow.ellipsis,),),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   String country(BuildContext context, HomeScreenStore store) {
     if (store.countryCode != null) {

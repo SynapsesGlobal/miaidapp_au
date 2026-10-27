@@ -59,33 +59,54 @@ class _MainTabsState extends State<MainTabs> {
           (i) => _pages.containsKey(i) || i == _index ? _page(i) : const SizedBox.shrink(),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _index,
-        onTap: (i) => setState(() => _index = i),
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: AppColors.kffffff,
-        selectedItemColor: AppColors.k0cbcc5,
-        unselectedItemColor: AppColors.k8f8e94,
-        selectedLabelStyle: GoogleFonts.rubik(fontSize: 12, fontWeight: FontWeight.w600),
-        unselectedLabelStyle: GoogleFonts.rubik(fontSize: 12),
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.home_outlined),
-            activeIcon: const Icon(Icons.home),
-            label: l10n.home,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.storefront_outlined),
-            activeIcon: const Icon(Icons.storefront),
-            label: l10n.marketing,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.person_outline),
-            activeIcon: const Icon(Icons.person),
-            label: l10n.me,
-          ),
-        ],
+      bottomNavigationBar: Container(
+        // 页面内容多是白底，底栏加一条分割线和向上的淡阴影，和内容区分开
+        decoration: BoxDecoration(
+          color: AppColors.kffffff,
+          border: const Border(top: BorderSide(color: Color(0xFFE8E8E8), width: 1)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.k003f51.withOpacity(0.08),
+              offset: const Offset(0, -2),
+              blurRadius: 8,
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _index,
+          onTap: (i) => setState(() => _index = i),
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          iconSize: 26,
+          selectedItemColor: AppColors.k0cbcc5,
+          unselectedItemColor: AppColors.k8f8e94,
+          selectedFontSize: 12,
+          unselectedFontSize: 11,
+          selectedLabelStyle: GoogleFonts.rubik(fontWeight: FontWeight.w700),
+          unselectedLabelStyle: GoogleFonts.rubik(fontWeight: FontWeight.w400),
+          items: [
+            _tabItem(Icons.home_outlined, Icons.home, l10n.home),
+            _tabItem(Icons.storefront_outlined, Icons.storefront, l10n.marketing),
+            _tabItem(Icons.person_outline, Icons.person, l10n.me),
+          ],
+        ),
       ),
+    );
+  }
+
+  /// 选中态用实心图标 + 粗体文字，未选中是线框图标
+  BottomNavigationBarItem _tabItem(IconData icon, IconData activeIcon, String label) {
+    return BottomNavigationBarItem(
+      icon: Padding(
+        padding: const EdgeInsets.only(bottom: 2),
+        child: Icon(icon),
+      ),
+      activeIcon: Padding(
+        padding: const EdgeInsets.only(bottom: 2),
+        child: Icon(activeIcon),
+      ),
+      label: label,
     );
   }
 }
