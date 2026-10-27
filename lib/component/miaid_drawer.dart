@@ -19,7 +19,6 @@ import 'package:miaid/view/user/calling/call_history/call_history.dart';
 import 'package:miaid/view/user/notification/notification_screen.dart';
 import 'package:miaid/view/user/user_profile_screen/user_profile_screen.dart';
 
-import '../view/tracking/location_tracking.dart';
 import 'miaid_doctor_translator_drawer.dart';
 
 class MiAidDrawerParams {
@@ -35,7 +34,7 @@ class MiAidDrawerServices {
   final UserProvider user;
 }
 
-/// 客户端侧边抽屉。个人资料、Travel/Corporate Care、邀请好友、登出已移到底部导航的
+/// 客户端侧边抽屉。个人资料、Travel/Corporate Care、定位追踪、邀请好友、登出已移到底部导航的
 /// 「我的」tab，MiSpace 已是独立 tab，这里只保留其余入口。
 @injectable
 class MiAidDrawer extends StatelessWidget {
@@ -91,14 +90,11 @@ class MiAidDrawer extends StatelessWidget {
             ),
             _drawerItem(
               context,
-              'assets/images/ic_sidebar_terms.png',
-              S.of(context).positionTracking,
-              () {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute<void>(
-                  builder: (context) => LocationTracking(),
-                ));
-              },
+              'assets/images/ic_sidebar_about.png',
+              S.of(context).about,
+              () => Navigator.push(context, MaterialPageRoute<void>(
+                builder: (context) => getIt<AboutMiAid>(),
+              )),
             ),
             _drawerItem(
               context,
@@ -114,14 +110,6 @@ class MiAidDrawer extends StatelessWidget {
               S.of(context).privacy,
               () => Navigator.push(context, MaterialPageRoute<void>(
                 builder: (context) => getIt<PrivacyPolicy>(),
-              )),
-            ),
-            _drawerItem(
-              context,
-              'assets/images/ic_sidebar_about.png',
-              S.of(context).about,
-              () => Navigator.push(context, MaterialPageRoute<void>(
-                builder: (context) => getIt<AboutMiAid>(),
               )),
             ),
             const SizedBox(height: 24),

@@ -10,11 +10,12 @@ import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/store/home/active_subscription_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
+import 'package:miaid/view/tracking/location_tracking.dart';
 import 'package:miaid/view/user/corporate_care_packages/corporate_care_packages.dart';
 import 'package:miaid/view/user/travel_care_packages/travel_care_packages.dart';
 import 'package:miaid/view/user/user_profile_screen/user_profile_screen.dart';
 
-/// 底部导航「我的」tab：个人资料、Travel Care、Corporate Care、邀请好友、登出的快捷入口。
+/// 底部导航「我的」tab：个人资料、Travel Care、Corporate Care、定位追踪、邀请好友、登出的快捷入口。
 /// 原来这些入口都在抽屉里，抽屉里已去掉。
 class MeScreen extends StatefulWidget {
   const MeScreen({super.key});
@@ -79,6 +80,12 @@ class _MeScreenState extends State<MeScreen> {
                   onTap: () => _push(getIt<CorporateCarePackages>()),
                 ),
               ],
+              const _ItemDivider(),
+              _MeItem(
+                icon: 'assets/images/ic_sidebar_terms.png',
+                label: l10n.positionTracking,
+                onTap: () => _push(LocationTracking()),
+              ),
               const _ItemDivider(),
               _MeItem(
                 icon: 'assets/images/invite.png',

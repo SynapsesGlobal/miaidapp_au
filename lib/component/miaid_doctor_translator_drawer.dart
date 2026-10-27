@@ -83,6 +83,14 @@ class MiAidDoctorTranslatorDrawer extends StatelessWidget {
             ),
             _drawerItem(
               context,
+              'assets/images/ic_sidebar_about.png',
+              S.of(context).about,
+              () => Navigator.push(context, MaterialPageRoute<void>(
+                builder: (context) => getIt<AboutMiAid>(),
+              )),
+            ),
+            _drawerItem(
+              context,
               'assets/images/ic_sidebar_terms.png',
               S.of(context).tandc,
               () => Navigator.push(context, MaterialPageRoute<void>(
@@ -95,14 +103,6 @@ class MiAidDoctorTranslatorDrawer extends StatelessWidget {
               S.of(context).privacy,
               () => Navigator.push(context, MaterialPageRoute<void>(
                 builder: (context) => getIt<PrivacyPolicy>(),
-              )),
-            ),
-            _drawerItem(
-              context,
-              'assets/images/ic_sidebar_about.png',
-              S.of(context).about,
-              () => Navigator.push(context, MaterialPageRoute<void>(
-                builder: (context) => getIt<AboutMiAid>(),
               )),
             ),
             _drawerItem(
