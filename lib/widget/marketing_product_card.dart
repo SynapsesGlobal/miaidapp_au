@@ -11,9 +11,10 @@ import 'package:miaid/widget/quantity_dialog.dart';
 /// 分类商品页（CategoryProducts）复用；两边的商品 JSON 结构相同
 /// （productId/companyId/title/description/price/discount_price/currency/image）。
 
-/// 商品图（含占位与出错兜底）
+/// 商品图（含占位与出错兜底）；商品带视频时左下角显示播放角标
 Widget marketingProductImage(Map product, {double? height, double? width}) {
-  return CachedNetworkImage(
+  final hasVideo = (product['video']?.toString() ?? '').isNotEmpty;
+  final image = CachedNetworkImage(
     height: height,
     width: width,
     fit: BoxFit.cover,
@@ -31,6 +32,25 @@ Widget marketingProductImage(Map product, {double? height, double? width}) {
       child: Icon(Icons.broken_image_outlined,
           size: 28, color: Colors.grey.shade400),
     ),
+  );
+  if (!hasVideo) return image;
+  return Stack(
+    children: [
+      image,
+      Positioned(
+        left: 6,
+        bottom: 6,
+        child: Container(
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.55),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.play_arrow_rounded,
+              color: Colors.white, size: 14),
+        ),
+      ),
+    ],
   );
 }
 

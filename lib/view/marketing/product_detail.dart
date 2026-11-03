@@ -17,6 +17,7 @@ import '../../component/nav_bar_icons.dart';
 import 'package:map_launcher/map_launcher.dart' as ml;
 import 'package:miaid/config/api_settings.dart';
 import 'package:miaid/services/marketing_api.dart';
+import 'package:miaid/widget/product_media_gallery.dart';
 
 class ProductDetail extends StatefulWidget {
   final String productId;
@@ -189,7 +190,6 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    String imageURL = detail['image'] ?? '';
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -225,8 +225,8 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 商品图片
-              _buildProductImage(imageURL),
+              // 商品相册：视频（若有）+ 多张图片，可滑动
+              ProductMediaGallery.fromProduct(detail),
 
               // 内容详情
               Padding(
@@ -472,39 +472,6 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProductImage(String imageURL) {
-    if (imageURL.isEmpty) {
-      return Container(
-        height: 360,
-        width: double.infinity,
-        color: Colors.grey[200],
-        child: Center(
-          child: Icon(Icons.image_not_supported_outlined,
-              color: Colors.grey[400], size: 56),
-        ),
-      );
-    }
-    return CachedNetworkImage(
-      imageUrl: imageURL,
-      width: double.infinity,
-      height: 360,
-      fit: BoxFit.cover,
-      placeholder: (context, url) => Container(
-        height: 360,
-        color: Colors.grey[100],
-        child: const Center(child: CupertinoActivityIndicator()),
-      ),
-      errorWidget: (context, url, error) => Container(
-        height: 360,
-        color: Colors.grey[200],
-        child: Center(
-          child: Icon(Icons.broken_image_outlined,
-              color: Colors.grey[400], size: 56),
         ),
       ),
     );
