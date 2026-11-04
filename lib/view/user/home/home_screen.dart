@@ -830,23 +830,26 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  /// 首页 AI 入口。背景用设计给的 assets/ai_banner.png（6104×1200 原图缩到 3052 宽，
-  /// 机器人与装饰圆都在图里），高度按「旧 banner 在当前宽度下的高度 × 1.2」算；
-  /// 图比这个高度宽得多，用 cover 居中裁切（手机上只显示图中间约 45%，机器人会被裁掉，
-  /// 用户要求先看居中效果；之前是靠右裁切保留机器人）。
-  /// 圆角半径按图片自身的圆角比例换算，避免右侧两个角露出图片的透明边。
+  /// 首页 AI 入口。背景图是在设计原图（3052×600）基础上脚本重排的版本：背景渐变、描边、
+  /// 装饰圆重画，机器人从原图抠出放大后贴在右侧（原图太扁，完整显示时横幅过矮）。
+  /// 手机用 assets/ai_banner.png（3052×1200），iPad 宽度大，用更扁的
+  /// assets/ai_banner_pad.png（3052×680），两张图描边 7px、圆角半径 145px 相同。
+  /// 用户要求整张图完整显示（右侧机器人不能被裁掉），所以高度直接按图片宽高比算、
+  /// BoxFit.fill 铺满。圆角半径按图片自身的圆角换算，只用来裁 InkWell 水波纹；
+  /// 容器不另加底色和描边，否则图片四角的透明区域会露出底色。
   Widget _aiBanner(BuildContext context) {
     final isPad = Utils.isPad(context);
-    // 旧 banner 的宽高比：banner.png 1520×568，banner_pad.png 1526×300
-    final oldAspect = isPad ? 1526 / 300 : 1520 / 568;
-    const heightScale = 1.2;
-    // ai_banner.png 的圆角约为图高的 4.6%
-    const imageCornerRatio = 55 / 1200;
+    final imageName = isPad ? 'assets/ai_banner_pad.png' : 'assets/ai_banner.png';
+    final imageHeight = isPad ? 680 : 1200;
+    final imageAspect = 3052 / imageHeight;
+    final imageCornerRatio = 145 / imageHeight;
+    // 图中机器人起始位置：手机版约 64% 宽度处，iPad 版约 75%，文字区避开右侧
+    final textRightRatio = isPad ? 0.28 : 0.38;
 
     return Padding(
       padding: EdgeInsets.only(left: 16, right: 16, top: isPad ? 16 : 12),
       child: LayoutBuilder(builder: (context, constraints) {
-        final height = constraints.maxWidth / oldAspect * heightScale;
+        final height = constraints.maxWidth / imageAspect;
         final radius = BorderRadius.circular(height * imageCornerRatio);
         return TapDebouncer(
           onTap: () async {
@@ -865,22 +868,18 @@ class _HomeScreenState extends State<HomeScreen>
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 borderRadius: radius,
-                color: const Color(0xFF052A28),
-                // 图片自带浅灰描边，左边被裁掉后这里补一圈同色描边
-                border: Border.all(color: const Color(0xFFB9C6C5), width: 1),
-                image: const DecorationImage(
-                  image: AssetImage('assets/ai_banner.png'),
-                  fit: BoxFit.cover,
-                  alignment: Alignment.center,
+                image: DecorationImage(
+                  image: AssetImage(imageName),
+                  // 高度已按图片比例算好，fill 正好铺满、不裁切
+                  fit: BoxFit.fill,
                 ),
               ),
               child: Padding(
-                // 居中裁切时手机上看不到机器人，右侧只留少量空白；iPad 还能看到大半机器人
                 padding: EdgeInsets.only(
-                  left: isPad ? 40 : 24,
-                  right: constraints.maxWidth * (isPad ? 0.3 : 0.2),
-                  top: 16,
-                  bottom: 16,
+                  left: isPad ? 32 : 20,
+                  right: constraints.maxWidth * textRightRatio,
+                  top: isPad ? 16 : 12,
+                  bottom: isPad ? 16 : 12,
                 ),
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
@@ -900,7 +899,7 @@ class _HomeScreenState extends State<HomeScreen>
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 14),
+                      SizedBox(height: isPad ? 14 : 10),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
                         decoration: BoxDecoration(
