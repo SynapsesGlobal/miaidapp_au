@@ -498,7 +498,7 @@
   "cancelPickupOrderConfirm": "確定取消這筆自取訂單嗎？商品庫存將會退回。",
   "keepOrder": "保留訂單",
   "orderCancelled": "訂單已取消",
-  "selectAddressFromSuggestions": "請從下拉建議中選擇地址，或使用目前位置 / 在地圖上選點",
+  "selectAddressFromSuggestions": "請在地圖上選擇收貨地址，或使用目前位置",
   "deliveryTooFar": "寄送距離不能超過藥店 {radius} 公里，請選擇到店自取。",
   "noAddressFound": "沒有找到相符的地址",
   "deliveryUnavailableNoLocation": "該藥店暫無位置資訊，無法寄送，請選擇到店自取。",
@@ -565,10 +565,8 @@
   "pickOnMap": "在地圖上選點",
   "addressServiceUnavailable": "地址查詢服務暫時無法使用，請檢查網路後重試。",
   "retry": "重試",
-  "addressNotFoundHelp": "找不到你的地址？可以使用目前位置，或在地圖上選點。",
-  "deliveryLocationPinned": "收貨位置已在地圖上確認，上方地址文字仍可修改。",
+  "deliveryLocationPinned": "收貨地址已確認。如需修改，請點「換一個地址」重新選擇。",
   "adjustOnMap": "在地圖上調整",
-  "clearLocation": "清除位置",
   "locationPermissionDenied": "使用目前位置需要定位權限，請在系統設定中允許。",
   "locationServiceDisabled": "定位服務已關閉，請開啟後重試。",
   "openSettings": "打開設定",
@@ -579,5 +577,8 @@
   "distanceFromPharmacy": "距藥局約 {distance} 公里",
   "outsideDeliveryRadius": "超出 {radius} 公里配送範圍",
   "findingAddress": "正在查詢地址…",
-  "addressUnknownAtPin": "此位置沒有查到地址，確認後請手動填寫。"
+  "addressUnknownAtPin": "此位置沒有查到街道地址，將以地圖標記位置作為收貨地址，門牌、單元等資訊請在下方補充欄填寫。",
+  "searchOnMap": "搜尋地址或地點",
+  "pinnedLocationLabel": "地圖標記位置（{latitude}, {longitude}）",
+  "tapToSearchAddress": "點擊在地圖上選擇收貨地址"
 }

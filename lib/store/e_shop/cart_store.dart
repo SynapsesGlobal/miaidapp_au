@@ -176,8 +176,6 @@ abstract class _CartEShopStore with Store {
   double? deliveryLongitude;
   DeliveryCoordinateSource? deliveryCoordinateSource;
   bool get hasDeliveryCoordinates => deliveryLatitude != null && deliveryLongitude != null;
-  bool get deliveryCoordinatesPinned =>
-      hasDeliveryCoordinates && deliveryCoordinateSource != DeliveryCoordinateSource.suggestion;
 
   /// 提交给后端的收货地址：补充信息（单元 / 楼层）在前，主地址在后
   String get deliveryAddressForOrder {

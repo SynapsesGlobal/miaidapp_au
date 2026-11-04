@@ -528,7 +528,7 @@
   "cancelPickupOrderConfirm": "이 픽업 주문을 취소하시겠습니까? 상품은 재고로 반환됩니다.",
   "keepOrder": "주문 유지",
   "orderCancelled": "주문이 취소되었습니다",
-  "selectAddressFromSuggestions": "제안 목록에서 주소를 선택하거나 현재 위치 / 지도를 사용하세요",
+  "selectAddressFromSuggestions": "지도에서 배송 주소를 선택하거나 현재 위치를 사용해 주세요",
   "deliveryTooFar": "배송은 약국에서 {radius}km 이내만 가능합니다. 픽업을 선택해 주세요.",
   "noAddressFound": "일치하는 주소를 찾을 수 없습니다",
   "deliveryUnavailableNoLocation": "이 약국은 위치 정보가 없어 배송할 수 없습니다. 픽업을 선택해 주세요.",
@@ -595,10 +595,8 @@
   "pickOnMap": "지도에서 선택",
   "addressServiceUnavailable": "주소 검색을 지금 사용할 수 없습니다. 연결 상태를 확인하고 다시 시도하세요.",
   "retry": "다시 시도",
-  "addressNotFoundHelp": "주소를 찾을 수 없나요? 현재 위치를 사용하거나 지도에서 선택하세요.",
-  "deliveryLocationPinned": "배송 위치가 지도에서 확인되었습니다. 위의 주소 텍스트는 수정할 수 있습니다.",
+  "deliveryLocationPinned": "배송 주소가 확인되었습니다. 변경하려면 “다른 주소 입력”을 누르세요.",
   "adjustOnMap": "지도에서 조정",
-  "clearLocation": "위치 지우기",
   "locationServiceDisabled": "위치 서비스가 꺼져 있습니다. 켠 후 다시 시도하세요.",
   "openSettings": "설정 열기",
   "locatingFailed": "현재 위치를 가져올 수 없습니다. 다시 시도하거나 지도에서 선택하세요.",
@@ -608,5 +606,8 @@
   "distanceFromPharmacy": "약국에서 약 {distance} km",
   "outsideDeliveryRadius": "{radius} km 배송 범위를 벗어났습니다",
   "findingAddress": "주소 찾는 중…",
-  "addressUnknownAtPin": "이 지점의 주소를 찾을 수 없습니다. 확인 후 직접 입력해 주세요."
+  "addressUnknownAtPin": "이 지점의 도로명 주소를 찾을 수 없습니다. 지도 표시 위치가 배송 주소로 사용되며, 호수나 건물 정보는 아래에 입력해 주세요.",
+  "searchOnMap": "주소 또는 장소 검색",
+  "pinnedLocationLabel": "지도 표시 위치 ({latitude}, {longitude})",
+  "tapToSearchAddress": "탭하여 지도에서 배송 주소 선택"
 }

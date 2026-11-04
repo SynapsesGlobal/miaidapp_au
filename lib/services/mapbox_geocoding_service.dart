@@ -87,10 +87,17 @@ class MapboxGeocodingService {
       params['language'] = language;
     }
 
-    final uri = Uri.https(
-      'api.mapbox.com',
-      '/geocoding/v5/mapbox.places/${Uri.encodeComponent(trimmed)}.json',
-      params,
+    // 查询文本作为单个 path segment 交给 Uri 编码，不能再 encodeComponent：
+    // 双重编码后空格变成 "%2520"，Mapbox 解码一次得到 "6%20dalgety%20street"，
+    // 把 "20" 当成门牌号去匹配，任何带数字的查询都只返回 20 开头的地址。
+    // 用 pathSegments 而不是拼 path，是为了让单元号里的 "/"（如 12/3 Queen St）
+    // 编码成 %2F 留在查询里，而不是被当成路径分隔符。
+    // 查询里的 ";" 会被 Mapbox 当作批量查询分隔符，提前换掉。
+    final uri = Uri(
+      scheme: 'https',
+      host: 'api.mapbox.com',
+      pathSegments: ['geocoding', 'v5', 'mapbox.places', '${trimmed.replaceAll(';', ' ')}.json'],
+      queryParameters: params,
     );
     final places = await _request(uri);
     return places == null ? const MapboxSearchResult.failure() : MapboxSearchResult.success(places);

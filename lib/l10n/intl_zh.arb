@@ -504,7 +504,7 @@
   "cancelPickupOrderConfirm": "确定取消这笔自取订单吗？商品库存将会退回。",
   "keepOrder": "保留订单",
   "orderCancelled": "订单已取消",
-  "selectAddressFromSuggestions": "请从下拉建议中选择地址，或使用当前位置 / 在地图上选点",
+  "selectAddressFromSuggestions": "请在地图上选择收货地址，或使用当前位置",
   "deliveryTooFar": "寄送距离不能超过药店 {radius} 公里，请选择到店自取。",
   "noAddressFound": "没有找到匹配的地址",
   "deliveryUnavailableNoLocation": "该药店暂无位置信息，无法寄送，请选择到店自取。",
@@ -571,10 +571,8 @@
   "pickOnMap": "在地图上选点",
   "addressServiceUnavailable": "地址查询服务暂时不可用，请检查网络后重试。",
   "retry": "重试",
-  "addressNotFoundHelp": "找不到你的地址？可以使用当前位置，或在地图上选点。",
-  "deliveryLocationPinned": "收货位置已在地图上确认，上方地址文字仍可修改。",
+  "deliveryLocationPinned": "收货地址已确认。如需修改，请点「换一个地址」重新选择。",
   "adjustOnMap": "在地图上调整",
-  "clearLocation": "清除位置",
   "locationPermissionDenied": "使用当前位置需要定位权限，请在系统设置中允许。",
   "locationServiceDisabled": "定位服务已关闭，请开启后重试。",
   "openSettings": "打开设置",
@@ -585,5 +583,8 @@
   "distanceFromPharmacy": "距药店约 {distance} 公里",
   "outsideDeliveryRadius": "超出 {radius} 公里配送范围",
   "findingAddress": "正在查找地址…",
-  "addressUnknownAtPin": "此位置没有查到地址，确认后请手动填写。"
+  "addressUnknownAtPin": "此位置没有查到街道地址，将以地图标记位置作为收货地址，门牌、单元等信息请在下方补充栏填写。",
+  "searchOnMap": "搜索地址或地点",
+  "pinnedLocationLabel": "地图标记位置（{latitude}, {longitude}）",
+  "tapToSearchAddress": "点击在地图上选择收货地址"
 }

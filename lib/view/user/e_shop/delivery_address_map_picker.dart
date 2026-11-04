@@ -40,7 +40,9 @@ class DeliveryAddressMapPicker extends StatefulWidget {
     required this.radiusLabel,
     this.pharmacyName,
     this.languageTag,
+    this.countryCode,
     this.initialZoom = 16,
+    this.autofocusSearch = false,
   }) : super(key: key);
 
   final double initialLatitude;
@@ -53,7 +55,13 @@ class DeliveryAddressMapPicker extends StatefulWidget {
   /// 药店名称，挂在药店图标下方，帮用户辨认方位；为空只画图标
   final String? pharmacyName;
   final String? languageTag;
+
+  /// 地图内搜索限定的国家（ISO 3166-1 alpha-2），和购物车页联想保持一致
+  final String? countryCode;
   final double initialZoom;
+
+  /// 打开时直接聚焦搜索框弹键盘：从空白地址栏进来时用户多半想先搜
+  final bool autofocusSearch;
 
   /// 全屏打开选点页；用户取消返回 null
   static Future<DeliveryMapPickerResult?> show(
@@ -66,7 +74,9 @@ class DeliveryAddressMapPicker extends StatefulWidget {
     required String radiusLabel,
     String? pharmacyName,
     String? languageTag,
+    String? countryCode,
     double initialZoom = 16,
+    bool autofocusSearch = false,
   }) {
     return Navigator.push<DeliveryMapPickerResult>(
       context,
@@ -81,7 +91,9 @@ class DeliveryAddressMapPicker extends StatefulWidget {
           radiusLabel: radiusLabel,
           pharmacyName: pharmacyName,
           languageTag: languageTag,
+          countryCode: countryCode,
           initialZoom: initialZoom,
+          autofocusSearch: autofocusSearch,
         ),
       ),
     );
@@ -102,16 +114,43 @@ class _DeliveryAddressMapPickerState extends State<DeliveryAddressMapPicker> {
   Timer? _debounce;
   int _seq = 0;
 
+  // ---- 地图内搜索：输入后联想，选中把地图中心移过去，之后走和拖动一样的反查 ----
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
+  Timer? _searchDebounce;
+  int _searchSeq = 0;
+  List<MapboxPlace> _suggestions = const [];
+  bool _searching = false;
+  bool _searchFailed = false;
+  String _lastQuery = '';
+  /// 选中联想项回填输入框时置 true，避免 onChanged 再触发一次搜索
+  bool _suppressSearch = false;
+
   @override
   void initState() {
     super.initState();
     _center = LatLng(widget.initialLatitude, widget.initialLongitude);
+    // 焦点变化要重建：失焦收起联想面板，重新聚焦再展开
+    _searchFocus.addListener(_onSearchFocusChanged);
     _scheduleReverse();
+    if (widget.autofocusSearch) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _searchFocus.requestFocus();
+      });
+    }
+  }
+
+  void _onSearchFocusChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
+    _searchDebounce?.cancel();
+    _searchController.dispose();
+    _searchFocus.removeListener(_onSearchFocusChanged);
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -183,6 +222,98 @@ class _DeliveryAddressMapPickerState extends State<DeliveryAddressMapPicker> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  double _metersToPharmacy(double latitude, double longitude) => Geolocator.distanceBetween(
+        widget.pharmacyLatitude,
+        widget.pharmacyLongitude,
+        latitude,
+        longitude,
+      );
+
+  /// 输入框有焦点且输入够 3 个字符时才挂联想面板（加载中 / 失败 / 无结果 / 列表）
+  bool get _showSuggestionPanel => _searchFocus.hasFocus && _lastQuery.length >= 3;
+
+  void _onSearchChanged(String value) {
+    if (_suppressSearch) return;
+    final query = value.trim();
+    _searchDebounce?.cancel();
+    if (query.length < 3) {
+      setState(() {
+        _lastQuery = query;
+        _suggestions = const [];
+        _searching = false;
+        _searchFailed = false;
+      });
+      return;
+    }
+    setState(() {
+      _lastQuery = query;
+      _searching = true;
+      _searchFailed = false;
+    });
+    _searchDebounce = Timer(const Duration(milliseconds: 400), () => _runSearch(query));
+  }
+
+  /// proximity 用当前地图中心：用户正在看的区域优先，比固定用药店坐标更贴近意图
+  Future<void> _runSearch(String query) async {
+    final seq = ++_searchSeq;
+    final center = _center;
+    final result = await _geocoding.search(
+      query,
+      proximityLatitude: center.latitude,
+      proximityLongitude: center.longitude,
+      countryCode: widget.countryCode,
+      language: widget.languageTag,
+    );
+    if (!mounted || seq != _searchSeq) return;
+    setState(() {
+      _suggestions = result.places;
+      _searchFailed = result.failed;
+      _searching = false;
+    });
+  }
+
+  void _retrySearch() {
+    if (_lastQuery.length < 3) return;
+    setState(() {
+      _searching = true;
+      _searchFailed = false;
+    });
+    _runSearch(_lastQuery);
+  }
+
+  void _clearSearch() {
+    _searchDebounce?.cancel();
+    _searchSeq++;
+    _suppressSearch = true;
+    _searchController.clear();
+    _suppressSearch = false;
+    setState(() {
+      _lastQuery = '';
+      _suggestions = const [];
+      _searching = false;
+      _searchFailed = false;
+    });
+  }
+
+  /// 选中联想项：输入框回填名称、收起列表，地图移到该点；onPositionChanged 会接着反查地址
+  void _selectSuggestion(MapboxPlace place) {
+    _searchDebounce?.cancel();
+    _searchSeq++;
+    _suppressSearch = true;
+    _searchController.value = TextEditingValue(
+      text: place.placeName,
+      selection: TextSelection.collapsed(offset: place.placeName.length),
+    );
+    _suppressSearch = false;
+    _searchFocus.unfocus();
+    setState(() {
+      _suggestions = const [];
+      _searching = false;
+      _searchFailed = false;
+    });
+    _mapController.move(LatLng(place.latitude, place.longitude), 17);
+  }
+
   void _confirm() {
     Navigator.pop(
       context,
@@ -225,6 +356,8 @@ class _DeliveryAddressMapPickerState extends State<DeliveryAddressMapPicker> {
                     zoom: widget.initialZoom,
                     maxZoom: 18.0,
                     onPositionChanged: _onPositionChanged,
+                    // 点地图收起搜索列表和键盘
+                    onTap: (_, __) => _searchFocus.unfocus(),
                   ),
                   children: [
                     TileLayer(
@@ -266,6 +399,12 @@ class _DeliveryAddressMapPickerState extends State<DeliveryAddressMapPicker> {
                   ),
                 ),
                 Positioned(
+                  left: 12,
+                  right: 12,
+                  top: 12,
+                  child: _searchOverlay(l10n),
+                ),
+                Positioned(
                   right: 16,
                   bottom: 16,
                   child: FloatingActionButton.small(
@@ -286,6 +425,162 @@ class _DeliveryAddressMapPickerState extends State<DeliveryAddressMapPicker> {
           ),
           _bottomPanel(context, l10n),
         ],
+      ),
+    );
+  }
+
+  /// 地图上方的搜索框，下面按需挂联想列表 / 失败重试 / 无结果提示
+  Widget _searchOverlay(S l10n) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Material(
+          color: Colors.white,
+          elevation: 3,
+          shadowColor: Colors.black26,
+          borderRadius: BorderRadius.circular(12),
+          child: TextField(
+            controller: _searchController,
+            focusNode: _searchFocus,
+            onChanged: _onSearchChanged,
+            textInputAction: TextInputAction.search,
+            style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 14),
+            decoration: InputDecoration(
+              hintText: l10n.searchOnMap,
+              hintStyle: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 14),
+              prefixIcon: Icon(Icons.search, color: AppColors.k8f8e94),
+              suffixIcon: _searching
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : (_searchController.text.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: Icon(Icons.close, color: AppColors.k8f8e94, size: 20),
+                          onPressed: _clearSearch,
+                        )),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            ),
+          ),
+        ),
+        if (_showSuggestionPanel) ...[
+          const SizedBox(height: 6),
+          Material(
+            color: Colors.white,
+            elevation: 3,
+            shadowColor: Colors.black26,
+            borderRadius: BorderRadius.circular(12),
+            clipBehavior: Clip.antiAlias,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 260),
+              child: _suggestionPanelBody(l10n),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _suggestionPanelBody(S l10n) {
+    if (_searchFailed) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                l10n.addressServiceUnavailable,
+                style: GoogleFonts.rubik(color: Colors.red, fontSize: 13),
+              ),
+            ),
+            TextButton(
+              onPressed: _retrySearch,
+              child: Text(l10n.retry, style: GoogleFonts.rubik(color: AppColors.k0cbcc5, fontSize: 13)),
+            ),
+          ],
+        ),
+      );
+    }
+    if (_searching && _suggestions.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(14),
+        child: Text(l10n.loading, style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 13)),
+      );
+    }
+    if (_suggestions.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(14),
+        child: Text(l10n.noAddressFound, style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 13)),
+      );
+    }
+    return ListView.separated(
+      shrinkWrap: true,
+      padding: EdgeInsets.zero,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      itemCount: _suggestions.length,
+      separatorBuilder: (_, __) => Divider(height: 1, color: AppColors.kf4f4f4),
+      itemBuilder: (_, index) => _suggestionTile(l10n, _suggestions[index]),
+    );
+  }
+
+  /// 联想项：第一段逗号前做标题，其余做副标题；右侧标到药店距离，超出半径标红
+  Widget _suggestionTile(S l10n, MapboxPlace place) {
+    final comma = place.placeName.indexOf(',');
+    final title = comma > 0 ? place.placeName.substring(0, comma).trim() : place.placeName;
+    final subtitle = comma > 0 ? place.placeName.substring(comma + 1).trim() : '';
+    final meters = _metersToPharmacy(place.latitude, place.longitude);
+    final inRange = meters <= widget.radiusMeters;
+    final km = (meters / 1000).toStringAsFixed(1);
+    return InkWell(
+      onTap: () => _selectSuggestion(place),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          children: [
+            Icon(Icons.place_outlined, size: 18, color: inRange ? AppColors.k0cbcc5 : AppColors.kb1b1b1),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.rubik(
+                      color: inRange ? AppColors.k010101 : AppColors.k8f8e94,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (subtitle.isNotEmpty)
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 12),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              inRange ? '$km km' : l10n.outsideDeliveryRadius(widget.radiusLabel),
+              maxLines: 1,
+              style: GoogleFonts.rubik(
+                color: inRange ? AppColors.k0cbcc5 : Colors.red,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

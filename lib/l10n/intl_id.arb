@@ -529,7 +529,7 @@
   "cancelPickupOrderConfirm": "Batalkan pesanan ambil di toko ini? Barang akan dikembalikan ke stok.",
   "keepOrder": "Simpan pesanan",
   "orderCancelled": "Pesanan dibatalkan",
-  "selectAddressFromSuggestions": "Pilih alamat dari saran, atau gunakan lokasi saat ini / peta",
+  "selectAddressFromSuggestions": "Pilih alamat pengiriman di peta atau gunakan lokasi Anda saat ini",
   "deliveryTooFar": "Pengiriman hanya tersedia dalam radius {radius} km dari apotek. Silakan pilih ambil di toko.",
   "noAddressFound": "Alamat yang cocok tidak ditemukan",
   "deliveryUnavailableNoLocation": "Pengiriman tidak tersedia: apotek ini belum memiliki data lokasi. Silakan pilih ambil di toko.",
@@ -596,10 +596,8 @@
   "pickOnMap": "Pilih di peta",
   "addressServiceUnavailable": "Pencarian alamat sedang tidak tersedia. Periksa koneksi Anda dan coba lagi.",
   "retry": "Coba lagi",
-  "addressNotFoundHelp": "Tidak menemukan alamat Anda? Gunakan lokasi saat ini atau pilih di peta.",
-  "deliveryLocationPinned": "Lokasi pengiriman telah dikonfirmasi di peta. Anda masih dapat mengedit teks alamat di atas.",
+  "deliveryLocationPinned": "Alamat pengiriman telah dikonfirmasi. Untuk mengubahnya, ketuk “Coba alamat lain”.",
   "adjustOnMap": "Sesuaikan di peta",
-  "clearLocation": "Hapus lokasi",
   "locationServiceDisabled": "Layanan lokasi dimatikan. Nyalakan lalu coba lagi.",
   "openSettings": "Buka Pengaturan",
   "locatingFailed": "Tidak dapat memperoleh lokasi Anda saat ini. Coba lagi atau pilih di peta.",
@@ -609,5 +607,8 @@
   "distanceFromPharmacy": "Sekitar {distance} km dari apotek",
   "outsideDeliveryRadius": "Di luar jangkauan pengiriman {radius} km",
   "findingAddress": "Mencari alamat…",
-  "addressUnknownAtPin": "Tidak ada alamat untuk titik ini. Ketik alamat setelah konfirmasi."
+  "addressUnknownAtPin": "Tidak ada alamat jalan di sini. Lokasi penanda peta akan dipakai sebagai alamat pengiriman; tambahkan unit atau gedung di bawah.",
+  "searchOnMap": "Cari alamat atau tempat",
+  "pinnedLocationLabel": "Lokasi penanda peta ({latitude}, {longitude})",
+  "tapToSearchAddress": "Ketuk untuk memilih alamat pengiriman di peta"
 }
