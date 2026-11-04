@@ -309,6 +309,8 @@ class _EShopState extends State<EShop> with SingleTickerProviderStateMixin {
       availability,
       pharmacyLatitude: pharmacy.latitude,
       pharmacyLongitude: pharmacy.longitude,
+      // PharmacyLocation.country 是国家名，ISO 码在所属 Pharmacy 的 Country 上
+      pharmacyCountryCode: pharmacy.pharmacy?.country?.countryCode,
     );
     cartStore.changeDeliveryOption(option);
 

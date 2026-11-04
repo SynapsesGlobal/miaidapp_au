@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:miaid/view/marketing/product_detail.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../api_utils/api_provider.dart';
 import '../../api_utils/http_exception.dart';
@@ -14,9 +13,9 @@ import '../../config/app_colors.dart';
 import '../../generated/l10n.dart';
 import '../../utils/configure_dependencies.dart';
 import 'package:http/http.dart' as http;
-import 'package:map_launcher/map_launcher.dart' as ml;
 import 'package:miaid/config/api_settings.dart';
 import 'package:miaid/services/marketing_api.dart';
+import 'package:miaid/widget/contact_shop_sheet.dart';
 
 class OrderDetail extends StatefulWidget {
   final String orderId;
@@ -111,71 +110,80 @@ class _OrderDetailState extends State<OrderDetail> {
   }
 
   Widget _buildOrderItemLayout(dynamic product) {
-    return Card(
-      margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Colors.white,
-      elevation: 0,
-      child: Padding(
-        padding: EdgeInsets.all(8),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: CachedNetworkImage(
-                height: 100,
-                width: 100,
-                fit: BoxFit.cover,
-                imageUrl: product['image'],
-              ),
-            ),
-            SizedBox(width: 12),
-            Expanded(child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(product['title'], style: GoogleFonts.rubik(
-                  color: AppColors.k010101,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                )),
-                SizedBox(height: 4),
-                Text(
-                  product['description'],
-                  style: GoogleFonts.rubik(
-                    color: Colors.grey[600],
-                    fontSize: 14,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+    return InkWell(
+      onTap: ()=> Navigator.push(context, MaterialPageRoute<void>(
+        builder: (context) => ProductDetail(
+          productId: product['productId'].toString(),
+          title: product['title'],
+          companyId: product['companyId'].toString(),
+        ),
+      ),),
+      child: Card(
+        margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        color: Colors.white,
+        elevation: 0,
+        child: Padding(
+          padding: EdgeInsets.all(8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: CachedNetworkImage(
+                  height: 100,
+                  width: 100,
+                  fit: BoxFit.cover,
+                  imageUrl: product['image'],
                 ),
-                SizedBox(height: 4,),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(children: [
-                      Text(product['currency'], style: GoogleFonts.rubik(
-                        color: AppColors.k0cbcc5,
-                        fontSize: 14,
-                        fontWeight: FontWeight.normal,
-                      )),
-                      SizedBox(width: 3,),
-                      Text(product['price'].toString(), style: GoogleFonts.rubik(
+              ),
+              SizedBox(width: 12),
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(product['title'], style: GoogleFonts.rubik(
+                    color: AppColors.k010101,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  )),
+                  SizedBox(height: 4),
+                  Text(
+                    product['description'],
+                    style: GoogleFonts.rubik(
+                      color: Colors.grey[600],
+                      fontSize: 14,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 4,),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(children: [
+                        Text(product['currency'], style: GoogleFonts.rubik(
+                          color: AppColors.k0cbcc5,
+                          fontSize: 14,
+                          fontWeight: FontWeight.normal,
+                        )),
+                        SizedBox(width: 3,),
+                        Text(product['price'].toString(), style: GoogleFonts.rubik(
+                          color: AppColors.k0cbcc5,
+                          fontSize: 14,
+                          fontWeight: FontWeight.normal,
+                        ))
+                      ],),
+                      Text('x '+product['quantity'].toString(), style: GoogleFonts.rubik(
                         color: AppColors.k0cbcc5,
                         fontSize: 14,
                         fontWeight: FontWeight.normal,
                       ))
-                    ],),
-                    Text('x '+product['quantity'].toString(), style: GoogleFonts.rubik(
-                      color: AppColors.k0cbcc5,
-                      fontSize: 14,
-                      fontWeight: FontWeight.normal,
-                    ))
-                  ],
-                ),
-              ],
-            ),),
-          ],
+                    ],
+                  ),
+                ],
+              ),),
+            ],
+          ),
         ),
       ),
     );
@@ -280,117 +288,8 @@ class _OrderDetailState extends State<OrderDetail> {
             Divider(color: Colors.grey[200],),
             InkWell(
               onTap: (){
-                var company = detail['company'];
-                showModalBottomSheet(
-                  context: context,
-                  isDismissible: false,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                  ),
-                  builder: (BuildContext context) => Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(16),
-                    height: 320,
-                    child: Column(children: [
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: InkWell(
-                          onTap: ()=> Navigator.of(context).pop(),
-                          child: Icon(Icons.close, color: Colors.grey,),
-                        ),
-                      ),
-                      SizedBox(height: 5,),
-                      Divider(color: Colors.grey[200],),
-                      SizedBox(height: 5,),
-                      Row(children: [
-                        ClipOval(child: CachedNetworkImage(
-                          height:  MediaQuery.of(context).size.width*0.25,
-                          width: MediaQuery.of(context).size.width*0.25,
-                          fit: BoxFit.cover,
-                          imageUrl: company['image'],
-                        ),),
-                        SizedBox(width: 10,),
-                        SizedBox(
-                          width: MediaQuery.of(context).size.width*0.60,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(company['name'], style: GoogleFonts.rubik(
-                                color: AppColors.k010101,
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                              ),),
-                              SizedBox(height: 8),
-                              Text(company['phone'], style: GoogleFonts.rubik(
-                                color: AppColors.k010101,
-                                fontSize: 14,
-                                fontWeight: FontWeight.normal,
-                              ),),
-                              SizedBox(height: 2),
-                              Text(company['address'], style: GoogleFonts.rubik(
-                                color: Colors.grey,
-                                fontSize: 14,
-                                fontWeight: FontWeight.normal,
-                              ),),
-                              SizedBox(height: 2),
-                              Text(company['website'] ?? '', style: GoogleFonts.rubik(
-                                color: AppColors.k010101,
-                                fontSize: 14,
-                                fontWeight: FontWeight.normal,
-                              ),)
-                            ],
-                          ),
-                        )
-                      ],),
-                      Divider(color: Colors.grey[200],),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Expanded(child: MaterialButton(
-                            padding: EdgeInsets.symmetric(vertical: 6),
-                            shape:
-                            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                            onPressed: () async {
-                              final availableMaps = await ml.MapLauncher.installedMaps;
-                              if (availableMaps.isNotEmpty) {
-                                await availableMaps.first.showMarker(
-                                    coords: ml.Coords(company['latitude'], company['longitude']),
-                                    title: company['name'],
-                                    description: company['address']
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(S.of(context).installMap),),
-                                );
-                              }
-                            },
-                            color: AppColors.k0cbcc5,
-                            child: Text(S.of(context).getDirection, style: GoogleFonts.rubik(color: Colors.white),),
-                          )),
-                          SizedBox(width: 10,),
-                          Expanded(child: MaterialButton(
-                            padding: EdgeInsets.symmetric(vertical: 6),
-                            shape:
-                            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                            onPressed: () {
-                              if (company['phone'] != null) {
-                                launch('tel://${company['phone']}');
-                              }
-                            },
-                            color: AppColors.k0cbcc5,
-                            child: Text('拨打电话', style: GoogleFonts.rubik(color: Colors.white),),
-                          ))
-                        ],
-                      ),
-                      SizedBox(height: 10,),
-                      Text('注意： 想要获取路线请首先在您的手机上安装导航工具，比如苹果地图、谷歌地图、百度地图、高德地图等', style: GoogleFonts.rubik(
-                        color: Colors.grey,
-                        fontSize: 14,
-                        fontWeight: FontWeight.normal,
-                      ),),
-                    ],),
-                  ),
-                );
+                final company = detail['company'];
+                ContactShopSheet.show(context, company is Map ? Map<String, dynamic>.from(company) : null);
               },
               child: Row(children: [
                 Icon(Icons.chat, color: Colors.grey),

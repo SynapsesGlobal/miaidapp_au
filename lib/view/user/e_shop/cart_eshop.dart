@@ -11,9 +11,11 @@ import 'package:miaid/api_utils/api_provider.dart';
 import 'package:miaid/api_utils/http_exception.dart';
 import 'dart:async';
 import 'package:geolocator/geolocator.dart';
-import 'package:intl/intl.dart';
 import 'package:miaid/services/delivery_availability_service.dart';
 import 'package:miaid/services/mapbox_geocoding_service.dart';
+import 'package:miaid/services/device_location_service.dart';
+import 'package:miaid/utils/current_country.dart';
+import 'package:miaid/view/user/e_shop/delivery_address_map_picker.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
@@ -81,10 +83,21 @@ class _CartEShopState extends State<CartEShop> {
   int _addressSearchSeq = 0;
   bool _searchingAddress = false;
   bool _addressSearchedOnce = false;
+  // 上次联想请求本身失败（网络 / token），与"没有匹配"分开提示并允许重试
+  bool _addressSearchFailed = false;
+  // 「使用当前位置」定位中
+  bool _locating = false;
+  // 药店没有国家码时，联想按用户当前所在国家限定
+  String? _fallbackCountryCode;
 
   @override
   void initState() {
     cartStore = widget.services.store;
+    if (cartStore.pharmacyCountryCode == null) {
+      currentCountryCode().then((code) {
+        if (mounted) setState(() => _fallbackCountryCode = code);
+      });
+    }
     // 进入药店前的选择弹窗已经查过一次开关，先用它做初始值，再在下方刷新一次
     final cartPharmacyId = cartStore.cartItems.isNotEmpty
         ? cartStore.cartItems.first.keys.first.pharmacy?.id
@@ -160,8 +173,17 @@ class _CartEShopState extends State<CartEShop> {
     super.dispose();
   }
 
-  /// 地址输入变化：清掉上次选中的坐标，400ms 防抖后向 Mapbox 请求联想
+  String get _languageTag => Localizations.localeOf(context).toLanguageTag();
+
+  String? get _searchCountryCode => cartStore.pharmacyCountryCode ?? _fallbackCountryCode;
+
+  /// 地址输入变化：清掉上次选中的坐标，400ms 防抖后向 Mapbox 请求联想。
+  /// 坐标来自定位 / 地图选点时不清：那是用户确认过的位置，改文本只是修正描述
   void _onDeliveryAddressChanged(String value) {
+    if (cartStore.deliveryCoordinatesPinned) {
+      setState(() {});
+      return;
+    }
     cartStore.clearDeliveryCoordinates();
     _addressDebounce?.cancel();
     final query = value.trim();
@@ -170,38 +192,61 @@ class _CartEShopState extends State<CartEShop> {
         _addressSuggestions = [];
         _searchingAddress = false;
         _addressSearchedOnce = false;
+        _addressSearchFailed = false;
       });
       return;
     }
     setState(() => _searchingAddress = true);
-    _addressDebounce = Timer(const Duration(milliseconds: 400), () async {
-      final seq = ++_addressSearchSeq;
-      final results = await _geocoding.search(
-        query,
-        proximityLatitude: cartStore.pharmacyLatitude,
-        proximityLongitude: cartStore.pharmacyLongitude,
-        language: Intl.getCurrentLocale().split('_').first,
-      );
-      // 用户已继续输入，这次结果作废
-      if (!mounted || seq != _addressSearchSeq) return;
-      setState(() {
-        _addressSuggestions = results;
-        _searchingAddress = false;
-        _addressSearchedOnce = true;
-      });
+    final language = _languageTag;
+    _addressDebounce = Timer(const Duration(milliseconds: 400), () {
+      _runAddressSearch(query, language);
     });
+  }
+
+  Future<void> _runAddressSearch(String query, String language) async {
+    final seq = ++_addressSearchSeq;
+    final result = await _geocoding.search(
+      query,
+      proximityLatitude: cartStore.pharmacyLatitude,
+      proximityLongitude: cartStore.pharmacyLongitude,
+      countryCode: _searchCountryCode,
+      language: language,
+    );
+    // 用户已继续输入，这次结果作废
+    if (!mounted || seq != _addressSearchSeq) return;
+    setState(() {
+      _addressSuggestions = result.places;
+      _searchingAddress = false;
+      _addressSearchedOnce = true;
+      _addressSearchFailed = result.failed;
+    });
+  }
+
+  /// 联想请求失败后的「重试」
+  void _retryAddressSearch() {
+    final query = cartStore.deliveryAddressController.text.trim();
+    if (query.length < 3) return;
+    _addressDebounce?.cancel();
+    setState(() {
+      _searchingAddress = true;
+      _addressSearchFailed = false;
+    });
+    _runAddressSearch(query, _languageTag);
+  }
+
+  void _resetAddressSearchState() {
+    _addressDebounce?.cancel();
+    _addressSearchSeq++;
+    _addressSuggestions = [];
+    _searchingAddress = false;
+    _addressSearchedOnce = false;
+    _addressSearchFailed = false;
   }
 
   /// 选中联想地址：写入文本与坐标，并立刻按后端下发的寄送半径校验
   Future<void> _selectDeliveryAddress(MapboxPlace place) async {
-    _addressDebounce?.cancel();
-    _addressSearchSeq++;
     FocusScope.of(context).unfocus();
-    setState(() {
-      _addressSuggestions = [];
-      _searchingAddress = false;
-      _addressSearchedOnce = false;
-    });
+    setState(_resetAddressSearchState);
     final meters = _distanceToPharmacyMeters(place.latitude, place.longitude);
     if (meters == null || meters > cartStore.deliveryRadiusMeters) {
       cartStore.deliveryAddressController.clear();
@@ -212,6 +257,134 @@ class _CartEShopState extends State<CartEShop> {
     cartStore.deliveryAddressController.text = place.placeName;
     cartStore.setDeliveryCoordinates(place.latitude, place.longitude);
     setState(() {});
+  }
+
+  /// 「使用当前位置」：定位 → 反查地址回填 → 半径校验，坐标标记为用户确认过
+  Future<void> _useCurrentLocation() async {
+    if (_locating) return;
+    FocusScope.of(context).unfocus();
+    setState(() => _locating = true);
+    final result = await DeviceLocationService.getCurrentPosition();
+    if (!mounted) return;
+    final position = result.position;
+    if (!result.isOk || position == null) {
+      setState(() => _locating = false);
+      await _showLocationProblem(result.status);
+      return;
+    }
+    final place = await _geocoding.reverse(
+      position.latitude,
+      position.longitude,
+      language: _languageTag,
+    );
+    if (!mounted) return;
+    setState(() => _locating = false);
+    await _applyPinnedLocation(
+      position.latitude,
+      position.longitude,
+      place?.placeName,
+      DeliveryCoordinateSource.currentLocation,
+    );
+  }
+
+  /// 「在地图上选点」：已有坐标时从该点开始（微调），否则从药店位置开始
+  Future<void> _pickOnMap() async {
+    if (!cartStore.hasPharmacyLocation) return;
+    FocusScope.of(context).unfocus();
+    final hasPin = cartStore.hasDeliveryCoordinates;
+    final result = await DeliveryAddressMapPicker.show(
+      context,
+      initialLatitude: cartStore.deliveryLatitude ?? cartStore.pharmacyLatitude!,
+      initialLongitude: cartStore.deliveryLongitude ?? cartStore.pharmacyLongitude!,
+      pharmacyLatitude: cartStore.pharmacyLatitude!,
+      pharmacyLongitude: cartStore.pharmacyLongitude!,
+      radiusMeters: cartStore.deliveryRadiusMeters,
+      radiusLabel: cartStore.deliveryRadiusLabel,
+      pharmacyName: cartStore.cartItems.isNotEmpty
+          ? cartStore.cartItems.first.keys.first.pharmacy?.name
+          : null,
+      languageTag: _languageTag,
+      initialZoom: hasPin ? 17 : 14,
+    );
+    if (result == null || !mounted) return;
+    await _applyPinnedLocation(
+      result.latitude,
+      result.longitude,
+      result.address,
+      DeliveryCoordinateSource.map,
+    );
+  }
+
+  /// 定位 / 地图得到的坐标：先按寄送半径校验，再写入；反查到地址文本时回填
+  /// （用户之后仍可改），没反查到就保留原文本，让用户自己填
+  Future<void> _applyPinnedLocation(
+    double latitude,
+    double longitude,
+    String? address,
+    DeliveryCoordinateSource source,
+  ) async {
+    final meters = _distanceToPharmacyMeters(latitude, longitude);
+    if (meters == null || meters > cartStore.deliveryRadiusMeters) {
+      await _showDeliveryTooFarAlert(meters);
+      return;
+    }
+    setState(() {
+      _resetAddressSearchState();
+      if (address != null && address.trim().isNotEmpty) {
+        cartStore.deliveryAddressController.text = address.trim();
+      }
+      cartStore.setDeliveryCoordinates(latitude, longitude, source: source);
+    });
+  }
+
+  /// 清掉定位 / 地图确定的位置，回到联想输入
+  void _clearPinnedLocation() {
+    setState(() {
+      _resetAddressSearchState();
+      cartStore.clearDeliveryCoordinates();
+      cartStore.deliveryAddressController.clear();
+    });
+  }
+
+  /// 定位失败的提示：服务关闭 / 无权限时给「打开设置」，其他情况只提示重试或改用地图
+  Future<void> _showLocationProblem(DeviceLocationStatus status) async {
+    final l10n = S.of(context);
+    String message;
+    Future<bool> Function() openSettings;
+    switch (status) {
+      case DeviceLocationStatus.serviceDisabled:
+        message = l10n.locationServiceDisabled;
+        openSettings = Geolocator.openLocationSettings;
+        break;
+      case DeviceLocationStatus.permissionDenied:
+      case DeviceLocationStatus.permissionDeniedForever:
+        message = l10n.locationPermissionDenied;
+        openSettings = Geolocator.openAppSettings;
+        break;
+      default:
+        await HttpExceptionNotifyUser.showInfo(l10n.locatingFailed);
+        return;
+    }
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        content: Text(message, style: GoogleFonts.rubik(fontSize: 14, color: AppColors.k010101)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(l10n.cancel, style: GoogleFonts.rubik(color: AppColors.k8f8e94)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              openSettings();
+            },
+            child: Text(l10n.openSettings, style: GoogleFonts.rubik(color: AppColors.k0cbcc5)),
+          ),
+        ],
+      ),
+    );
   }
 
   /// 收货地址到药店的直线距离（米）；药店没有坐标时返回 null
@@ -1421,16 +1594,198 @@ class _CartEShopState extends State<CartEShop> {
   }
 
   /// 地址联想下拉：输入满 3 个字符后展示，选中即填入并校验距离
+  /// 地址栏下方的兜底入口。未确定坐标时给「使用当前位置」「在地图上选点」两个按钮；
+  /// 坐标来自定位 / 地图时显示已确认提示，并可去地图微调或清除
+  Widget _addressFallbackActions() {
+    if (!cartStore.hasPharmacyLocation) return const SizedBox.shrink();
+    final l10n = S.of(context);
+    if (cartStore.deliveryCoordinatesPinned) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 6, left: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.check_circle_outline_rounded, size: 16, color: AppColors.k0cbcc5),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    l10n.deliveryLocationPinned,
+                    style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                _smallTextButton(l10n.adjustOnMap, Icons.map_outlined, _pickOnMap),
+                const SizedBox(width: 8),
+                _smallTextButton(l10n.clearLocation, Icons.close_rounded, _clearPinnedLocation),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 6,
+        children: [
+          _fallbackChip(
+            label: l10n.useCurrentLocation,
+            icon: Icons.my_location_rounded,
+            onTap: _useCurrentLocation,
+            busy: _locating,
+          ),
+          _fallbackChip(
+            label: l10n.pickOnMap,
+            icon: Icons.map_outlined,
+            onTap: _pickOnMap,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _fallbackChip({
+    required String label,
+    required IconData icon,
+    required VoidCallback onTap,
+    bool busy = false,
+  }) {
+    return OutlinedButton.icon(
+      onPressed: cartStore.isLoading || busy ? null : onTap,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.k0cbcc5,
+        side: BorderSide(color: AppColors.k0cbcc5, width: 0.8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        minimumSize: const Size(0, 32),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      icon: busy
+          ? SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.k0cbcc5),
+            )
+          : Icon(icon, size: 16),
+      label: Text(
+        label,
+        style: GoogleFonts.rubik(fontSize: 12, fontWeight: FontWeight.w500),
+      ),
+    );
+  }
+
+  Widget _smallTextButton(String label, IconData icon, VoidCallback onTap) {
+    return TextButton.icon(
+      onPressed: cartStore.isLoading ? null : onTap,
+      style: TextButton.styleFrom(
+        foregroundColor: AppColors.k0cbcc5,
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        minimumSize: const Size(0, 30),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      icon: Icon(icon, size: 15),
+      label: Text(label, style: GoogleFonts.rubik(fontSize: 12, fontWeight: FontWeight.w500)),
+    );
+  }
+
+  /// 单元 / 楼层 / 门牌补充栏：联想匹配不到这些细节，单独填写，下单时拼到地址前
+  Widget _addressDetailsField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          S.of(context).addressDetails,
+          textAlign: TextAlign.left,
+          style: GoogleFonts.rubik(
+            color: cartStore.deliveryAddressDetailsController.text.trim().isNotEmpty
+                ? AppColors.kb1b1b1
+                : AppColors.k010101,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        SizedBox(height: 8),
+        TextFormField(
+          readOnly: cartStore.isLoading ? true : false,
+          controller: cartStore.deliveryAddressDetailsController,
+          onChanged: (_) => setState(() {}),
+          textCapitalization: TextCapitalization.words,
+          decoration: InputDecoration(
+            hintText: S.of(context).addressDetailsHint,
+            hintStyle: GoogleFonts.rubik(
+              color: AppColors.kb1b1b1,
+              fontSize: 14,
+            ),
+            contentPadding: EdgeInsets.only(
+              left: 16,
+              top: 5,
+              bottom: 5,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(
+                color: AppColors.k010101,
+              ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(
+                color: AppColors.kb1b1b1,
+                width: 0.5,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _addressSuggestionList() {
     if (_addressSuggestions.isEmpty) {
       if (_addressSearchedOnce &&
           !_searchingAddress &&
           !cartStore.hasDeliveryCoordinates &&
           cartStore.deliveryAddressController.text.trim().length >= 3) {
+        final l10n = S.of(context);
+        if (_addressSearchFailed) {
+          // 请求失败（网络 / token）：提示服务不可用并给重试，而不是误报"没找到"
+          return Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.addressServiceUnavailable,
+                    style: GoogleFonts.rubik(color: Colors.red, fontSize: 12),
+                  ),
+                ),
+                TextButton(
+                  onPressed: _retryAddressSearch,
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: const Size(0, 32),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    l10n.retry,
+                    style: GoogleFonts.rubik(color: AppColors.k0cbcc5, fontSize: 12, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
         return Padding(
           padding: const EdgeInsets.only(top: 6, left: 4),
           child: Text(
-            S.of(context).noAddressFound,
+            '${l10n.noAddressFound}. ${l10n.addressNotFoundHelp}',
             style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 12),
           ),
         );
@@ -1567,9 +1922,14 @@ class _CartEShopState extends State<CartEShop> {
                     ),
                   ),
                   _addressSuggestionList(),
+                  _addressFallbackActions(),
                 ],
               ),
             ),
+            SizedBox(
+              height: 10,
+            ),
+            _addressDetailsField(),
             SizedBox(
               height: 10,
             ),

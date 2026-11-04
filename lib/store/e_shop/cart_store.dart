@@ -27,6 +27,18 @@ import 'package:http/http.dart' as http;
 import 'dart:developer' as developer;
 part 'cart_store.g.dart';
 
+/// 收货坐标的来源，决定改动地址文本时是否要清掉坐标
+enum DeliveryCoordinateSource {
+  /// 从地址联想里选的，文本与坐标绑定
+  suggestion,
+
+  /// 用手机定位取的
+  currentLocation,
+
+  /// 在地图上选的点
+  map,
+}
+
 @singleton
 class CartEShopStore = _CartEShopStore with _$CartEShopStore;
 
@@ -34,6 +46,9 @@ abstract class _CartEShopStore with Store {
   _CartEShopStore();
 
   TextEditingController deliveryAddressController = TextEditingController();
+  /// 单元 / 楼层 / 门牌等补充信息：地址联想匹配不到这些细节，单独一栏自由填写，
+  /// 下单时拼到 delivery_address 前面（见 [deliveryAddressForOrder]）
+  TextEditingController deliveryAddressDetailsController = TextEditingController();
   TextEditingController nameController = TextEditingController();
   TextEditingController emailController = TextEditingController();
   TextEditingController phoneController = TextEditingController();
@@ -151,16 +166,34 @@ abstract class _CartEShopStore with Store {
   double? pharmacyLongitude;
   bool get hasPharmacyLocation => pharmacyLatitude != null && pharmacyLongitude != null;
 
-  /// 用户从地址联想里选中的收货地址坐标；手动改动地址文本后清空，下单时必须有值
+  /// 药店所在国家（ISO 3166-1 alpha-2），地址联想按它限定国家；为空则不限定
+  String? pharmacyCountryCode;
+
+  /// 收货地址坐标，下单时必须有值。来源见 [deliveryCoordinateSource]：
+  /// 来自联想时手动改动地址文本会清空；来自定位 / 地图选点时坐标已由用户确认，
+  /// 地址文本允许随意修改（反查出的文本未必准确），不会清空
   double? deliveryLatitude;
   double? deliveryLongitude;
+  DeliveryCoordinateSource? deliveryCoordinateSource;
   bool get hasDeliveryCoordinates => deliveryLatitude != null && deliveryLongitude != null;
+  bool get deliveryCoordinatesPinned =>
+      hasDeliveryCoordinates && deliveryCoordinateSource != DeliveryCoordinateSource.suggestion;
+
+  /// 提交给后端的收货地址：补充信息（单元 / 楼层）在前，主地址在后
+  String get deliveryAddressForOrder {
+    final details = deliveryAddressDetailsController.text.trim();
+    final address = deliveryAddressController.text.trim();
+    if (details.isEmpty) return address;
+    if (address.isEmpty) return details;
+    return '$details, $address';
+  }
 
   void setDeliveryAvailability(
     int pharmacyId,
     DeliveryAvailability? response, {
     double? pharmacyLatitude,
     double? pharmacyLongitude,
+    String? pharmacyCountryCode,
   }) {
     if (deliveryAvailabilityPharmacyId != pharmacyId) {
       // 换了药店，之前选的收货坐标不再有意义
@@ -170,6 +203,7 @@ abstract class _CartEShopStore with Store {
     deliveryAvailability = response;
     this.pharmacyLatitude = pharmacyLatitude;
     this.pharmacyLongitude = pharmacyLongitude;
+    this.pharmacyCountryCode = pharmacyCountryCode;
     applyDeliveryAvailability(response);
   }
 
@@ -182,14 +216,20 @@ abstract class _CartEShopStore with Store {
     deliveryRadiusMeters = response.radiusMeters;
   }
 
-  void setDeliveryCoordinates(double latitude, double longitude) {
+  void setDeliveryCoordinates(
+    double latitude,
+    double longitude, {
+    DeliveryCoordinateSource source = DeliveryCoordinateSource.suggestion,
+  }) {
     deliveryLatitude = latitude;
     deliveryLongitude = longitude;
+    deliveryCoordinateSource = source;
   }
 
   void clearDeliveryCoordinates() {
     deliveryLatitude = null;
     deliveryLongitude = null;
+    deliveryCoordinateSource = null;
   }
 
   @action
@@ -349,7 +389,7 @@ abstract class _CartEShopStore with Store {
         'items': orders.toString(),
         'delivery_address': deliveryOption == 1
             ? collectInstructionsController.text
-            : deliveryAddressController.text,
+            : deliveryAddressForOrder,
         'delivery_email': emailController.text,
         'delivery_mobile': ((selectedCountry?.dialCode ?? '') + phoneController.text),
         'delivery_name': nameController.text,

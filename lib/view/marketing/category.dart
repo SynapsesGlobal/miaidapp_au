@@ -32,13 +32,21 @@ class MarketingCategory extends StatefulWidget {
 class _MarketingCategoryState extends State<MarketingCategory> {
   List categories = [];
 
-  Future<void> _getMarketingCategories() async {
+  /// 上次拉分类时的界面语言。分类名由后端按 X-App-Locale 返回，而本页常驻在
+  /// 底部导航的 IndexedStack 里不会重建，切换语言后要主动按新语言重新拉一次。
+  Locale? _loadedLocale;
+
+  /// [showLoading] 为 false 时静默刷新（语言切换时本页多半不在前台，
+  /// 不该弹全局 loading 遮罩）。
+  Future<void> _getMarketingCategories({bool showLoading = true}) async {
     final headers = MarketingApi.headers();
 
-    await EasyLoading.show(
-      status: 'Loading',
-      maskType: EasyLoadingMaskType.black,
-    );
+    if (showLoading) {
+      await EasyLoading.show(
+        status: S.current.loading,
+        maskType: EasyLoadingMaskType.black,
+      );
+    }
 
     try {
       final url = Uri.parse(getIt<ApiSettings>().marketingApiHost+'/categories/main');
@@ -62,6 +70,16 @@ class _MarketingCategoryState extends State<MarketingCategory> {
   void initState() {
     super.initState();
     _getMarketingCategories();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final locale = Localizations.localeOf(context);
+    if (_loadedLocale != null && _loadedLocale != locale) {
+      _getMarketingCategories(showLoading: false);
+    }
+    _loadedLocale = locale;
   }
 
   @override
