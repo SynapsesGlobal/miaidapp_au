@@ -10,6 +10,7 @@ import 'package:miaid/config/api_settings.dart';
 import 'package:miaid/services/marketing_api.dart';
 import 'package:miaid/view/marketing/company_products.dart';
 import 'package:miaid/view/marketing/product_detail.dart';
+import 'package:miaid/widget/marketing_category_bar.dart';
 import 'package:miaid/widget/marketing_product_card.dart';
 
 import '../../api_utils/api_provider.dart';
@@ -23,9 +24,10 @@ import '../../utils/configure_dependencies.dart';
 /// 主分类下所有商家的商品列表（从分类页直接进入，跳过商家列表页）。
 ///
 /// 数据来自 miaid_mispace `GET /category/products`：按商家离用户的距离排序
-/// （拿不到定位时按商家 id），同一商家内新品在前。这里只有一个主分类，所以不显示
-/// 子分类栏（商家商品页 [CompanyProducts] 才有）。每个商品带 `company` 对象
-/// （与 /companies 一致），卡片底部的商家行点进去就是原来的商家商品列表。
+/// （拿不到定位时按商家 id），同一商家内新品在前。响应里的 `categories` 是该主分类下
+/// 有货、且面向本平台（`source`）的系统子分类（"全部"在首位），显示在搜索栏下方做切换过滤（传 `cateId`）；
+/// 只有"全部"一项时不显示分类栏。每个商品带 `company` 对象（与 /companies 一致），
+/// 卡片底部的商家行点进去就是原来的商家商品列表。
 class CategoryProducts extends StatefulWidget {
   final int categoryId;
   final String category;
@@ -41,6 +43,8 @@ class _CategoryProductsState extends State<CategoryProducts> {
   bool isLoading = false;
   bool hasMore = true;
   List products = [];
+  List categories = [];
+  int currentCateId = 0;
   String keywords = '';
   Position? _position;
   bool _positionResolved = false;
@@ -98,6 +102,9 @@ class _CategoryProductsState extends State<CategoryProducts> {
 
       final query = <String, String>{
         'mainCateId': widget.categoryId.toString(),
+        'cateId': currentCateId.toString(),
+        // 子分类栏按平台过滤（与 /categories/main 的 source 一致）
+        'source': 'au',
         'keywords': keywords,
         'page': page.toString(),
         'pageSize': pageSize.toString(),
@@ -121,7 +128,10 @@ class _CategoryProductsState extends State<CategoryProducts> {
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         final List newProducts = body['products'] ?? [];
+        final List? newCategories = body['categories'] is List ? body['categories'] : null;
         setState(() {
+          // 分类栏只随首页刷新，翻页时后端也会带回同一份，不重复覆盖以免闪动
+          if (page == 1 && newCategories != null) categories = newCategories;
           products.addAll(newProducts);
           page++;
           hasMore = newProducts.length >= pageSize;
@@ -156,6 +166,16 @@ class _CategoryProductsState extends State<CategoryProducts> {
       if (mounted) _resetAndFetch(showLoading: false);
     });
   }
+
+  /// 切换子分类：重置分页，按新分类 + 当前关键字重新拉取
+  void _selectCategory(int cateId) {
+    if (cateId == currentCateId) return;
+    setState(() => currentCateId = cateId);
+    _resetAndFetch();
+  }
+
+  /// 只有"全部"一项时没有可切换的内容，不显示分类栏
+  bool get _showCategoryBar => categories.length > 1;
 
   void _openProductDetail(Map product) {
     Navigator.push(context, MaterialPageRoute<void>(
@@ -205,11 +225,22 @@ class _CategoryProductsState extends State<CategoryProducts> {
             SliverPersistentHeader(
               pinned: true,
               delegate: _StickyHeaderDelegate(
-                height: 62,
+                height: 62 + (_showCategoryBar ? MarketingCategoryBar.height : 0),
                 child: Container(
                   color: AppColors.kffffff,
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildSearch(),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildSearch(),
+                      if (_showCategoryBar)
+                        MarketingCategoryBar(
+                          categories: categories,
+                          selectedCateId: currentCateId,
+                          onSelected: _selectCategory,
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:miaid/view/marketing/product_detail.dart';
+import 'package:miaid/widget/marketing_category_bar.dart';
 import 'package:miaid/widget/marketing_product_card.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -382,67 +383,21 @@ class _CompanyProductsState extends State<CompanyProducts> {
     );
   }
 
-  /// 分类栏（布局与 e_shop_details.dart 的分类栏一致）
+  /// 分类栏：全部商品 + 系统子分类 + 商家自建分类（组件与分类商品页共用）
   Widget _buildCategoryBar() {
-    return Container(
-      width: MediaQuery.of(context).size.width,
-      height: 60,
-      child: ListView.builder(
-        padding: const EdgeInsets.only(left: 18, right: 18, top: 16, bottom: 10,),
-        itemCount: categories.length,
-        scrollDirection: Axis.horizontal,
-        shrinkWrap: true,
-        physics: BouncingScrollPhysics(),
-        itemBuilder: (BuildContext context, index) {
-          final category = categories[index];
-          final selected = currentCateId == category['cateId'];
-          return Row(children: [
-            InkWell(
-              onTap: () {
-                setState(() {
-                  currentCateId = category['cateId'];
-                  page = 1;
-                  company_products = [];
-                  isLoading = false;
-                  hasMore = true;
-                });
-                _getCompanyProducts(category['cateId'], widget.company['companyId'], keywords: keywords);
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: selected ? AppColors.k0cbcc5 : AppColors.kffffff,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                      width: 0.5,
-                      color: !selected ? AppColors.k0cbcc5 : Colors.transparent
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.k003f51.withOpacity(0.1),
-                      offset: Offset(0, 4,),
-                      blurRadius: 10,
-                      spreadRadius: 0,
-                    )
-                  ],
-                ),
-                padding: const EdgeInsets.only(left: 10, right: 10,),
-                alignment: Alignment.center,
-                child: Text(
-                  category['cateId'] == 0
-                      ? S.of(context).allProducts
-                      : category['cateName']?.toString() ?? '',
-                  style: GoogleFonts.rubik(
-                    color: selected ? AppColors.kffffff : AppColors.k010101,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(width: 10,),
-          ],);
-        },
-      ),
+    return MarketingCategoryBar(
+      categories: categories,
+      selectedCateId: currentCateId,
+      onSelected: (cateId) {
+        setState(() {
+          currentCateId = cateId;
+          page = 1;
+          company_products = [];
+          isLoading = false;
+          hasMore = true;
+        });
+        _getCompanyProducts(cateId, widget.company['companyId'], keywords: keywords);
+      },
     );
   }
 

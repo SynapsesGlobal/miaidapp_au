@@ -39,7 +39,9 @@ class _SubCategoriesState extends State<SubCategories> {
     try {
       final url = Uri.parse(getIt<ApiSettings>().marketingApiHost+'/categories/sub').replace(queryParameters: {
         'mainCateId': widget.mainCateId.toString(),
-      });;
+        // 子分类按平台过滤（与 /categories/main 的 source 一致）
+        'source': 'au',
+      });
       final response = await http.get(url, headers: headers,);
 
       await EasyLoading.dismiss();
