@@ -12,6 +12,7 @@ import 'package:miaid/view/marketing/company_products.dart';
 import 'package:miaid/view/marketing/product_detail.dart';
 import 'package:miaid/widget/marketing_category_bar.dart';
 import 'package:miaid/widget/marketing_product_card.dart';
+import 'package:miaid/widget/marketing_shop_picker.dart';
 
 import '../../api_utils/api_provider.dart';
 import '../../api_utils/http_exception.dart';
@@ -27,7 +28,9 @@ import '../../utils/configure_dependencies.dart';
 /// （拿不到定位时按商家 id），同一商家内新品在前。响应里的 `categories` 是该主分类下
 /// 有货、且面向本平台（`source`）的系统子分类（"全部"在首位），显示在搜索栏下方做切换过滤（传 `cateId`）；
 /// 只有"全部"一项时不显示分类栏。每个商品带 `company` 对象（与 /companies 一致），
-/// 卡片底部的商家行点进去就是原来的商家商品列表。
+/// 卡片底部的商家行点进去就是原来的商家商品列表。响应里的 `companies` 是该主分类下有货的
+/// 商家（按距离排序），搜索栏下方的商家筛选入口用 [MarketingShopPicker] 从中选一个，
+/// 选中后请求带 `companyId` 只看这家的商品；列表为空（旧后端）时不显示入口。
 class CategoryProducts extends StatefulWidget {
   final int categoryId;
   final String category;
@@ -45,6 +48,8 @@ class _CategoryProductsState extends State<CategoryProducts> {
   List products = [];
   List categories = [];
   int currentCateId = 0;
+  List companies = [];
+  int currentCompanyId = 0;
   String keywords = '';
   Position? _position;
   bool _positionResolved = false;
@@ -103,6 +108,7 @@ class _CategoryProductsState extends State<CategoryProducts> {
       final query = <String, String>{
         'mainCateId': widget.categoryId.toString(),
         'cateId': currentCateId.toString(),
+        if (currentCompanyId != 0) 'companyId': currentCompanyId.toString(),
         // 子分类栏按平台过滤（与 /categories/main 的 source 一致）
         'source': 'au',
         'keywords': keywords,
@@ -129,9 +135,11 @@ class _CategoryProductsState extends State<CategoryProducts> {
         final body = jsonDecode(response.body);
         final List newProducts = body['products'] ?? [];
         final List? newCategories = body['categories'] is List ? body['categories'] : null;
+        final List? newCompanies = body['companies'] is List ? body['companies'] : null;
         setState(() {
-          // 分类栏只随首页刷新，翻页时后端也会带回同一份，不重复覆盖以免闪动
+          // 分类栏、商家列表只随首页刷新，翻页时后端也会带回同一份，不重复覆盖以免闪动
           if (page == 1 && newCategories != null) categories = newCategories;
+          if (page == 1 && newCompanies != null) companies = newCompanies;
           products.addAll(newProducts);
           page++;
           hasMore = newProducts.length >= pageSize;
@@ -176,6 +184,34 @@ class _CategoryProductsState extends State<CategoryProducts> {
 
   /// 只有"全部"一项时没有可切换的内容，不显示分类栏
   bool get _showCategoryBar => categories.length > 1;
+
+  bool get _showShopFilter => companies.isNotEmpty;
+
+  /// 当前选中的商家对象（未选或已不在列表里时为 null）
+  Map? get _selectedCompany {
+    for (final company in companies) {
+      if (company is Map && MarketingShopPicker.companyIdOf(company) == currentCompanyId) return company;
+    }
+    return null;
+  }
+
+  /// 弹出商家列表选一个；选中后重置分页按商家 + 当前子分类 + 关键字重新拉取
+  Future<void> _pickShop() async {
+    final picked = await MarketingShopPicker.show(
+      context,
+      companies: companies,
+      selectedCompanyId: currentCompanyId,
+    );
+    if (picked == null || picked == currentCompanyId || !mounted) return;
+    setState(() => currentCompanyId = picked);
+    _resetAndFetch();
+  }
+
+  void _clearShop() {
+    if (currentCompanyId == 0) return;
+    setState(() => currentCompanyId = 0);
+    _resetAndFetch();
+  }
 
   void _openProductDetail(Map product) {
     Navigator.push(context, MaterialPageRoute<void>(
@@ -251,7 +287,61 @@ class _CategoryProductsState extends State<CategoryProducts> {
     );
   }
 
-  /// Search widget（与 company_products.dart 一致）
+  /// 商家筛选入口，与关键字输入框同一行、放在其左侧：显示「全部商家」或已选商家名，
+  /// 点击弹 [MarketingShopPicker]；已选时右侧为 × 一键清除。宽度最多占屏宽 38%，长名称省略。
+  Widget _buildShopFilter() {
+    final selected = _selectedCompany;
+    final label = selected == null ? S.of(context).allShops : selected['name']?.toString() ?? '';
+    final active = selected != null;
+    final color = active ? AppColors.k0cbcc5 : AppColors.kb1b1b1;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.38),
+      child: InkWell(
+        onTap: isLoading ? null : _pickShop,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.only(left: 10, right: 6),
+          decoration: BoxDecoration(
+            color: active ? AppColors.k0cbcc5.withOpacity(0.08) : AppColors.kffffff,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: color, width: active ? 1 : 0.5),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.storefront_outlined, size: 18, color: color),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.rubik(
+                    color: active ? AppColors.k0cbcc5 : AppColors.k010101,
+                    fontSize: 13,
+                    fontWeight: active ? FontWeight.w500 : FontWeight.w400,
+                  ),
+                ),
+              ),
+              if (active)
+                InkWell(
+                  onTap: _clearShop,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(Icons.close, size: 16, color: AppColors.k0cbcc5),
+                  ),
+                )
+              else
+                Icon(Icons.keyboard_arrow_down, size: 20, color: AppColors.kb1b1b1),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 搜索行：商家筛选按钮（有商家列表时）+ 关键字输入框 + 搜索按钮；按钮与输入框等高
   Widget _buildSearch() {
     return Container(
       width: MediaQuery.of(context).size.width,
@@ -259,7 +349,12 @@ class _CategoryProductsState extends State<CategoryProducts> {
       padding: const EdgeInsets.only(left: 20, right: 20, top: 16,),
       child: Row(
         mainAxisSize: MainAxisSize.max,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (_showShopFilter) ...[
+            _buildShopFilter(),
+            const SizedBox(width: 8),
+          ],
           Expanded(child: TextField(
             autofocus: false,
             controller: _kwController,
