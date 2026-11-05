@@ -6,6 +6,7 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:http/http.dart' as http;
 import 'package:miaid/config/api_settings.dart';
 import 'package:miaid/payment/marketing_payment_bottom_sheet.dart';
+import 'package:miaid/services/alipay_service.dart';
 import 'package:miaid/services/marketing_api.dart';
 
 import '../api_utils/api_provider.dart';
@@ -16,10 +17,12 @@ import '../view/marketing/orders.dart';
 
 /// marketing（miaid_mispace）商品的支付方式。[apiValue] 是后端 `orders.payment_method`
 /// 的取值，建 intent 时通过 `paymentMethod` 参数告诉后端；Apple Pay 在 Stripe 侧仍是
-/// card 类型的 PaymentIntent，只是用 Platform Pay 确认。
+/// card 类型的 PaymentIntent，只是用 Platform Pay 确认。支付宝不经过 Stripe，
+/// 走 mispace 自己的 `/order/alipay/payload`（境内商户号，仅人民币商品）。
 enum MarketingPaymentMethod {
   card('stripe'),
-  applePay('apple_pay');
+  applePay('apple_pay'),
+  alipay('alipay');
 
   const MarketingPaymentMethod(this.apiValue);
   final String apiValue;
@@ -96,9 +99,49 @@ class MarketingPaymentIntent {
   }
 }
 
-/// marketing 商品购买：先弹支付方式（刷卡 / Apple Pay），选定后才向后端下预订单并建
-/// Stripe intent，避免用户关掉弹窗也留下一张未支付订单。两种方式的返回约定一致：
-/// true 表示 Stripe 已确认支付成功并跳到了订单页；取消、失败都返回 false，
+/// 后端 `POST /order/alipay/payload` 的返回：已签名的支付宝 orderString、支付宝侧商户单号
+/// 以及订单信息。orderString 交给 tobias 唤起支付宝，outTradeNo 用来向后端确认支付结果。
+class MarketingAlipayPayload {
+  MarketingAlipayPayload({
+    required this.orderString,
+    required this.outTradeNo,
+    this.orderId,
+    this.orderNbr,
+    this.amount,
+    this.currency,
+  });
+
+  final String orderString;
+  final String outTradeNo;
+  final int? orderId;
+  final String? orderNbr;
+  /// 支付宝实际收取的人民币金额（元，两位小数）
+  final String? amount;
+  /// 订单币种（AU 只允许 CNY / RMB）
+  final String? currency;
+
+  /// 缺 orderString 或 outTradeNo 时抛 [FormatException]：没有签名串唤不起支付宝，
+  /// 没有单号则无法确认结果，两者都按下单失败处理。
+  factory MarketingAlipayPayload.fromJson(Map<String, dynamic> json) {
+    final orderString = json['orderString']?.toString() ?? '';
+    final outTradeNo = json['outTradeNo']?.toString() ?? '';
+    if (orderString.isEmpty || outTradeNo.isEmpty) {
+      throw const FormatException('orderString / outTradeNo missing');
+    }
+    return MarketingAlipayPayload(
+      orderString: orderString,
+      outTradeNo: outTradeNo,
+      orderId: int.tryParse(json['orderId']?.toString() ?? ''),
+      orderNbr: json['orderNbr']?.toString(),
+      amount: json['amount']?.toString(),
+      currency: json['currency']?.toString(),
+    );
+  }
+}
+
+/// marketing 商品购买：先弹支付方式（刷卡 / Apple Pay / 人民币商品另有支付宝），选定后才向
+/// 后端下预订单，避免用户关掉弹窗也留下一张未支付订单。几种方式的返回约定一致：
+/// true 表示支付渠道已确认支付成功并跳到了订单页；取消、失败都返回 false，
 /// 取消不提示，失败给出可读原因。
 class MarketingPaymentService {
   MarketingPaymentService._();
@@ -107,11 +150,20 @@ class MarketingPaymentService {
   static const String _merchantDisplayName = 'Synapses Global Assist Pty Ltd';
   static const String _merchantCountryCode = 'AU';
 
+  /// 商品是否以人民币计价。后端商品币种有 CNY 也有 RMB 两种写法，都算；
+  /// 支付宝（境内商户号）只对这类商品开放，后端下单时同样校验。
+  static bool isRmb(String? currency) {
+    final code = (currency ?? '').trim().toUpperCase();
+    return code == 'CNY' || code == 'RMB';
+  }
+
+  /// [currency] 传商品币种，决定是否展示支付宝入口。
   Future<void> handlePurchase({
     required BuildContext context,
     required dynamic products,
     required String companyId,
     String? points,
+    String? currency,
   }) async {
     final api = getIt<ApiProvider>();
     if (api.userProvider.user == null) {
@@ -130,6 +182,7 @@ class MarketingPaymentService {
         products: products,
         companyId: companyId,
         points: points,
+        currency: currency,
       ),
     );
   }
@@ -142,12 +195,36 @@ class MarketingPaymentService {
     required String companyId,
     String? points,
   }) async {
+    final decoded = await _postOrder('/order/payment/intent', method, products, companyId, points);
+    return MarketingPaymentIntent.fromJson(decoded, method);
+  }
+
+  /// 向后端下预订单并取支付宝签名串（`POST /order/alipay/payload`）。
+  /// 非 200 抛 [MarketingPaymentException]（带后端 message，如非人民币商品被拒），
+  /// 返回体不完整抛 [FormatException]。
+  Future<MarketingAlipayPayload> createAlipayPayload({
+    required dynamic products,
+    required String companyId,
+    String? points,
+  }) async {
+    final decoded = await _postOrder('/order/alipay/payload', MarketingPaymentMethod.alipay, products, companyId, points);
+    return MarketingAlipayPayload.fromJson(decoded);
+  }
+
+  /// 下单类接口共用的请求体与错误处理；返回解析后的 JSON 对象
+  Future<Map<String, dynamic>> _postOrder(
+    String path,
+    MarketingPaymentMethod method,
+    dynamic products,
+    String companyId,
+    String? points,
+  ) async {
     final user = getIt<ApiProvider>().userProvider.user;
     if (user == null) {
       throw MarketingPaymentException(S.current.relogin);
     }
 
-    final url = Uri.parse('${getIt<ApiSettings>().marketingApiHost}/order/payment/intent');
+    final url = Uri.parse('${getIt<ApiSettings>().marketingApiHost}$path');
     final body = jsonEncode({
       'companyId': companyId,
       'userId': user.id,
@@ -172,7 +249,7 @@ class MarketingPaymentService {
     if (decoded is! Map<String, dynamic>) {
       throw const FormatException('unexpected response body');
     }
-    return MarketingPaymentIntent.fromJson(decoded, method);
+    return decoded;
   }
 
   /// 后端错误 message（422 时取第一条字段错误），拿不到时用通用文案
@@ -258,6 +335,58 @@ class MarketingPaymentService {
     );
   }
 
+  /// 支付宝 App 支付（境内商户号、人民币结算），只对人民币计价的商品开放（见 [isRmb]，
+  /// 后端下单时同样校验）。调用方须先确认设备已安装支付宝。
+  /// 流程：loading → 后端下预订单并签名 → 关 loading → tobias 唤起支付宝 → 向后端确认 → 跳订单页。
+  /// 返回约定与刷卡 / Apple Pay 相同；支付宝"处理中 / 结果未知"时也进订单页但提示稍后查看，
+  /// 返回 false（后端 notify 会兜底把订单置为已支付）。
+  Future<bool> payWithAlipay({
+    required BuildContext context,
+    required dynamic products,
+    required String companyId,
+    String? points,
+  }) async {
+    final payload = await _createWithLoading(
+      context,
+      MarketingPaymentMethod.alipay,
+      () => createAlipayPayload(products: products, companyId: companyId, points: points),
+    );
+    if (payload == null) return false;
+
+    final AlipayPayOutcome outcome;
+    try {
+      outcome = await AlipayService().payMarketingOrder(
+        orderString: payload.orderString,
+        outTradeNo: payload.outTradeNo,
+      );
+    } catch (e, stacktrace) {
+      debugPrint('[MarketingPayment] alipay error: $e\n$stacktrace');
+      await HttpExceptionNotifyUser.showError('Could not complete payment [23]: $e');
+      return false;
+    }
+
+    switch (outcome.status) {
+      case AlipayPayStatus.success:
+        await _openOrders(context);
+        return true;
+      case AlipayPayStatus.pending:
+        await HttpExceptionNotifyUser.showInfo(S.current.alipayPaymentPending);
+        await _openOrders(context);
+        return false;
+      case AlipayPayStatus.cancelled:
+        return false;
+      case AlipayPayStatus.notInstalled:
+        await HttpExceptionNotifyUser.showInfo(S.current.alipayNotInstalled);
+        return false;
+      case AlipayPayStatus.failed:
+        debugPrint('[MarketingPayment] alipay failed: ${outcome.resultStatus} ${outcome.memo}');
+        await HttpExceptionNotifyUser.showError(
+          'Could not complete payment [24]: Alipay ${outcome.resultStatus} ${outcome.memo}'.trim(),
+        );
+        return false;
+    }
+  }
+
   /// 公共流程：loading → 建 intent → 关 loading → Stripe 确认 → 跳订单页。
   /// 建 intent 阶段的任何异常都不会唤起 Stripe；Stripe 取消静默返回 false。
   Future<bool> _pay({
@@ -268,28 +397,12 @@ class MarketingPaymentService {
     required Future<void> Function(MarketingPaymentIntent intent) confirm,
     String? points,
   }) async {
-    final MarketingPaymentIntent intent;
-    await EasyLoading.show(status: S.of(context).loading, maskType: EasyLoadingMaskType.clear);
-    try {
-      intent = await createPaymentIntent(
-        method: method,
-        products: products,
-        companyId: companyId,
-        points: points,
-      );
-    } on MarketingPaymentException catch (e) {
-      await EasyLoading.dismiss();
-      await HttpExceptionNotifyUser.showInfo(e.message);
-      return false;
-    } catch (e, stacktrace) {
-      // 网络超时、JSON 解析、返回体缺字段等
-      await EasyLoading.dismiss();
-      debugPrint('[MarketingPayment] create intent (${method.apiValue}) failed: $e\n$stacktrace');
-      await HttpExceptionNotifyUser.showInfo(S.current.somethingWentWrong);
-      return false;
-    }
-    // Stripe 面板弹出前必须关掉遮罩，否则遮罩会盖住支付面板
-    await EasyLoading.dismiss();
+    final intent = await _createWithLoading(
+      context,
+      method,
+      () => createPaymentIntent(method: method, products: products, companyId: companyId, points: points),
+    );
+    if (intent == null) return false;
 
     try {
       await confirm(intent);
@@ -313,11 +426,38 @@ class MarketingPaymentService {
       await HttpExceptionNotifyUser.showInfo(S.current.alipayPaymentPending);
     }
 
-    if (!context.mounted) return true;
+    await _openOrders(context);
+    return true;
+  }
+
+  /// 下单阶段的公共包装：带遮罩调 [create]，业务错误 / 网络异常都提示并返回 null，
+  /// 不会唤起任何支付面板。返回前遮罩一定已关闭，否则会盖住随后弹出的支付面板。
+  Future<T?> _createWithLoading<T>(
+    BuildContext context,
+    MarketingPaymentMethod method,
+    Future<T> Function() create,
+  ) async {
+    await EasyLoading.show(status: S.of(context).loading, maskType: EasyLoadingMaskType.clear);
+    try {
+      return await create();
+    } on MarketingPaymentException catch (e) {
+      await HttpExceptionNotifyUser.showInfo(e.message);
+      return null;
+    } catch (e, stacktrace) {
+      // 网络超时、JSON 解析、返回体缺字段等
+      debugPrint('[MarketingPayment] create order (${method.apiValue}) failed: $e\n$stacktrace');
+      await HttpExceptionNotifyUser.showInfo(S.current.somethingWentWrong);
+      return null;
+    } finally {
+      await EasyLoading.dismiss();
+    }
+  }
+
+  Future<void> _openOrders(BuildContext context) async {
+    if (!context.mounted) return;
     await Navigator.push(context, MaterialPageRoute<void>(
       builder: (context) => Orders(),
     ),);
-    return true;
   }
 
   /// 让后端核实 Stripe intent 并把订单置为已支付（`POST /order/paid`，幂等）。

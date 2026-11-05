@@ -346,6 +346,8 @@ class _ProductDetailState extends State<ProductDetail> with SingleTickerProvider
                       context: context,
                       companyId: widget.companyId,
                       products: [{'productId': widget.productId, 'quantity': _quantity,}],
+                      // 人民币计价的商品多一个支付宝入口
+                      currency: detail['currency']?.toString(),
                     );
                   },
                   color: AppColors.k0cbcc5,

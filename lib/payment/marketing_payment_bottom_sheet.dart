@@ -4,12 +4,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:miaid/api_utils/http_exception.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
+import 'package:miaid/services/alipay_service.dart';
 import 'package:miaid/services/marketing_payment_service.dart';
 import 'package:tap_debouncer/tap_debouncer.dart';
 
-/// marketing 商品的支付方式弹窗：刷卡 + Apple Pay。
+/// marketing 商品的支付方式弹窗：刷卡 + Apple Pay，人民币计价的商品另有支付宝。
 ///
 /// 结构和 Apple Pay 的展示/确认规则与 payment_bottom_sheet.dart（旅行套餐、其他服务）
 /// 保持一致；因为 marketing 走 miaid_mispace 的下单接口、返回结构不同，这里没有直接复用
@@ -22,6 +24,7 @@ class MarketingPaymentBottomSheet extends StatelessWidget {
     required this.products,
     required this.companyId,
     this.points,
+    this.currency,
     this.service,
   });
 
@@ -29,6 +32,8 @@ class MarketingPaymentBottomSheet extends StatelessWidget {
   final dynamic products;
   final String companyId;
   final String? points;
+  /// 商品币种；为 CNY / RMB 时展示支付宝入口
+  final String? currency;
   /// 便于测试替换；默认用单例
   final MarketingPaymentService? service;
 
@@ -63,8 +68,47 @@ class MarketingPaymentBottomSheet extends StatelessWidget {
           ),
           // Apple Pay 走 Stripe Platform Pay，仅 iOS 且 Wallet 已添加受支持的卡时展示
           if (Platform.isIOS) _buildApplePayRow(context),
+          // 支付宝 App 支付：境内商户号、人民币结算，不经过 Stripe。规则与药房 / 套餐弹窗一致：
+          // 只要商品以人民币计价就展示；设备未安装支付宝时不隐藏，行下方提示并在点击时 toast
+          if (MarketingPaymentService.isRmb(currency)) _buildAlipayRow(context),
         ],
       ),
+    );
+  }
+
+  Widget _buildAlipayRow(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: AlipayService().isInstalled,
+      builder: (context, snapshot) {
+        // 检测未完成前按已安装展示，避免入口闪一下；真正发起支付时 AlipayService 会再查一次
+        final installed = snapshot.data ?? true;
+        return _buildMethodRow(
+          context,
+          leading: const Image(image: AssetImage('assets/images/ic_payment_alipay.png')),
+          title: S.of(context).alipay,
+          // 未安装时提示先装支付宝；已安装时告知境外卡单笔超 200 元支付宝收 3%，避免被理解为平台多收费
+          subtitle: Text(
+            installed ? S.of(context).alipayOverseasCardFeeNotice : S.of(context).alipayNotInstalled,
+            style: GoogleFonts.rubik(
+              color: installed ? Colors.grey : Colors.redAccent,
+              fontSize: 11,
+            ),
+          ),
+          dismissSheet: installed,
+          onTap: () async {
+            if (!installed) {
+              await HttpExceptionNotifyUser.showInfo(S.of(context).alipayNotInstalled);
+              return false;
+            }
+            return _service.payWithAlipay(
+              context: parentContext,
+              products: products,
+              companyId: companyId,
+              points: points,
+            );
+          },
+        );
+      },
     );
   }
 
@@ -112,12 +156,15 @@ class MarketingPaymentBottomSheet extends StatelessWidget {
     }
   }
 
-  /// 一行支付方式：先关弹窗再发起支付，TapDebouncer 防止连点重复下单
+  /// 一行支付方式：先关弹窗再发起支付（[dismissSheet] 为 false 时留在弹窗，用于只弹提示的情况），
+  /// TapDebouncer 防止连点重复下单
   Widget _buildMethodRow(
     BuildContext context, {
     required Widget leading,
     required String title,
     required Future<bool> Function() onTap,
+    Widget? subtitle,
+    bool dismissSheet = true,
   }) {
     return Column(
       children: [
@@ -125,7 +172,7 @@ class MarketingPaymentBottomSheet extends StatelessWidget {
           padding: const EdgeInsets.only(top: 10, bottom: 10),
           child: TapDebouncer(
             onTap: () async {
-              Navigator.pop(context);
+              if (dismissSheet) Navigator.pop(context);
               await onTap();
             },
             builder: (context, debouncedTap) => ListTile(
@@ -134,6 +181,7 @@ class MarketingPaymentBottomSheet extends StatelessWidget {
                 color: AppColors.k010101,
                 fontSize: 14,
               )),
+              subtitle: subtitle,
               dense: true,
               onTap: debouncedTap,
             ),

@@ -2,14 +2,18 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:miaid/api_utils/api_provider.dart';
+import 'package:miaid/config/api_settings.dart';
+import 'package:miaid/services/marketing_api.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:tobias/tobias.dart';
 
-/// 支付宝 App 支付（境内商户号）。药房订单走 createPharmacyOrder，旅行套餐 / 加购问诊走 createPackageOrder。
+/// 支付宝 App 支付（境内商户号）。药房订单走 createPharmacyOrder，旅行套餐 / 加购问诊走 createPackageOrder，
+/// MiSpace 商品订单由 marketing_payment_service 向 miaid_mispace 下单后交给 [payMarketingOrder]。
 ///
 /// 流程：后端生成签名后的
 /// orderString → tobias 唤起支付宝 App → 拿到 resultStatus →
-/// `GET /api/v1/alipay/query` 向后端（后端再向支付宝 trade.query）确认是否已支付。
+/// `GET /api/v1/alipay/query`（MiSpace 为 mispace 的 `POST /order/alipay/query`）向后端
+/// （后端再向支付宝 trade.query）确认是否已支付。
 /// 后端另有 notify 异步回调兜底落库，客户端查询只用来决定当下的 UI 反馈。
 ///
 /// 不走 swagger 生成的客户端：这三个接口不在 swagger 里，而且 build_runner 会覆盖
@@ -119,8 +123,27 @@ class AlipayService {
     return outcome.copyWith(paymentId: paymentId);
   }
 
-  /// 唤起支付宝并把 SDK 结果映射为统一状态；9000/8000/6004 都向后端确认一次实际支付状态
-  Future<AlipayPayOutcome> _payAndVerify(String orderString, String outTradeNo) async {
+  /// 为 MiSpace（miaid_mispace）商品订单发起支付宝支付。
+  /// 预订单和签名串由 MarketingPaymentService 调 mispace `POST /order/alipay/payload` 取得（那里会先校验
+  /// 商品以人民币计价），这里只负责唤起支付宝并向 mispace `POST /order/alipay/query` 确认支付状态：
+  /// mispace 与 miaid.com 是两套后端、两套鉴权头，不能复用上面的 query。
+  Future<AlipayPayOutcome> payMarketingOrder({
+    required String orderString,
+    required String outTradeNo,
+  }) async {
+    if (!await isInstalled) {
+      return const AlipayPayOutcome(AlipayPayStatus.notInstalled);
+    }
+    return _payAndVerify(orderString, outTradeNo, verify: _verifyMarketingPaidOnServer);
+  }
+
+  /// 唤起支付宝并把 SDK 结果映射为统一状态；9000/8000/6004 都向后端确认一次实际支付状态。
+  /// [verify] 为向哪个后端确认，默认 miaid.com 的 /alipay/query。
+  Future<AlipayPayOutcome> _payAndVerify(
+    String orderString,
+    String outTradeNo, {
+    Future<bool> Function(String outTradeNo)? verify,
+  }) async {
     final payResult = await _tobias.pay(orderString);
     final resultStatus = payResult['resultStatus']?.toString() ?? '';
     final memo = payResult['memo']?.toString() ?? '';
@@ -129,7 +152,7 @@ class AlipayService {
       case '9000': // 支付成功
       case '8000': // 正在处理中（支付结果以服务端异步通知为准）
       case '6004': // 处理结果未知（可能已成功）
-        final paid = await _verifyPaidOnServer(outTradeNo);
+        final paid = await (verify ?? _verifyPaidOnServer)(outTradeNo);
         return AlipayPayOutcome(
           paid ? AlipayPayStatus.success : AlipayPayStatus.pending,
           resultStatus: resultStatus,
@@ -143,15 +166,34 @@ class AlipayService {
     }
   }
 
-  Future<bool> _verifyPaidOnServer(String outTradeNo) async {
+  /// miaid.com：药房 / 套餐订单
+  Future<bool> _verifyPaidOnServer(String outTradeNo) => _pollPaid(() async {
+        final uri = Uri.parse('${_api.baseUrl}/api/v1/alipay/query').replace(queryParameters: {'outTradeNo': outTradeNo});
+        final resp = await _client.get(uri, headers: _headers).timeout(_timeout);
+        return _isPaidResponse(resp);
+      });
+
+  /// miaid_mispace：MiSpace 商品订单
+  Future<bool> _verifyMarketingPaidOnServer(String outTradeNo) => _pollPaid(() async {
+        final uri = Uri.parse('${getIt<ApiSettings>().marketingApiHost}/order/alipay/query');
+        final resp = await _client
+            .post(uri, headers: MarketingApi.headers(), body: jsonEncode({'outTradeNo': outTradeNo}))
+            .timeout(_timeout);
+        return _isPaidResponse(resp);
+      });
+
+  static bool _isPaidResponse(http.Response resp) {
+    if (resp.statusCode != 200) return false;
+    final data = jsonDecode(resp.body);
+    return data is Map && data['paid'] == true;
+  }
+
+  /// 最多查 [_verifyAttempts] 次，任一次确认已支付即返回 true
+  Future<bool> _pollPaid(Future<bool> Function() once) async {
     for (var attempt = 0; attempt < _verifyAttempts; attempt++) {
       if (attempt > 0) await Future<void>.delayed(_verifyInterval);
       try {
-        final uri = Uri.parse('${_api.baseUrl}/api/v1/alipay/query').replace(queryParameters: {'outTradeNo': outTradeNo});
-        final resp = await _client.get(uri, headers: _headers).timeout(_timeout);
-        if (resp.statusCode != 200) continue;
-        final data = jsonDecode(resp.body) as Map<String, dynamic>;
-        if (data['paid'] == true) return true;
+        if (await once()) return true;
       } catch (_) {
         // 网络抖动继续重试；用尽次数后按 pending 处理，由后端 notify 兜底
       }
