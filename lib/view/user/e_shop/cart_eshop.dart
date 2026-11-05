@@ -325,6 +325,30 @@ class _CartEShopState extends State<CartEShop> {
   }
 
   /// 下单前对寄送订单再校验一次：必须从联想里选过地址，且在后端下发的寄送半径内
+  /// 结算前的必填校验。先跑当前显示的表单（寄送：地址 / 姓名 / 邮箱 / 电话；自取：自取备注），
+  /// 让缺项的输入框显示红字；再按控制器复查一遍兜底：表单因布局变化没挂在树上时也不会放行。
+  /// 任一不通过就提示"请填写所有必填项"并返回 false，不向后端下单。
+  bool _requiredFieldsValid() {
+    final formState = cartStore.formKey.currentState;
+    final formOk = formState == null ? true : formState.validate();
+
+    bool filled(TextEditingController c) => c.text.trim().isNotEmpty;
+    final bool fieldsOk;
+    if (cartStore.deliveryOption == 2) {
+      fieldsOk = cartStore.hasDeliveryCoordinates &&
+          filled(cartStore.deliveryAddressController) &&
+          filled(cartStore.nameController) &&
+          filled(cartStore.emailController) &&
+          filled(cartStore.phoneController);
+    } else {
+      fieldsOk = filled(cartStore.collectInstructionsController);
+    }
+
+    if (formOk && fieldsOk) return true;
+    HttpExceptionNotifyUser.showInfo(S.of(context).fillRequiredFields);
+    return false;
+  }
+
   Future<bool> _validateDeliveryDistance() async {
     if (!cartStore.hasDeliveryCoordinates) {
       await HttpExceptionNotifyUser.showInfo(
@@ -737,7 +761,7 @@ class _CartEShopState extends State<CartEShop> {
 
                     if (cartStore.deliveryOption == 2) {
                       if (pharmacy!.isOpen! == 1) {
-                        if (cartStore.formKey.currentState?.validate() ?? false) {
+                        if (_requiredFieldsValid()) {
                           // 寄送：地址必须来自联想选择且在后端下发的寄送半径内
                           if (!await _validateDeliveryDistance()) return;
                           await cartStore.createOrder(widget.services.api);
@@ -748,6 +772,8 @@ class _CartEShopState extends State<CartEShop> {
                       }
                     } else {
                       if (pharmacy!.isOpen! == 1) {
+                        // 自取：自取备注必填，和寄送一样先过表单校验再下单
+                        if (!_requiredFieldsValid()) return;
                         if (showNearCloseAlert) {
                           // show close open alert
                           shopWarnAlert(
@@ -1688,7 +1714,7 @@ class _CartEShopState extends State<CartEShop> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    S.of(context).deliveryAddress,
+                    S.of(context).deliveryAddress + ' *',
                     textAlign: TextAlign.left,
                     style: GoogleFonts.rubik(
                       color: cartStore.deliveryAddressController.text.trim().isNotEmpty ? AppColors.kb1b1b1 : AppColors.k010101,
@@ -1775,7 +1801,7 @@ class _CartEShopState extends State<CartEShop> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    S.of(context).name,
+                    S.of(context).name + ' *',
                     textAlign: TextAlign.left,
                     style: GoogleFonts.rubik(
                       color: cartStore.nameController.text.trim().isNotEmpty ? AppColors.kb1b1b1 : AppColors.k010101,
@@ -1790,7 +1816,7 @@ class _CartEShopState extends State<CartEShop> {
                     readOnly: cartStore.isLoading ? true : false,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Please enter receiver name';
+                        return S.of(context).emptyReceiverName;
                       } else {
                         return null;
                       }
@@ -1834,7 +1860,7 @@ class _CartEShopState extends State<CartEShop> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    S.of(context).email,
+                    S.of(context).email + ' *',
                     textAlign: TextAlign.left,
                     style: GoogleFonts.rubik(
                       color: cartStore.emailController.text.trim().isNotEmpty ? AppColors.kb1b1b1 : AppColors.k010101,
@@ -1849,7 +1875,7 @@ class _CartEShopState extends State<CartEShop> {
                     readOnly: cartStore.isLoading ? true : false,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Please enter an Email';
+                        return S.of(context).emptyReceiverEmail;
                       } else {
                         return null;
                       }
@@ -1894,7 +1920,7 @@ class _CartEShopState extends State<CartEShop> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    S.of(context).phone,
+                    S.of(context).phone + ' *',
                     textAlign: TextAlign.left,
                     style: GoogleFonts.rubik(
                       color: cartStore.phoneController.text.trim().isNotEmpty ? AppColors.kb1b1b1 : AppColors.k010101,
@@ -1909,7 +1935,7 @@ class _CartEShopState extends State<CartEShop> {
                     readOnly: cartStore.isLoading ? true : false,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Please enter Phone';
+                        return S.of(context).emptyReceiverPhone;
                       } else {
                         return null;
                       }
@@ -2126,15 +2152,32 @@ class _CartEShopState extends State<CartEShop> {
     );
   }
 
+  /// 自取备注。和寄送表单共用 cartStore.formKey：两者按配送方式互斥显示，同一时刻只有一个
+  /// Form 在树上，结算按钮统一用 formKey.currentState.validate() 校验当前显示的那一个
   Widget collectInstructions() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10.0),
-      child: TextFormField(
+    return Form(
+      key: cartStore.formKey,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 10.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              S.of(context).collectInstructions + ' *',
+              textAlign: TextAlign.left,
+              style: GoogleFonts.rubik(
+                color: cartStore.collectInstructionsController.text.trim().isNotEmpty ? AppColors.kb1b1b1 : AppColors.k010101,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
         maxLines: 6,
         readOnly: cartStore.isLoading ? true : false,
         validator: (value) {
           if (value == null || value.trim().isEmpty) {
-            return 'Please enter receiver name';
+            return S.of(context).emptyCollectInstructions;
           } else {
             return null;
           }
@@ -2165,6 +2208,9 @@ class _CartEShopState extends State<CartEShop> {
           ),
           errorBorder: kErrorOutlineInputBorder,
           focusedErrorBorder: kErrorFocusedOutlineInputBorder,
+        ),
+      ),
+          ],
         ),
       ),
     );

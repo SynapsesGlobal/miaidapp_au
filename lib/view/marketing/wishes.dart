@@ -143,6 +143,9 @@ class _WishesState extends State<Wishes> {
 
   Future<void> _purchase(String companyId) async {
     var purchaseProducts = <Map<String, dynamic>>[];
+    // 选中商品的币种：人民币商品才有支付宝入口（与商品详情页一致）。同一单只能一种币种，
+    // 混了多种时不传，弹窗只给刷卡 / Apple Pay，后端下单也会拒绝
+    final currencies = <String>{};
 
     for (var w in wishes) {
       if (w['companyId'].toString() != companyId.toString()) continue;
@@ -152,6 +155,7 @@ class _WishesState extends State<Wishes> {
 
         if (!selectedProducts.contains(pid)) continue;
         purchaseProducts.add({'productId': pid, 'quantity': quantities[pid] ?? 1,});
+        currencies.add((p['currency']?.toString() ?? '').toUpperCase());
       }
     }
 
@@ -164,6 +168,7 @@ class _WishesState extends State<Wishes> {
       context: context,
       companyId: companyId,
       products: purchaseProducts,
+      currency: currencies.length == 1 ? currencies.first : null,
     );
   }
 

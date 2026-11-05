@@ -129,6 +129,8 @@ class MarketingPurchaseButton extends StatelessWidget {
                   'quantity': qty,
                 }
               ],
+              // 人民币计价的商品多一个支付宝入口（与详情页、心愿单一致）
+              currency: product['currency']?.toString(),
             );
           },
         );
