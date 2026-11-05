@@ -497,6 +497,7 @@
   "cancelOrderRefund": "환불 신청",
   "requestRefund": "환불 신청",
   "cancelOrderRefundConfirm": "환불 신청이 제출되면 검토를 진행하며, 승인되면 원래 결제 수단으로 환불됩니다.",
+  "cancelOrderSuccess": "주문을 최대한 빨리 검토하겠습니다. 승인되면 결제 금액이 원래 결제 수단으로 환불됩니다.",
   "notNow": "나중에 신청",
   "refundReason": "환불 사유",
   "selectRefundReason": "환불 사유를 선택해 주세요",

@@ -131,8 +131,9 @@ class _OrdersState extends State<Orders> {
           order['can_cancel'] = false;
         }
       });
+      // 成功提示用固定的多语言文案，不显示后端返回的英文 message
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message ?? S.of(context).refunding)),
+        SnackBar(content: Text(S.of(context).cancelOrderSuccess)),
       );
     } catch (e) {
       await EasyLoading.dismiss();

@@ -498,6 +498,7 @@
   "cancelOrderRefund": "Ajukan Pengembalian Dana",
   "requestRefund": "Refund",
   "cancelOrderRefundConfirm": "Setelah permintaan pengembalian dana diajukan, kami akan meninjaunya. Setelah disetujui, dana akan dikembalikan melalui metode pembayaran semula.",
+  "cancelOrderSuccess": "Kami akan meninjau pesanan Anda secepatnya. Setelah disetujui, pembayaran akan dikembalikan melalui metode pembayaran semula.",
   "notNow": "Nanti Saja",
   "refundReason": "Alasan Pengembalian Dana",
   "selectRefundReason": "Silakan pilih alasan pengembalian dana",

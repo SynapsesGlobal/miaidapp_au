@@ -472,6 +472,7 @@
   "cancelOrderRefund": "Request Refund",
   "requestRefund": "Refund",
   "cancelOrderRefundConfirm": "After you submit the refund request, we will review it. Once approved, the refund will be returned via your original payment method.",
+  "cancelOrderSuccess": "We will review your order as soon as possible. Once approved, the payment will be refunded via your original payment method.",
   "notNow": "Not Now",
   "refundReason": "Refund Reason",
   "selectRefundReason": "Please select a refund reason",

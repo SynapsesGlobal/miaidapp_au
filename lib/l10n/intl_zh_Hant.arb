@@ -467,6 +467,7 @@
   "cancelOrderRefund": "申請退款",
   "requestRefund": "申請退款",
   "cancelOrderRefundConfirm": "退款申請提交後，我們將進行審核，審核通過後，退款將按原支付方式退回。",
+  "cancelOrderSuccess": "後台將盡快審核您的訂單，審核通過後付款將原路退回",
   "notNow": "暫不申請",
   "refundReason": "退款原因",
   "selectRefundReason": "請選擇退款原因",

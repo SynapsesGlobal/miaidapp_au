@@ -473,6 +473,7 @@
   "cancelOrderRefund": "申请退款",
   "requestRefund": "申请退款",
   "cancelOrderRefundConfirm": "退款申请提交后，我们将进行审核，审核通过后，退款将按原支付方式退回。",
+  "cancelOrderSuccess": "后端将尽快审核您的订单，审核通过后付款将原路返回",
   "notNow": "暂不申请",
   "refundReason": "退款原因",
   "selectRefundReason": "请选择退款原因",
