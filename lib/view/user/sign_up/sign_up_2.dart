@@ -24,6 +24,7 @@ import 'package:miaid/store/user/user_profile_screen/user_profile_screen_store.d
 import 'package:miaid/view/main_tabs/main_tabs.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tap_debouncer/tap_debouncer.dart';
+import 'package:miaid/widget/form_field_style.dart';
 
 class SignUp2Params {
   const SignUp2Params(this.key);
@@ -627,7 +628,7 @@ class _SignUp2State extends State<SignUp2> {
       decoration: InputDecoration(
         hintText: '1234567890',
         hintStyle: GoogleFonts.rubik(color: AppColors.kb1b1b1, fontSize: 14),
-        contentPadding: EdgeInsets.only(left: 16, top: 5, bottom: 5),
+        contentPadding: kFormFieldContentPadding,
         focusedBorder: border(AppColors.k010101),
         enabledBorder: border(AppColors.kb1b1b1, width: 0.5),
         errorBorder: border(AppColors.kfa0020),
@@ -707,7 +708,9 @@ class _SignUp2State extends State<SignUp2> {
       style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 14),
       decoration: InputDecoration(
         counterText: '',
-        contentPadding: EdgeInsets.only(left: 16, top: 5, bottom: 5),
+        contentPadding: kFormFieldContentPadding,
+        prefixIcon: kFormFieldLeadingSpace,
+        prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
         focusedBorder: border(AppColors.k010101),
         enabledBorder: border(AppColors.kb1b1b1, width: 0.5),
         errorBorder: border(AppColors.kfa0020),
@@ -777,11 +780,9 @@ class _SignUp2State extends State<SignUp2> {
                     color: AppColors.kb1b1b1,
                     fontSize: 14,
                   ),
-                  contentPadding: EdgeInsets.only(
-                    left: 16,
-                    top: 5,
-                    bottom: 5,
-                  ),
+                  contentPadding: kFormFieldContentPadding,
+                  prefixIcon: kFormFieldLeadingSpace,
+                  prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(
                       color: AppColors.k010101,
@@ -923,7 +924,7 @@ class _SignUp2State extends State<SignUp2> {
                     ),
                     if (state.hasError)
                       Padding(
-                        padding: const EdgeInsets.only(left: 12, top: 6),
+                        padding: const EdgeInsets.only(top: 6),
                         child: Text(
                           state.errorText!,
                           style: GoogleFonts.rubik(
@@ -1017,7 +1018,7 @@ class _SignUp2State extends State<SignUp2> {
                     ),
                     if (state.hasError)
                       Padding(
-                        padding: const EdgeInsets.only(left: 12, top: 6),
+                        padding: const EdgeInsets.only(top: 6),
                         child: Text(
                           state.errorText!,
                           style: GoogleFonts.rubik(
@@ -1081,11 +1082,9 @@ class _SignUp2State extends State<SignUp2> {
                 color: AppColors.kb1b1b1,
                 fontSize: 14,
               ),
-              contentPadding: EdgeInsets.only(
-                left: 16,
-                top: 5,
-                bottom: 5,
-              ),
+              contentPadding: kFormFieldContentPadding,
+              prefixIcon: kFormFieldLeadingSpace,
+              prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
               focusedBorder: OutlineInputBorder(
                 borderSide: BorderSide(
                   color: AppColors.k010101,
@@ -1137,7 +1136,9 @@ class _SignUp2State extends State<SignUp2> {
                 color: AppColors.kb1b1b1,
                 fontSize: 14,
               ),
-              contentPadding: EdgeInsets.only(left: 16, top: 5, bottom: 5,),
+              contentPadding: kFormFieldContentPadding,
+              prefixIcon: kFormFieldLeadingSpace,
+              prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
               focusedBorder: OutlineInputBorder(
                 borderSide: BorderSide(
                   color: AppColors.k010101,
@@ -1208,11 +1209,9 @@ class _SignUp2State extends State<SignUp2> {
                 color: AppColors.kb1b1b1,
                 fontSize: 14,
               ),
-              contentPadding: EdgeInsets.only(
-                left: 16,
-                top: 5,
-                bottom: 5,
-              ),
+              contentPadding: kFormFieldContentPadding,
+              prefixIcon: kFormFieldLeadingSpace,
+              prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
               focusedBorder: OutlineInputBorder(
                 borderSide: BorderSide(
                   color: AppColors.k010101,
@@ -1271,11 +1270,9 @@ class _SignUp2State extends State<SignUp2> {
                 color: AppColors.kb1b1b1,
                 fontSize: 14,
               ),
-              contentPadding: EdgeInsets.only(
-                left: 16,
-                top: 5,
-                bottom: 5,
-              ),
+              contentPadding: kFormFieldContentPadding,
+              prefixIcon: kFormFieldLeadingSpace,
+              prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
               focusedBorder: OutlineInputBorder(
                 borderSide: BorderSide(
                   color: AppColors.k010101,
@@ -1326,7 +1323,7 @@ class _SignUp2State extends State<SignUp2> {
                 color: AppColors.kb1b1b1,
                 fontSize: 14,
               ),
-              contentPadding: EdgeInsets.only(left: 16, top: 5, bottom: 5,),
+              contentPadding: kFormFieldContentPadding,
               focusedBorder: OutlineInputBorder(
                 borderSide: BorderSide(
                   color: AppColors.k010101,
@@ -1437,7 +1434,9 @@ class _SignUp2State extends State<SignUp2> {
                 color: AppColors.kb1b1b1,
                 fontSize: 14,
               ),
-              contentPadding: EdgeInsets.only(left: 16, top: 5, bottom: 5,),
+              contentPadding: kFormFieldContentPadding,
+              prefixIcon: kFormFieldLeadingSpace,
+              prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
               focusedBorder: OutlineInputBorder(
                 borderSide: BorderSide(
                   color: AppColors.k010101,
@@ -1496,7 +1495,9 @@ class _SignUp2State extends State<SignUp2> {
                 color: AppColors.kb1b1b1,
                 fontSize: 14,
               ),
-              contentPadding: EdgeInsets.only(left: 16, top: 5, bottom: 5,),
+              contentPadding: kFormFieldContentPadding,
+              prefixIcon: kFormFieldLeadingSpace,
+              prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
               focusedBorder: OutlineInputBorder(
                 borderSide: BorderSide(
                   color: AppColors.k010101,

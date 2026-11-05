@@ -29,6 +29,7 @@ import 'package:miaid/view/drawer/terms_and_cond.dart';
 import 'package:miaid/widget/image_widget.dart';
 import 'package:mobx/mobx.dart';
 import 'package:image_picker/image_picker.dart' as pick;
+import 'package:miaid/widget/form_field_style.dart';
 
 class CartEShopParams {
   const CartEShopParams(this.key);
@@ -1652,11 +1653,9 @@ class _CartEShopState extends State<CartEShop> {
               color: AppColors.kb1b1b1,
               fontSize: 14,
             ),
-            contentPadding: EdgeInsets.only(
-              left: 16,
-              top: 5,
-              bottom: 5,
-            ),
+            contentPadding: kFormFieldContentPadding,
+            prefixIcon: kFormFieldLeadingSpace,
+            prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
             focusedBorder: OutlineInputBorder(
               borderSide: BorderSide(
                 color: AppColors.k010101,
@@ -1737,11 +1736,9 @@ class _CartEShopState extends State<CartEShop> {
                         color: AppColors.kb1b1b1,
                         fontSize: 14,
                       ),
-                      contentPadding: EdgeInsets.only(
-                        left: 16,
-                        top: 5,
-                        bottom: 5,
-                      ),
+                      contentPadding: kFormFieldContentPadding,
+                      prefixIcon: kFormFieldLeadingSpace,
+                      prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                       border: OutlineInputBorder(
                         borderSide: BorderSide(color: Colors.yellow),
                       ),
@@ -1806,11 +1803,9 @@ class _CartEShopState extends State<CartEShop> {
                         color: AppColors.kb1b1b1,
                         fontSize: 14,
                       ),
-                      contentPadding: EdgeInsets.only(
-                        left: 16,
-                        top: 5,
-                        bottom: 5,
-                      ),
+                      contentPadding: kFormFieldContentPadding,
+                      prefixIcon: kFormFieldLeadingSpace,
+                      prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                       focusedBorder: OutlineInputBorder(
                         borderSide: BorderSide(
                           color: AppColors.k010101,
@@ -1868,11 +1863,9 @@ class _CartEShopState extends State<CartEShop> {
                         color: AppColors.kb1b1b1,
                         fontSize: 14,
                       ),
-                      contentPadding: EdgeInsets.only(
-                        left: 16,
-                        top: 5,
-                        bottom: 5,
-                      ),
+                      contentPadding: kFormFieldContentPadding,
+                      prefixIcon: kFormFieldLeadingSpace,
+                      prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                       focusedBorder: OutlineInputBorder(
                         borderSide: BorderSide(
                           color: AppColors.k010101,
@@ -2154,11 +2147,9 @@ class _CartEShopState extends State<CartEShop> {
             color: AppColors.kb1b1b1,
             fontSize: 14,
           ),
-          contentPadding: EdgeInsets.only(
-            left: 16,
-            top: 5,
-            bottom: 5,
-          ),
+          contentPadding: kFormFieldContentPadding,
+          prefixIcon: kFormFieldLeadingSpace,
+          prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
           focusedBorder: OutlineInputBorder(
             borderSide: BorderSide(
               color: AppColors.k010101,

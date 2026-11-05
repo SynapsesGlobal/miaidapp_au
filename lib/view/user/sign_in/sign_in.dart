@@ -34,6 +34,7 @@ import 'package:tap_debouncer/tap_debouncer.dart';
 
 import '../../../main.dart';
 import '../../../services/FCMTokenService.dart';
+import 'package:miaid/widget/form_field_style.dart';
 
 class SignInParams {
   const SignInParams(this.key);
@@ -552,7 +553,9 @@ class _SignInState extends State<SignIn> {
                           elevation: 16,
                           style: GoogleFonts.rubik(color: AppColors.k5e5e5e),
                           decoration: InputDecoration(
-                            contentPadding: EdgeInsets.only(left: 16, right: 16),
+                            contentPadding: kFormFieldDropdownContentPadding,
+                            prefixIcon: kFormFieldLeadingSpace,
+                            prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                             focusedBorder: OutlineInputBorder(
                               borderSide: BorderSide(
                                 color: AppColors.k010101,
@@ -619,11 +622,9 @@ class _SignInState extends State<SignIn> {
                               color: AppColors.kb1b1b1,
                               fontSize: 14,
                             ),
-                            contentPadding: EdgeInsets.only(
-                              left: 16,
-                              top: 5,
-                              bottom: 5,
-                            ),
+                            contentPadding: kFormFieldContentPadding,
+                            prefixIcon: kFormFieldLeadingSpace,
+                            prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                             focusedBorder: OutlineInputBorder(
                               borderSide: BorderSide(
                                 color: AppColors.k010101,
@@ -680,7 +681,9 @@ class _SignInState extends State<SignIn> {
                               color: AppColors.kb1b1b1,
                               fontSize: 14,
                             ),
-                            contentPadding: EdgeInsets.only(left: 16, top: 5, bottom: 5,),
+                            contentPadding: kFormFieldContentPadding,
+                            prefixIcon: kFormFieldLeadingSpace,
+                            prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                             focusedBorder: OutlineInputBorder(
                               borderSide: BorderSide(
                                 color: AppColors.k010101,

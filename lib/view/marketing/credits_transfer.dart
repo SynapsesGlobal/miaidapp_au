@@ -14,6 +14,7 @@ import '../../generated/l10n.dart';
 import '../../utils/configure_dependencies.dart';
 import 'package:miaid/config/api_settings.dart';
 import 'package:miaid/services/marketing_api.dart';
+import 'package:miaid/widget/form_field_style.dart';
 
 class CreditsTransfer extends StatefulWidget {
   const CreditsTransfer({super.key});
@@ -174,7 +175,7 @@ class _CreditsTransferState extends State<CreditsTransfer> {
                     color: AppColors.kb1b1b1,
                     fontSize: 14,
                   ),
-                  contentPadding: EdgeInsets.only(left: 16, top: 5, bottom: 5,),
+                  contentPadding: kFormFieldContentPadding,
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(
                       color: AppColors.k010101,
@@ -222,7 +223,7 @@ class _CreditsTransferState extends State<CreditsTransfer> {
                     color: AppColors.kb1b1b1,
                     fontSize: 14,
                   ),
-                  contentPadding: EdgeInsets.only(left: 16, top: 5, bottom: 5,),
+                  contentPadding: kFormFieldContentPadding,
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(
                       color: AppColors.k010101,

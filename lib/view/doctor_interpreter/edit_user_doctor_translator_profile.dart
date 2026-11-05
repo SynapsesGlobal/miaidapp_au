@@ -17,6 +17,7 @@ import 'package:miaid/generated_api_code/api_client.swagger.dart';
 import 'package:miaid/store/doctor_interpreter/edit_user_doctor_translator_profile_store.dart';
 import 'package:miaid/store/user/user_profile_screen/user_profile_screen_store.dart';
 import 'package:tap_debouncer/tap_debouncer.dart';
+import 'package:miaid/widget/form_field_style.dart';
 
 class EditUserDoctorTranslatorProfileParams {
   const EditUserDoctorTranslatorProfileParams(this.key);
@@ -288,11 +289,9 @@ class _EditUserDoctorTranslatorProfileState
                     fontSize: 14,
                   ),
                   decoration: InputDecoration(
-                    contentPadding: EdgeInsets.only(
-                      left: 16,
-                      top: 5,
-                      bottom: 5,
-                    ),
+                    contentPadding: kFormFieldContentPadding,
+                    prefixIcon: kFormFieldLeadingSpace,
+                    prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(
                         color: AppColors.k010101,
@@ -352,11 +351,9 @@ class _EditUserDoctorTranslatorProfileState
                     fontSize: 14,
                   ),
                   decoration: InputDecoration(
-                    contentPadding: EdgeInsets.only(
-                      left: 16,
-                      top: 5,
-                      bottom: 5,
-                    ),
+                    contentPadding: kFormFieldContentPadding,
+                    prefixIcon: kFormFieldLeadingSpace,
+                    prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(
                         color: AppColors.k010101,
@@ -426,11 +423,9 @@ class _EditUserDoctorTranslatorProfileState
                     fontSize: 14,
                   ),
                   decoration: InputDecoration(
-                    contentPadding: EdgeInsets.only(
-                      left: 16,
-                      top: 5,
-                      bottom: 5,
-                    ),
+                    contentPadding: kFormFieldContentPadding,
+                    prefixIcon: kFormFieldLeadingSpace,
+                    prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(
                         color: AppColors.k010101,
@@ -639,11 +634,9 @@ class _EditUserDoctorTranslatorProfileState
                     fontSize: 14,
                   ),
                   decoration: InputDecoration(
-                    contentPadding: EdgeInsets.only(
-                      left: 16,
-                      top: 5,
-                      bottom: 5,
-                    ),
+                    contentPadding: kFormFieldContentPadding,
+                    prefixIcon: kFormFieldLeadingSpace,
+                    prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(
                         color: AppColors.k010101,
@@ -704,11 +697,9 @@ class _EditUserDoctorTranslatorProfileState
                     fontSize: 14,
                   ),
                   decoration: InputDecoration(
-                    contentPadding: EdgeInsets.only(
-                      left: 16,
-                      top: 5,
-                      bottom: 5,
-                    ),
+                    contentPadding: kFormFieldContentPadding,
+                    prefixIcon: kFormFieldLeadingSpace,
+                    prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(
                         color: AppColors.k010101,
@@ -765,7 +756,9 @@ class _EditUserDoctorTranslatorProfileState
                     }
                   },
                   decoration: InputDecoration(
-                    contentPadding: EdgeInsets.only(left: 16, right: 16),
+                    contentPadding: kFormFieldDropdownContentPadding,
+                    prefixIcon: kFormFieldLeadingSpace,
+                    prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(
                         color: AppColors.k010101,
@@ -845,7 +838,9 @@ class _EditUserDoctorTranslatorProfileState
               }
             },
             decoration: InputDecoration(
-              contentPadding: EdgeInsets.only(left: 16, right: 16),
+              contentPadding: kFormFieldDropdownContentPadding,
+              prefixIcon: kFormFieldLeadingSpace,
+              prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
               focusedBorder: OutlineInputBorder(
                 borderSide: BorderSide(
                   color: AppColors.k010101,
@@ -927,7 +922,9 @@ class _EditUserDoctorTranslatorProfileState
             elevation: 16,
             style: GoogleFonts.rubik(color: AppColors.k5e5e5e),
             decoration: InputDecoration(
-              contentPadding: EdgeInsets.only(left: 16, right: 16),
+              contentPadding: kFormFieldDropdownContentPadding,
+              prefixIcon: kFormFieldLeadingSpace,
+              prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
               focusedBorder: OutlineInputBorder(
                 borderSide: BorderSide(
                   color: AppColors.k010101,

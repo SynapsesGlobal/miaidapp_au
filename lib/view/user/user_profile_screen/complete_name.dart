@@ -6,6 +6,7 @@ import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/generated_api_code/api_client.swagger.dart';
 import 'package:miaid/services/social_account_service.dart';
+import 'package:miaid/widget/form_field_style.dart';
 
 /// 补填姓名页，从首页问候语的"设置姓名"进入。
 ///
@@ -188,7 +189,9 @@ class _CompleteNameScreenState extends State<CompleteNameScreen> {
       style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 14),
       decoration: InputDecoration(
         counterText: '',
-        contentPadding: const EdgeInsets.only(left: 16, top: 5, bottom: 5),
+        contentPadding: kFormFieldContentPadding,
+        prefixIcon: kFormFieldLeadingSpace,
+        prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
         focusedBorder: border(AppColors.k010101),
         enabledBorder: border(AppColors.kb1b1b1),
         errorBorder: border(AppColors.kfa0020),

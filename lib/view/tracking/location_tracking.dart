@@ -18,6 +18,7 @@ import '../../utils/configure_dependencies.dart';
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:miaid/widget/form_field_style.dart';
 
 class LocationTracking extends StatefulWidget {
   const LocationTracking({super.key});
@@ -232,11 +233,9 @@ class _LocationTrackingState extends State<LocationTracking> {
                             color: AppColors.kb1b1b1,
                             fontSize: 14,
                           ),
-                          contentPadding: EdgeInsets.only(
-                            left: 16,
-                            top: 5,
-                            bottom: 5,
-                          ),
+                          contentPadding: kFormFieldContentPadding,
+                          prefixIcon: kFormFieldLeadingSpace,
+                          prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                           focusedBorder: OutlineInputBorder(
                             borderSide: BorderSide(
                               color: AppColors.k010101,

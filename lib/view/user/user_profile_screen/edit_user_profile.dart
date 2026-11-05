@@ -20,6 +20,7 @@ import 'package:miaid/store/user/user_profile_screen/edit_user_profile/edit_user
 import 'package:miaid/store/user/user_profile_screen/user_profile_screen_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tap_debouncer/tap_debouncer.dart';
+import 'package:miaid/widget/form_field_style.dart';
 
 class EditUserProfileParams {
   const EditUserProfileParams(this.key);
@@ -645,11 +646,9 @@ class _EditUserProfileState extends State<EditUserProfile> {
                     fontSize: 14,
                   ),
                   decoration: InputDecoration(
-                    contentPadding: EdgeInsets.only(
-                      left: 16,
-                      top: 5,
-                      bottom: 5,
-                    ),
+                    contentPadding: kFormFieldContentPadding,
+                    prefixIcon: kFormFieldLeadingSpace,
+                    prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(
                         color: AppColors.k010101,
@@ -705,11 +704,9 @@ class _EditUserProfileState extends State<EditUserProfile> {
                     fontSize: 14,
                   ),
                   decoration: InputDecoration(
-                    contentPadding: EdgeInsets.only(
-                      left: 16,
-                      top: 5,
-                      bottom: 5,
-                    ),
+                    contentPadding: kFormFieldContentPadding,
+                    prefixIcon: kFormFieldLeadingSpace,
+                    prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(
                         color: AppColors.k010101,
@@ -775,11 +772,9 @@ class _EditUserProfileState extends State<EditUserProfile> {
                     fontSize: 14,
                   ),
                   decoration: InputDecoration(
-                    contentPadding: EdgeInsets.only(
-                      left: 16,
-                      top: 5,
-                      bottom: 5,
-                    ),
+                    contentPadding: kFormFieldContentPadding,
+                    prefixIcon: kFormFieldLeadingSpace,
+                    prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(
                         color: AppColors.k010101,
@@ -1009,11 +1004,9 @@ class _EditUserProfileState extends State<EditUserProfile> {
                       color: AppColors.kb1b1b1,
                       fontSize: 14,
                     ),
-                    contentPadding: EdgeInsets.only(
-                      left: 16,
-                      top: 5,
-                      bottom: 5,
-                    ),
+                    contentPadding: kFormFieldContentPadding,
+                    prefixIcon: kFormFieldLeadingSpace,
+                    prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(
                         color: AppColors.k010101,
@@ -1219,7 +1212,7 @@ class _EditUserProfileState extends State<EditUserProfile> {
                 ),
                 if (state.hasError)
                   Padding(
-                    padding: const EdgeInsets.only(left: 12, top: 6),
+                    padding: const EdgeInsets.only(top: 6),
                     child: Text(
                       state.errorText!,
                       style: GoogleFonts.rubik(
@@ -1291,11 +1284,9 @@ class _EditUserProfileState extends State<EditUserProfile> {
                 color: AppColors.kb1b1b1,
                 fontSize: 14,
               ),
-              contentPadding: EdgeInsets.only(
-                left: 16,
-                top: 5,
-                bottom: 5,
-              ),
+              contentPadding: kFormFieldContentPadding,
+              prefixIcon: kFormFieldLeadingSpace,
+              prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
               focusedBorder: OutlineInputBorder(
                 borderSide: BorderSide(
                   color: AppColors.k010101,
@@ -1351,11 +1342,9 @@ class _EditUserProfileState extends State<EditUserProfile> {
                 color: AppColors.kb1b1b1,
                 fontSize: 14,
               ),
-              contentPadding: EdgeInsets.only(
-                left: 16,
-                top: 5,
-                bottom: 5,
-              ),
+              contentPadding: kFormFieldContentPadding,
+              prefixIcon: kFormFieldLeadingSpace,
+              prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
               focusedBorder: OutlineInputBorder(
                 borderSide: BorderSide(
                   color: AppColors.k010101,
@@ -1422,11 +1411,9 @@ class _EditUserProfileState extends State<EditUserProfile> {
                 color: AppColors.kb1b1b1,
                 fontSize: 14,
               ),
-              contentPadding: EdgeInsets.only(
-                left: 16,
-                top: 5,
-                bottom: 5,
-              ),
+              contentPadding: kFormFieldContentPadding,
+              prefixIcon: kFormFieldLeadingSpace,
+              prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
               focusedBorder: OutlineInputBorder(
                 borderSide: BorderSide(
                   color: AppColors.k010101,
@@ -1490,11 +1477,9 @@ class _EditUserProfileState extends State<EditUserProfile> {
                 color: AppColors.kb1b1b1,
                 fontSize: 14,
               ),
-              contentPadding: EdgeInsets.only(
-                left: 16,
-                top: 5,
-                bottom: 5,
-              ),
+              contentPadding: kFormFieldContentPadding,
+              prefixIcon: kFormFieldLeadingSpace,
+              prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
               focusedBorder: OutlineInputBorder(
                 borderSide: BorderSide(
                   color: AppColors.k010101,
@@ -1549,11 +1534,7 @@ class _EditUserProfileState extends State<EditUserProfile> {
                 color: AppColors.kb1b1b1,
                 fontSize: 14,
               ),
-              contentPadding: EdgeInsets.only(
-                left: 16,
-                top: 5,
-                bottom: 5,
-              ),
+              contentPadding: kFormFieldContentPadding,
               focusedBorder: OutlineInputBorder(
                 borderSide: BorderSide(
                   color: AppColors.k010101,
@@ -1666,11 +1647,9 @@ class _EditUserProfileState extends State<EditUserProfile> {
                 color: AppColors.kb1b1b1,
                 fontSize: 14,
               ),
-              contentPadding: EdgeInsets.only(
-                left: 16,
-                top: 5,
-                bottom: 5,
-              ),
+              contentPadding: kFormFieldContentPadding,
+              prefixIcon: kFormFieldLeadingSpace,
+              prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
               focusedBorder: OutlineInputBorder(
                 borderSide: BorderSide(
                   color: AppColors.k010101,
@@ -1734,11 +1713,9 @@ class _EditUserProfileState extends State<EditUserProfile> {
                 color: AppColors.kb1b1b1,
                 fontSize: 14,
               ),
-              contentPadding: EdgeInsets.only(
-                left: 16,
-                top: 5,
-                bottom: 5,
-              ),
+              contentPadding: kFormFieldContentPadding,
+              prefixIcon: kFormFieldLeadingSpace,
+              prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
               focusedBorder: OutlineInputBorder(
                 borderSide: BorderSide(
                   color: AppColors.k010101,

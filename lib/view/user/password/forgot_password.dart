@@ -16,6 +16,7 @@ import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/store/user/password/forgot_password/forgot_password_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/sign_in/sign_in.dart';
+import 'package:miaid/widget/form_field_style.dart';
 
 class ForgotPasswordParams {
   const ForgotPasswordParams({
@@ -154,11 +155,9 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                             color: AppColors.kb1b1b1,
                             fontSize: 14,
                           ),
-                          contentPadding: EdgeInsets.only(
-                            left: 16,
-                            top: 5,
-                            bottom: 5,
-                          ),
+                          contentPadding: kFormFieldContentPadding,
+                          prefixIcon: kFormFieldLeadingSpace,
+                          prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                           errorBorder: OutlineInputBorder(
                             borderSide: BorderSide(
                               color: AppColors.kfa0020,

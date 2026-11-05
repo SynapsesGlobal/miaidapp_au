@@ -13,6 +13,7 @@ import 'package:miaid/store/user/password/reset_password/reset_password_store.da
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/sign_in/sign_in.dart';
 import 'package:uni_links/uni_links.dart';
+import 'package:miaid/widget/form_field_style.dart';
 
 class ResetPasswordParams {
   const ResetPasswordParams(
@@ -141,11 +142,9 @@ class _ResetPasswordState extends State<ResetPassword> {
                               color: AppColors.kb1b1b1,
                               fontSize: 14,
                             ),
-                            contentPadding: EdgeInsets.only(
-                              left: 16,
-                              top: 5,
-                              bottom: 5,
-                            ),
+                            contentPadding: kFormFieldContentPadding,
+                            prefixIcon: kFormFieldLeadingSpace,
+                            prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                             focusedBorder: OutlineInputBorder(
                               borderSide: BorderSide(
                                 color: AppColors.k010101,
@@ -224,11 +223,9 @@ class _ResetPasswordState extends State<ResetPassword> {
                               color: AppColors.kb1b1b1,
                               fontSize: 14,
                             ),
-                            contentPadding: EdgeInsets.only(
-                              left: 16,
-                              top: 5,
-                              bottom: 5,
-                            ),
+                            contentPadding: kFormFieldContentPadding,
+                            prefixIcon: kFormFieldLeadingSpace,
+                            prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                             focusedBorder: OutlineInputBorder(
                               borderSide: BorderSide(
                                 color: AppColors.k010101,

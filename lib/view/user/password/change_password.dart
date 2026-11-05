@@ -10,6 +10,7 @@ import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/store/user/user_profile_screen/change_password/change_password_store.dart';
 import 'package:miaid/view/user/sign_in/sign_in.dart';
+import 'package:miaid/widget/form_field_style.dart';
 
 class ChangePasswordParams {
   const ChangePasswordParams(this.key);
@@ -121,11 +122,9 @@ class _ChangePasswordState extends State<ChangePassword> {
                               color: AppColors.kb1b1b1,
                               fontSize: 14,
                             ),
-                            contentPadding: EdgeInsets.only(
-                              left: 16,
-                              top: 5,
-                              bottom: 5,
-                            ),
+                            contentPadding: kFormFieldContentPadding,
+                            prefixIcon: kFormFieldLeadingSpace,
+                            prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                             focusedBorder: OutlineInputBorder(
                               borderSide: BorderSide(
                                 color: AppColors.k010101,
@@ -199,11 +198,9 @@ class _ChangePasswordState extends State<ChangePassword> {
                               color: AppColors.kb1b1b1,
                               fontSize: 14,
                             ),
-                            contentPadding: EdgeInsets.only(
-                              left: 16,
-                              top: 5,
-                              bottom: 5,
-                            ),
+                            contentPadding: kFormFieldContentPadding,
+                            prefixIcon: kFormFieldLeadingSpace,
+                            prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                             focusedBorder: OutlineInputBorder(
                               borderSide: BorderSide(
                                 color: AppColors.k010101,
@@ -278,11 +275,9 @@ class _ChangePasswordState extends State<ChangePassword> {
                               color: AppColors.kb1b1b1,
                               fontSize: 14,
                             ),
-                            contentPadding: EdgeInsets.only(
-                              left: 16,
-                              top: 5,
-                              bottom: 5,
-                            ),
+                            contentPadding: kFormFieldContentPadding,
+                            prefixIcon: kFormFieldLeadingSpace,
+                            prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                             focusedBorder: OutlineInputBorder(
                               borderSide: BorderSide(
                                 color: AppColors.k010101,

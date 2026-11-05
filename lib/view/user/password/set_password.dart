@@ -6,6 +6,7 @@ import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/services/social_account_service.dart';
 import 'package:miaid/view/user/sign_in/sign_in.dart';
+import 'package:miaid/widget/form_field_style.dart';
 
 /// 为没有密码的用户（通过 Apple 登录创建）设置密码。
 ///
@@ -188,7 +189,9 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(color: AppColors.kb1b1b1, fontSize: 14),
-      contentPadding: const EdgeInsets.only(left: 16, top: 5, bottom: 5),
+      contentPadding: kFormFieldContentPadding,
+      prefixIcon: kFormFieldLeadingSpace,
+      prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
       focusedBorder: border(AppColors.k010101),
       enabledBorder: border(AppColors.kb1b1b1),
       errorBorder: border(AppColors.kfa0020),

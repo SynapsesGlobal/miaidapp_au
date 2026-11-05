@@ -22,6 +22,7 @@ import 'package:miaid/view/user/sign_in/sign_in.dart';
 import 'package:miaid/view/user/sign_up/otp_screen.dart';
 import 'package:tap_debouncer/tap_debouncer.dart';
 import 'package:flutter_native_timezone/flutter_native_timezone.dart';
+import 'package:miaid/widget/form_field_style.dart';
 
 class SignUpParams {
   const SignUpParams(this.key);
@@ -172,11 +173,9 @@ class _SignUpState extends State<SignUp> {
                         color: AppColors.kb1b1b1,
                         fontSize: 14,
                       ),
-                      contentPadding: EdgeInsets.only(
-                        left: 16,
-                        top: 5,
-                        bottom: 5,
-                      ),
+                      contentPadding: kFormFieldContentPadding,
+                      prefixIcon: kFormFieldLeadingSpace,
+                      prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                       border: OutlineInputBorder(
                         borderSide: BorderSide(color: Colors.yellow),
                       ),
@@ -240,11 +239,9 @@ class _SignUpState extends State<SignUp> {
                         color: AppColors.kb1b1b1,
                         fontSize: 14,
                       ),
-                      contentPadding: EdgeInsets.only(
-                        left: 16,
-                        top: 5,
-                        bottom: 5,
-                      ),
+                      contentPadding: kFormFieldContentPadding,
+                      prefixIcon: kFormFieldLeadingSpace,
+                      prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                       focusedBorder: OutlineInputBorder(
                         borderSide: BorderSide(
                           color: AppColors.k010101,
@@ -308,11 +305,9 @@ class _SignUpState extends State<SignUp> {
                         color: AppColors.kb1b1b1,
                         fontSize: 14,
                       ),
-                      contentPadding: EdgeInsets.only(
-                        left: 16,
-                        top: 5,
-                        bottom: 5,
-                      ),
+                      contentPadding: kFormFieldContentPadding,
+                      prefixIcon: kFormFieldLeadingSpace,
+                      prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                       focusedBorder: OutlineInputBorder(
                         borderSide: BorderSide(
                           color: AppColors.k010101,
@@ -504,11 +499,9 @@ class _SignUpState extends State<SignUp> {
                         color: AppColors.kb1b1b1,
                         fontSize: 14,
                       ),
-                      contentPadding: EdgeInsets.only(
-                        left: 16,
-                        top: 5,
-                        bottom: 5,
-                      ),
+                      contentPadding: kFormFieldContentPadding,
+                      prefixIcon: kFormFieldLeadingSpace,
+                      prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                       focusedBorder: OutlineInputBorder(
                         borderSide: BorderSide(
                           color: AppColors.k010101,
@@ -583,11 +576,9 @@ class _SignUpState extends State<SignUp> {
                         color: AppColors.kb1b1b1,
                         fontSize: 14,
                       ),
-                      contentPadding: EdgeInsets.only(
-                        left: 16,
-                        top: 5,
-                        bottom: 5,
-                      ),
+                      contentPadding: kFormFieldContentPadding,
+                      prefixIcon: kFormFieldLeadingSpace,
+                      prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                       focusedBorder: OutlineInputBorder(
                         borderSide: BorderSide(
                           color: AppColors.k010101,
@@ -644,11 +635,9 @@ class _SignUpState extends State<SignUp> {
                         color: AppColors.kb1b1b1,
                         fontSize: 14,
                       ),
-                      contentPadding: EdgeInsets.only(
-                        left: 16,
-                        top: 5,
-                        bottom: 5,
-                      ),
+                      contentPadding: kFormFieldContentPadding,
+                      prefixIcon: kFormFieldLeadingSpace,
+                      prefixIconConstraints: kFormFieldLeadingSpaceConstraints,
                       focusedBorder: OutlineInputBorder(
                         borderSide: BorderSide(
                           color: AppColors.k010101,
