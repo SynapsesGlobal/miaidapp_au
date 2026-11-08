@@ -37,6 +37,7 @@ import 'package:miaid/view/map/map_screen.dart';
 import 'package:miaid/view/user/calling/call_screen_helper.dart';
 import 'package:miaid/view/user/e_shop/e_shop.dart';
 import 'package:miaid/view/user/home/qrcode_scan.dart';
+import 'package:miaid/view/user/smart_ring/smart_ring_home_card.dart';
 import 'package:miaid/view/user/user_profile_screen/complete_name.dart';
 import 'package:miaid/view/user/user_profile_screen/user_profile_screen.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -776,6 +777,9 @@ class _HomeScreenState extends State<HomeScreen>
               ],
             ),
           ),
+          const SizedBox(height: 12),
+          // 智能戒指入口（feature/smart-ring-demo：演示阶段固定为已连接样式）
+          const SmartRingHomeCard(connected: true),
           // 「关于脉康连」入口在抽屉里，首页底部只留白
           const SizedBox(height: 30),
         ],),),
