@@ -20,7 +20,9 @@ allprojects {
     repositories {
         google()
         jcenter()
-//        maven { }
+        // RWFIT 戒指插件内置的原生 SDK（AAR）本地 maven 仓库：插件内部声明的仓库不会传递到 :app，
+        // 必须在 App 侧注册，否则报 Could not find com.rwfit:blesdk-rwfit
+        maven { url "${project(':rwfit_ble').projectDir}/repo" }
     }
     configurations.all {
         resolutionStrategy.eachDependency { details ->

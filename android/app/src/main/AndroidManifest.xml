@@ -152,6 +152,8 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+    <!-- 智能戒指（rwfit_ble）：Android 12+ 扫描 BLE 需要；neverForLocation 表示不借扫描推断位置 -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- 位置追踪：前台服务（targetSdk 34+ 需按类型声明权限）。
          不申请 ACCESS_BACKGROUND_LOCATION：前台服务在前台启动后，

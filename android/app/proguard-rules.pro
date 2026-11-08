@@ -43,3 +43,11 @@
 -keep class org.bouncycastle.** { *; }
 -keepclassmembers class org.bouncycastle.** { *; }
 -dontwarn org.bouncycastle.**
+# =============================
+# 智能戒指 rwfit_ble 保留规则
+# =============================
+# 原生 SDK AAR 自带 consumer 规则（保留 bean/callback 等公开面）；桥接层用 fastjson 反射
+# 构造 SDK 入参/出参，fastjson 自身没有 consumer 规则，debug 构建开了 minify，这里兜底
+-keep class com.rwfit.rwfit_ble.** { *; }
+-keep class com.alibaba.fastjson.** { *; }
+-dontwarn com.alibaba.fastjson.**

@@ -246,6 +246,8 @@ PODS:
     - Flutter
   - PromisesObjC (2.4.0)
   - ReachabilitySwift (5.2.4)
+  - rwfit_ble (0.0.10):
+    - Flutter
   - SDWebImage (5.21.7):
     - SDWebImage/Core (= 5.21.7)
   - SDWebImage/Core (5.21.7)
@@ -349,6 +351,7 @@ DEPENDENCIES:
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
   - printing (from `.symlinks/plugins/printing/ios`)
+  - rwfit_ble (from `.symlinks/plugins/rwfit_ble/ios`)
   - share (from `.symlinks/plugins/share/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
   - sign_in_with_apple (from `.symlinks/plugins/sign_in_with_apple/ios`)
@@ -468,6 +471,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/permission_handler_apple/ios"
   printing:
     :path: ".symlinks/plugins/printing/ios"
+  rwfit_ble:
+    :path: ".symlinks/plugins/rwfit_ble/ios"
   share:
     :path: ".symlinks/plugins/share/ios"
   shared_preferences_foundation:
@@ -550,6 +555,7 @@ SPEC CHECKSUMS:
   printing: 233e1b73bd1f4a05615548e9b5a324c98588640b
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   ReachabilitySwift: 32793e867593cfc1177f5d16491e3a197d2fccda
+  rwfit_ble: 10e42066e841aad645a8584e79343ea48d7c9b20
   SDWebImage: e9fc87c1aab89a8ab1bbd74eba378c6f53be8abf
   share: 0b2c3e82132f5888bccca3351c504d0003b3b410
   shared_preferences_foundation: fcdcbc04712aee1108ac7fda236f363274528f78

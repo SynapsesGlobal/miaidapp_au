@@ -75,7 +75,7 @@ android {
 
     defaultConfig {
         applicationId "com.em.bright.miaid"
-        minSdkVersion 23 // flutter_zxing 2.2+（16KB 支持）要求 minSdk 23
+        minSdkVersion 24 // rwfit_ble（智能戒指）要求 minSdk 24；flutter_zxing 2.2+ 要求 23
         targetSdkVersion 36
         versionCode 106
         versionName flutterVersionName

@@ -18,6 +18,7 @@ import 'package:miaid/services/analytics_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:miaid/services/facebook_service.dart';
 import 'package:miaid/services/location_upload_service.dart';
+import 'package:miaid/services/smart_ring_service.dart';
 import 'package:miaid/services/square_payment_backend_service.dart';
 import 'package:miaid/services/square_payment_service.dart';
 import 'package:miaid/store/app/app_settings.dart';
@@ -77,6 +78,9 @@ Future<void> bootstrap(String envName) async {
   unawaited(PaymentBackend.reconcilePendingPayments());
 
   await runAppFromEnvironment();
+
+  // 智能戒指：恢复本地绑定/快照，已绑定则后台重连并同步；未绑定时不会初始化蓝牙 SDK
+  unawaited(SmartRingService.instance.start());
 
   setupFlutterLocalNotifications();
 

@@ -106,6 +106,10 @@ dependencies:
   sign_in_with_apple: ^7.0.1
   crypto: ^3.0.3
   google_sign_in: ^6.2.2
+  # RWFIT 智能戒指 BLE 插件：vendored 副本（上游 Dart 约束 / kts 与 Flutter 3.19 不兼容），
+  # 补丁与升级步骤见 packages/rwfit_ble/VENDORED.md
+  rwfit_ble:
+    path: packages/rwfit_ble
 
 # tobias（支付宝）配置：pod install 时插件的 tobias_setup.rb 会读取这里的值去改 Info.plist / entitlements：
 # - url_scheme：支付宝付款完成后回跳本 App 的 scheme。Info.plist 里已预先登记（CFBundleURLName=alipay，

@@ -1,0 +1,51 @@
+// 由上游 build.gradle.kts 等价改写为 Groovy（见本目录 VENDORED.md 补丁 2）：
+// Flutter 3.19 的 Gradle 插件只识别 android/build.gradle，kts 会被静默跳过，
+// 导致编译报 "package com.rwfit.rwfit_ble does not exist"。
+group = "com.rwfit.rwfit_ble"
+version = "0.0.10"
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.android.tools.build:gradle:8.1.0")
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url "${project.projectDir}/repo" }
+    }
+}
+
+apply plugin: 'com.android.library'
+
+android {
+    namespace = "com.rwfit.rwfit_ble"
+
+    compileSdk = 35
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/java'
+    }
+
+    defaultConfig {
+        minSdk = 24
+    }
+}
+
+dependencies {
+    // RW 戒指原生 SDK（通过本地 maven repo 引用）
+    implementation("com.rwfit:blesdk-rwfit:2.261012")
+    // FastJSON：现有桥接层用它构造 SDK 入参/出参，移植保留
+    implementation("com.alibaba:fastjson:1.2.83")
+}
