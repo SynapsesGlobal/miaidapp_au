@@ -52,9 +52,11 @@ class SmartRingFormat {
       case RealtimeMetric.hrv:
         return s.smartRingHrv;
       case RealtimeMetric.pressure:
-      case RealtimeMetric.bloodSugar:
+        return s.smartRingStress;
       case RealtimeMetric.bloodPressure:
-        return metric.name;
+        return s.smartRingBloodPressure;
+      case RealtimeMetric.bloodSugar:
+        return s.smartRingBloodSugar;
     }
   }
 
@@ -71,6 +73,10 @@ class SmartRingFormat {
     add(s.smartRingBloodOxygen, snap.bloodOxygen, '%');
     add(s.smartRingTemperature, snap.temperature, '°C', decimals: 1);
     add(s.smartRingHrv, snap.hrv, 'ms');
+    add(s.smartRingStress, snap.pressure, '');
+    final bp = snap.bloodPressure;
+    if (bp != null) lines.add('${s.smartRingBloodPressure}: ${bp.text} mmHg (${dateTime(context, bp.time)})');
+    add(s.smartRingBloodSugar, snap.bloodSugar, 'mmol/L', decimals: 1);
     final sleep = snap.sleep;
     if (sleep != null) {
       var line = '${s.smartRingSleep} (${s.smartRingLastNight}): ${hoursMinutes(sleep.totalMinutes)}';

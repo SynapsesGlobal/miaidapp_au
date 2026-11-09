@@ -34,6 +34,43 @@ class RingMetric {
   }
 }
 
+/// 一次血压读数（mmHg）。
+class BloodPressureMetric {
+  const BloodPressureMetric({
+    required this.systolic,
+    required this.diastolic,
+    required this.time,
+    this.realtime = false,
+  });
+
+  final int systolic;
+  final int diastolic;
+  final DateTime time;
+  final bool realtime;
+
+  String get text => '$systolic/$diastolic';
+
+  Map<String, dynamic> toJson() => {
+        'systolic': systolic,
+        'diastolic': diastolic,
+        'time': time.millisecondsSinceEpoch,
+        'realtime': realtime,
+      };
+
+  static BloodPressureMetric? fromJson(Map<String, dynamic>? json) {
+    if (json == null || json['time'] is! num) return null;
+    final systolic = _int(json['systolic']);
+    final diastolic = _int(json['diastolic']);
+    if (systolic <= 0) return null;
+    return BloodPressureMetric(
+      systolic: systolic,
+      diastolic: diastolic,
+      time: DateTime.fromMillisecondsSinceEpoch((json['time'] as num).toInt()),
+      realtime: json['realtime'] == true,
+    );
+  }
+}
+
 /// 一晚睡眠概要（分钟）。
 class SleepSummary {
   const SleepSummary({
@@ -126,6 +163,9 @@ class SmartRingSnapshot {
     this.bloodOxygen,
     this.temperature,
     this.hrv,
+    this.pressure,
+    this.bloodPressure,
+    this.bloodSugar,
     this.sleep,
     this.steps,
     this.lastSyncAt,
@@ -138,6 +178,13 @@ class SmartRingSnapshot {
   final RingMetric? temperature;
   final RingMetric? hrv;
 
+  /// 压力指数（设备算法值，无单位）。
+  final RingMetric? pressure;
+  final BloodPressureMetric? bloodPressure;
+
+  /// 血糖（mmol/L，设备算法估算值）。
+  final RingMetric? bloodSugar;
+
   /// 最近一晚睡眠。
   final SleepSummary? sleep;
 
@@ -146,13 +193,24 @@ class SmartRingSnapshot {
   final DateTime? lastSyncAt;
 
   bool get isEmpty =>
-      heartRate == null && bloodOxygen == null && temperature == null && hrv == null && sleep == null && steps == null;
+      heartRate == null &&
+      bloodOxygen == null &&
+      temperature == null &&
+      hrv == null &&
+      pressure == null &&
+      bloodPressure == null &&
+      bloodSugar == null &&
+      sleep == null &&
+      steps == null;
 
   SmartRingSnapshot copyWith({
     RingMetric? heartRate,
     RingMetric? bloodOxygen,
     RingMetric? temperature,
     RingMetric? hrv,
+    RingMetric? pressure,
+    BloodPressureMetric? bloodPressure,
+    RingMetric? bloodSugar,
     SleepSummary? sleep,
     StepsSummary? steps,
     DateTime? lastSyncAt,
@@ -162,6 +220,9 @@ class SmartRingSnapshot {
       bloodOxygen: bloodOxygen ?? this.bloodOxygen,
       temperature: temperature ?? this.temperature,
       hrv: hrv ?? this.hrv,
+      pressure: pressure ?? this.pressure,
+      bloodPressure: bloodPressure ?? this.bloodPressure,
+      bloodSugar: bloodSugar ?? this.bloodSugar,
       sleep: sleep ?? this.sleep,
       steps: steps ?? this.steps,
       lastSyncAt: lastSyncAt ?? this.lastSyncAt,
@@ -173,6 +234,9 @@ class SmartRingSnapshot {
         'bloodOxygen': bloodOxygen?.toJson(),
         'temperature': temperature?.toJson(),
         'hrv': hrv?.toJson(),
+        'pressure': pressure?.toJson(),
+        'bloodPressure': bloodPressure?.toJson(),
+        'bloodSugar': bloodSugar?.toJson(),
         'sleep': sleep?.toJson(),
         'steps': steps?.toJson(),
         'lastSyncAt': lastSyncAt?.millisecondsSinceEpoch,
@@ -186,6 +250,9 @@ class SmartRingSnapshot {
       bloodOxygen: RingMetric.fromJson(map(json['bloodOxygen'])),
       temperature: RingMetric.fromJson(map(json['temperature'])),
       hrv: RingMetric.fromJson(map(json['hrv'])),
+      pressure: RingMetric.fromJson(map(json['pressure'])),
+      bloodPressure: BloodPressureMetric.fromJson(map(json['bloodPressure'])),
+      bloodSugar: RingMetric.fromJson(map(json['bloodSugar'])),
       sleep: SleepSummary.fromJson(map(json['sleep'])),
       steps: StepsSummary.fromJson(map(json['steps'])),
       lastSyncAt: lastSync is num ? DateTime.fromMillisecondsSinceEpoch(lastSync.toInt()) : null,
@@ -208,11 +275,20 @@ class RingCapabilities {
 
   bool get heartRate => isUnknown || _has('isHr');
   bool get bloodOxygen => isUnknown || _has('isBloodOxy');
-  bool get temperature => isUnknown || _has('isBodyTemp');
+
+  /// 体温有两个能力位：`isBodyTemp`（单次实时测量）与 `isSupportTemperatureMonitoring`
+  /// （全天定时监测）。任一为真就算支持体温，面板显示体温卡；只有后者时不能「立即测量」，
+  /// 要开全天监测后同步才有数值（见 [temperatureRealtime]）。
+  bool get temperature => isUnknown || _has('isBodyTemp') || _has('isSupportTemperatureMonitoring');
+  bool get temperatureRealtime => isUnknown || _has('isBodyTemp');
   bool get hrv => isUnknown || _has('isHrv');
+  bool get stress => isUnknown || _has('isPressure');
+  bool get bloodPressure => isUnknown || _has('isBloodPress');
+  bool get bloodSugar => isUnknown || _has('isBloodSugar');
   bool get sleep => isUnknown || _has('isSleep');
   bool get steps => isUnknown || _has('isStep');
 
+  /// 能否对该项做单次实时测量（「立即测量」用）。
   bool supportsRealtime(RealtimeMetric metric) {
     switch (metric) {
       case RealtimeMetric.hr:
@@ -220,17 +296,21 @@ class RingCapabilities {
       case RealtimeMetric.bloodOxy:
         return bloodOxygen;
       case RealtimeMetric.temperature:
-        return temperature;
+        return temperatureRealtime;
       case RealtimeMetric.hrv:
         return hrv;
       case RealtimeMetric.pressure:
-        return isUnknown || _has('isPressure');
+        return stress;
       case RealtimeMetric.bloodSugar:
-        return isUnknown || _has('isBloodSugar');
+        return bloodSugar;
       case RealtimeMetric.bloodPressure:
-        return isUnknown || _has('isBloodPress');
+        return bloodPressure;
     }
   }
+
+  /// 能否对该项做全天定时监测（「全天监测」设置页用）。
+  bool supportsTimed(RealtimeMetric metric) =>
+      metric == RealtimeMetric.temperature ? temperature : supportsRealtime(metric);
 }
 
 /// 把 SDK 的同步结果 / 实时数据合并进 [SmartRingSnapshot]。
@@ -249,6 +329,12 @@ class SmartRingSyncParser {
         return snapshot.copyWith(bloodOxygen: _latestMetric(result.data, 'bloodOxy', snapshot.bloodOxygen));
       case 'hrv':
         return snapshot.copyWith(hrv: _latestMetric(result.data, 'hrv', snapshot.hrv));
+      case 'pressure':
+        return snapshot.copyWith(pressure: _latestMetric(result.data, 'pressure', snapshot.pressure));
+      case 'bp':
+        return snapshot.copyWith(bloodPressure: _latestBloodPressure(result.data, snapshot.bloodPressure));
+      case 'bloodSugar':
+        return snapshot.copyWith(bloodSugar: _latestMetric(result.data, 'bloodSugar', snapshot.bloodSugar));
       case 'temp':
         return snapshot.copyWith(
           temperature: _latestMetric(result.data, 'temp', snapshot.temperature, scale: 0.1),
@@ -263,9 +349,24 @@ class SmartRingSyncParser {
   }
 
   static SmartRingSnapshot applyRealtime(SmartRingSnapshot snapshot, RealtimeData data) {
+    // 测量过程中设备会先推 0 或占位值（体温尤其明显），不能覆盖已有读数
+    if (data.value <= 0) return snapshot;
     final time = data.timestampSec > 0 ? _fromSec(data.timestampSec) : DateTime.now();
     final metric = RingMetric(value: data.value, time: time, realtime: true);
     switch (data.type) {
+      case HealthType.pressure:
+        return snapshot.copyWith(pressure: metric);
+      case HealthType.bloodBp:
+        final diastolic = data.diastolic ?? 0;
+        if (diastolic <= 0) return snapshot;
+        return snapshot.copyWith(
+          bloodPressure: BloodPressureMetric(
+            systolic: data.value.round(),
+            diastolic: diastolic,
+            time: time,
+            realtime: true,
+          ),
+        );
       case HealthType.hr:
         return snapshot.copyWith(heartRate: metric);
       case HealthType.bloodOxy:
@@ -274,6 +375,8 @@ class SmartRingSyncParser {
         return snapshot.copyWith(temperature: metric);
       case HealthType.hrv:
         return snapshot.copyWith(hrv: metric);
+      case HealthType.bloodSugar:
+        return snapshot.copyWith(bloodSugar: metric);
       default:
         return snapshot;
     }
@@ -299,6 +402,28 @@ class SmartRingSyncParser {
         final time = _fromSec(sec > 0 ? sec : dayTime);
         if (latest == null || time.isAfter(latest.time)) {
           latest = RingMetric(value: value, time: time);
+        }
+      }
+    }
+    return latest;
+  }
+
+  /// 血压明细 `items[{time, systolic, diastolic}]`，取时间最新的一条。
+  static BloodPressureMetric? _latestBloodPressure(List<Map<String, dynamic>> days, BloodPressureMetric? current) {
+    var latest = current;
+    for (final day in days) {
+      final dayTime = _int(day['time']);
+      final items = day['items'];
+      if (items is! List) continue;
+      for (final raw in items) {
+        if (raw is! Map) continue;
+        final systolic = _int(raw['systolic']);
+        final diastolic = _int(raw['diastolic']);
+        if (systolic <= 0 || diastolic <= 0) continue;
+        final sec = _int(raw['time']);
+        final time = _fromSec(sec > 0 ? sec : dayTime);
+        if (latest == null || time.isAfter(latest.time)) {
+          latest = BloodPressureMetric(systolic: systolic, diastolic: diastolic, time: time);
         }
       }
     }

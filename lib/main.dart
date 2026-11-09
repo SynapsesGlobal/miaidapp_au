@@ -426,6 +426,8 @@ class AppLifecycleObserver extends WidgetsBindingObserver {
       // 回到前台时兜底重试 —— 覆盖热启动后 confirmPayment 临时失败 / 后端
       // 刚恢复的场景。reconcilePendingPayments 自身有去重锁。
       unawaited(PaymentBackend.reconcilePendingPayments());
+      // 已绑定戒指：断开则重连，连着且超过间隔则补一次同步
+      unawaited(SmartRingService.instance.onAppResumed());
     }
   }
 }

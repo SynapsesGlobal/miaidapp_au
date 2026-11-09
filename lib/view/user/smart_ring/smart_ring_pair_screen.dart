@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:miaid/api_utils/http_exception.dart';
 import 'package:miaid/component/miaid_card.dart';
+import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/services/smart_ring_service.dart';
@@ -85,7 +86,10 @@ class _SmartRingPairScreenState extends State<SmartRingPairScreen> with SingleTi
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: IconThemeData(color: AppColors.k010101),
+        leading: InkWell(
+          onTap: () => Navigator.pop(context),
+          child: navBarIcon(iconAssetName: 'ic_nb_back.png'),
+        ),
         title: Text(s.smartRing, style: GoogleFonts.rubik(
           color: AppColors.k010101,
           fontSize: 18,
