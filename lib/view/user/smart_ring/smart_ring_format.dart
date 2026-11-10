@@ -59,42 +59,4 @@ class SmartRingFormat {
         return s.smartRingBloodSugar;
     }
   }
-
-  /// 「分享给医生」用的纯文本摘要。
-  static String shareText(BuildContext context, String deviceName, SmartRingSnapshot snap) {
-    final s = S.of(context);
-    final lines = <String>['MiAid · ${s.smartRing} · $deviceName'];
-    void add(String label, RingMetric? m, String unit, {int decimals = 0}) {
-      if (m == null) return;
-      lines.add('$label: ${metric(m, decimals: decimals)} $unit (${dateTime(context, m.time)})');
-    }
-
-    add(s.smartRingHeartRate, snap.heartRate, 'bpm');
-    add(s.smartRingBloodOxygen, snap.bloodOxygen, '%');
-    add(s.smartRingTemperature, snap.temperature, '°C', decimals: 1);
-    add(s.smartRingHrv, snap.hrv, 'ms');
-    add(s.smartRingStress, snap.pressure, '');
-    final bp = snap.bloodPressure;
-    if (bp != null) lines.add('${s.smartRingBloodPressure}: ${bp.text} mmHg (${dateTime(context, bp.time)})');
-    add(s.smartRingBloodSugar, snap.bloodSugar, 'mmol/L', decimals: 1);
-    final sleep = snap.sleep;
-    if (sleep != null) {
-      var line = '${s.smartRingSleep} (${s.smartRingLastNight}): ${hoursMinutes(sleep.totalMinutes)}';
-      if (sleep.hasStages) {
-        line += ' · ${s.smartRingDeepSleep} ${hm(sleep.deepMinutes)}'
-            ' · ${s.smartRingLightSleep} ${hm(sleep.lightMinutes)}'
-            ' · ${s.smartRingRem} ${hm(sleep.remMinutes)}'
-            ' · ${s.smartRingAwake} ${hm(sleep.awakeMinutes)}';
-      }
-      lines.add(line);
-    }
-    final steps = snap.steps;
-    if (steps != null) {
-      lines.add('${s.smartRingSteps}: ${thousands(steps.steps)} (${DateFormat.MMMd().format(steps.date)})');
-    }
-    final sync = snap.lastSyncAt;
-    if (sync != null) lines.add(s.smartRingLastSync(dateTime(context, sync)));
-    lines.add(s.smartRingDisclaimer);
-    return lines.join('\n');
-  }
 }

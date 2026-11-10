@@ -14,7 +14,6 @@ import 'package:miaid/view/user/smart_ring/smart_ring_format.dart';
 import 'package:miaid/view/user/smart_ring/smart_ring_monitoring_screen.dart';
 import 'package:miaid/view/user/smart_ring/smart_ring_pair_screen.dart';
 import 'package:rwfit_ble/rwfit_ble.dart';
-import 'package:share/share.dart';
 
 /// 智能戒指健康看板：设备状态、四项体征、睡眠、步数和操作按钮。
 ///
@@ -80,32 +79,94 @@ class _SmartRingScreenState extends State<SmartRingScreen> {
     }
   }
 
-  Future<void> _share() async {
-    final s = S.of(context);
-    if (_ring.snapshot.isEmpty) {
-      unawaited(HttpExceptionNotifyUser.showInfo(s.smartRingNoData));
-      return;
-    }
-    await Share.share(SmartRingFormat.shareText(context, _ring.displayName, _ring.snapshot), subject: s.smartRingShareSubject);
-  }
-
   Future<void> _confirmUnbind() async {
     final s = S.of(context);
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showModalBottomSheet<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text(s.smartRingUnbind, textAlign: TextAlign.center,
-            style: GoogleFonts.rubik(fontWeight: FontWeight.w500, fontSize: 17, color: AppColors.k010101)),
-        content: Text(s.smartRingUnbindConfirm, textAlign: TextAlign.center,
-            style: GoogleFonts.rubik(fontSize: 13, color: AppColors.k010101)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(s.cancel)),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(s.confirm, style: TextStyle(color: AppColors.ke63030)),
-          ),
-        ],
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: EdgeInsets.fromLTRB(20, 12, 20, 16 + MediaQuery.of(context).padding.bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.kb1b1b1.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 22),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(color: AppColors.ke63030.withOpacity(0.1), shape: BoxShape.circle),
+              child: Icon(Icons.link_off, color: AppColors.ke63030, size: 30),
+            ),
+            const SizedBox(height: 16),
+            Text(s.smartRingUnbind, textAlign: TextAlign.center, style: GoogleFonts.rubik(
+              color: AppColors.k010101,
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+            )),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppColors.kf4f4f4,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.donut_large, color: AppColors.k0cbcc5, size: 14),
+                const SizedBox(width: 6),
+                Flexible(child: Text(_ring.displayName, style: GoogleFonts.rubik(
+                  color: AppColors.k5e5e5e,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                ), maxLines: 1, overflow: TextOverflow.ellipsis)),
+              ]),
+            ),
+            const SizedBox(height: 12),
+            Text(s.smartRingUnbindConfirm, textAlign: TextAlign.center, style: GoogleFonts.rubik(
+              color: AppColors.k8f8e94,
+              fontSize: 13,
+              height: 1.45,
+            )),
+            const SizedBox(height: 24),
+            MaterialButton(
+              onPressed: () => Navigator.pop(context, true),
+              elevation: 0,
+              height: 46,
+              minWidth: double.infinity,
+              color: AppColors.ke63030,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(23)),
+              child: Text(s.smartRingUnbind, style: GoogleFonts.rubik(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              )),
+            ),
+            const SizedBox(height: 10),
+            MaterialButton(
+              onPressed: () => Navigator.pop(context, false),
+              elevation: 0,
+              height: 46,
+              minWidth: double.infinity,
+              color: AppColors.kf4f4f4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(23)),
+              child: Text(s.cancel, style: GoogleFonts.rubik(
+                color: AppColors.k5e5e5e,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              )),
+            ),
+          ],
+        ),
       ),
     );
     if (confirmed != true || !mounted) return;
@@ -201,13 +262,6 @@ class _SmartRingScreenState extends State<SmartRingScreen> {
                     onPressed: busy || _ring.isConnecting ? null : () => unawaited(_sync()),
                   )),
                 ]),
-                const SizedBox(height: 12),
-                _actionButton(
-                  s.smartRingShareDoctor,
-                  Icons.medical_services_outlined,
-                  filled: false,
-                  onPressed: snap.isEmpty ? null : () => unawaited(_share()),
-                ),
                 const SizedBox(height: 16),
                 Text(s.smartRingDisclaimer, textAlign: TextAlign.center,
                     style: GoogleFonts.rubik(color: AppColors.kb1b1b1, fontSize: 11)),
@@ -633,9 +687,11 @@ class _SmartRingScreenState extends State<SmartRingScreen> {
 
   /// 改昵称弹框：预填当前昵称，留空或点「恢复原名」则回到蓝牙名。
   Future<void> _rename() async {
-    final result = await showDialog<String>(
+    final result = await showModalBottomSheet<String>(
       context: context,
-      builder: (context) => _RenameDialog(initial: _ring.nickname ?? '', bleName: _ring.boundDevice?.name ?? ''),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => _RenameSheet(initial: _ring.nickname ?? '', bleName: _ring.boundDevice?.name ?? ''),
     );
     if (result == null || !mounted) return;
     await _ring.setNickname(result);
@@ -1150,20 +1206,28 @@ class _InfoContent {
   final String tip;
 }
 
-/// 昵称输入框。控制器由本 widget 持有，随对话框一起 dispose（在 showDialog 返回后立刻 dispose
-/// 会在关闭动画期间触发 "used after being disposed"）。
-class _RenameDialog extends StatefulWidget {
-  const _RenameDialog({required this.initial, required this.bleName});
+
+/// 修改昵称的底部弹层；自己持有并释放输入控制器，避免弹层关闭动画期间控制器被提前释放。
+class _RenameSheet extends StatefulWidget {
+  const _RenameSheet({required this.initial, required this.bleName});
 
   final String initial;
   final String bleName;
 
   @override
-  State<_RenameDialog> createState() => _RenameDialogState();
+  State<_RenameSheet> createState() => _RenameSheetState();
 }
 
-class _RenameDialogState extends State<_RenameDialog> {
+class _RenameSheetState extends State<_RenameSheet> {
+  static const _maxLength = 20;
+
   late final TextEditingController _controller = TextEditingController(text: widget.initial);
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
@@ -1174,55 +1238,149 @@ class _RenameDialogState extends State<_RenameDialog> {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Text(s.smartRingRename, style: GoogleFonts.rubik(
-        color: AppColors.k010101,
-        fontSize: 17,
-        fontWeight: FontWeight.w600,
-      )),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: _controller,
-            autofocus: true,
-            maxLength: 20,
-            textInputAction: TextInputAction.done,
-            style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 15),
-            decoration: InputDecoration(
-              hintText: s.smartRingNicknameHint,
-              hintStyle: GoogleFonts.rubik(color: AppColors.kb1b1b1, fontSize: 14),
-              filled: true,
-              fillColor: AppColors.kf4f4f4,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-              counterStyle: GoogleFonts.rubik(color: AppColors.kb1b1b1, fontSize: 11),
+    final text = _controller.text;
+    final trimmed = text.trim();
+    final changed = trimmed != widget.initial;
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: EdgeInsets.fromLTRB(20, 12, 20, 16 + MediaQuery.of(context).padding.bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.kb1b1b1.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            )),
+            const SizedBox(height: 18),
+            Row(children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.ke68c30.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(Icons.edit, color: AppColors.ke68c30, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(s.smartRingRename, style: GoogleFonts.rubik(
+                    color: AppColors.k010101,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                  )),
+                  const SizedBox(height: 2),
+                  Text(s.smartRingRenameDesc, style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 12.5)),
+                ],
+              )),
+            ]),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              maxLength: _maxLength,
+              textInputAction: TextInputAction.done,
+              style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 16, fontWeight: FontWeight.w500),
+              decoration: InputDecoration(
+                hintText: s.smartRingNicknameHint,
+                hintStyle: GoogleFonts.rubik(color: AppColors.kb1b1b1, fontSize: 15, fontWeight: FontWeight.w400),
+                filled: true,
+                fillColor: AppColors.kf4f4f4,
+                counterText: '',
+                prefixIcon: Icon(Icons.donut_large, color: AppColors.k0cbcc5, size: 20),
+                suffixIcon: text.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: Icon(Icons.cancel, color: AppColors.kb1b1b1, size: 18),
+                        onPressed: _controller.clear,
+                      ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: AppColors.k0cbcc5, width: 1.4),
+                ),
+              ),
+              onSubmitted: (value) => Navigator.pop(context, value.trim()),
             ),
-            onSubmitted: (value) => Navigator.pop(context, value),
-          ),
-          if (widget.bleName.isNotEmpty)
-            Text('${s.smartRingOriginalName}: ${widget.bleName}',
-                style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 12)),
-        ],
+            const SizedBox(height: 8),
+            Row(children: [
+              Expanded(child: widget.bleName.isNotEmpty
+                  ? Text('${s.smartRingOriginalName}: ${widget.bleName}',
+                      style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 12),
+                      maxLines: 1, overflow: TextOverflow.ellipsis)
+                  : const SizedBox.shrink()),
+              const SizedBox(width: 8),
+              Text('${text.length}/$_maxLength', style: GoogleFonts.rubik(
+                color: text.length >= _maxLength ? AppColors.ke68c30 : AppColors.kb1b1b1,
+                fontSize: 12,
+              )),
+            ]),
+            if (widget.initial.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => Navigator.pop(context, ''),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  icon: Icon(Icons.restart_alt, color: AppColors.k0cbcc5, size: 16),
+                  label: Text(s.smartRingResetName, style: GoogleFonts.rubik(
+                    color: AppColors.k0cbcc5,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                  )),
+                ),
+              ),
+            ],
+            const SizedBox(height: 20),
+            MaterialButton(
+              onPressed: changed ? () => Navigator.pop(context, trimmed) : null,
+              elevation: 0,
+              height: 46,
+              minWidth: double.infinity,
+              color: AppColors.k0cbcc5,
+              disabledColor: AppColors.k0cbcc5.withOpacity(0.4),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(23)),
+              child: Text(s.confirm, style: GoogleFonts.rubik(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              )),
+            ),
+            const SizedBox(height: 10),
+            MaterialButton(
+              onPressed: () => Navigator.pop(context),
+              elevation: 0,
+              height: 46,
+              minWidth: double.infinity,
+              color: AppColors.kf4f4f4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(23)),
+              child: Text(s.cancel, style: GoogleFonts.rubik(
+                color: AppColors.k5e5e5e,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              )),
+            ),
+          ],
+        ),
       ),
-      actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      actions: [
-        if (widget.initial.isNotEmpty)
-          TextButton(
-            onPressed: () => Navigator.pop(context, ''),
-            child: Text(s.smartRingResetName, style: GoogleFonts.rubik(color: AppColors.k8f8e94)),
-          ),
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(s.cancel, style: GoogleFonts.rubik(color: AppColors.k8f8e94)),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(context, _controller.text),
-          child: Text(s.confirm, style: GoogleFonts.rubik(color: AppColors.k0cbcc5, fontWeight: FontWeight.w600)),
-        ),
-      ],
     );
   }
 }
