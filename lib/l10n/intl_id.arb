@@ -740,5 +740,13 @@
   "smartRingPairTips": "Sebelum memasangkan",
   "smartRingPairTip1": "Pastikan cincin terisi daya; jika ragu, isi daya di kotaknya beberapa menit.",
   "smartRingPairTip2": "Jaga cincin dalam jarak sekitar 1 meter dari ponsel.",
-  "smartRingPairTip3": "Nyalakan Bluetooth dan pastikan cincin tidak terhubung ke ponsel lain."
+  "smartRingPairTip3": "Nyalakan Bluetooth dan pastikan cincin tidak terhubung ke ponsel lain.",
+  "smartRingShareToDoctor": "Bagikan ke dokter",
+  "smartRingShareToDoctorDesc": "Hanya dokter dalam panggilan ini yang dapat melihat data di bawah",
+  "smartRingShareSent": "Dibagikan ke dokter",
+  "smartRingShareFailed": "Gagal membagikan. Silakan coba lagi.",
+  "smartRingPatientData": "Data cincin pasien",
+  "smartRingNoSharedData": "Pasien belum membagikan data cincin. Minta pasien menyentuh ikon cincin selama panggilan.",
+  "smartRingSharedAt": "Dibagikan {time}",
+  "smartRingNewSharedData": "Pasien membagikan data cincin baru"
 }

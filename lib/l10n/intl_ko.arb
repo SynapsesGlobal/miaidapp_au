@@ -739,5 +739,13 @@
   "smartRingPairTips": "페어링 전 확인",
   "smartRingPairTip1": "링이 충전되어 있는지 확인하세요. 불확실하면 충전 케이스에서 몇 분간 충전하세요.",
   "smartRingPairTip2": "링을 휴대폰에서 1m 이내에 두세요.",
-  "smartRingPairTip3": "블루투스를 켜고 링이 다른 휴대폰에 연결되어 있지 않은지 확인하세요."
+  "smartRingPairTip3": "블루투스를 켜고 링이 다른 휴대폰에 연결되어 있지 않은지 확인하세요.",
+  "smartRingShareToDoctor": "의사와 공유",
+  "smartRingShareToDoctorDesc": "이 통화의 의사만 아래 데이터를 볼 수 있습니다",
+  "smartRingShareSent": "의사와 공유했습니다",
+  "smartRingShareFailed": "공유에 실패했습니다. 다시 시도해 주세요.",
+  "smartRingPatientData": "환자 링 데이터",
+  "smartRingNoSharedData": "환자가 아직 링 데이터를 공유하지 않았습니다. 통화 중 링 아이콘을 누르도록 안내해 주세요.",
+  "smartRingSharedAt": "{time} 공유",
+  "smartRingNewSharedData": "환자가 새 링 데이터를 공유했습니다"
 }

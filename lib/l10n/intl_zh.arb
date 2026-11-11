@@ -716,5 +716,13 @@
   "smartRingPairTips": "配对须知",
   "smartRingPairTip1": "确保戒指有电，不确定时可先放回充电盒充几分钟。",
   "smartRingPairTip2": "将戒指靠近手机，距离保持在 1 米以内。",
-  "smartRingPairTip3": "打开手机蓝牙，并确认戒指没有连接其他手机。"
+  "smartRingPairTip3": "打开手机蓝牙，并确认戒指没有连接其他手机。",
+  "smartRingShareToDoctor": "分享给医生",
+  "smartRingShareToDoctorDesc": "仅本次通话的医生可以查看以下数据",
+  "smartRingShareSent": "已分享给医生",
+  "smartRingShareFailed": "分享失败，请重试。",
+  "smartRingPatientData": "患者戒指数据",
+  "smartRingNoSharedData": "患者尚未分享戒指数据，可请患者在通话中点击戒指图标分享。",
+  "smartRingSharedAt": "分享于 {time}",
+  "smartRingNewSharedData": "患者分享了新的戒指数据"
 }

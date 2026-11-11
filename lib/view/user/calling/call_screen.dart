@@ -18,6 +18,10 @@ import 'package:miaid/store/user/chat/chat_screen_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/chat/chat_screen.dart';
 import 'package:miaid/view/user/home/home_screen.dart';
+import 'package:miaid/services/call_ring_share_service.dart';
+import 'package:miaid/services/smart_ring_service.dart';
+import 'package:miaid/view/user/calling/call_ring_share_sheet.dart';
+import 'package:miaid/view/user/calling/call_ring_snapshot_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tap_debouncer/tap_debouncer.dart';
 import 'package:wakelock/wakelock.dart';
@@ -60,6 +64,10 @@ class CallScreen extends StatefulWidget {
 }
 
 class _CallScreenState extends State<CallScreen> {
+  /// 医生端轮询患者分享的戒指快照；患者端不启动。
+  late final CallRingShareReceiver _ringReceiver =
+      CallRingShareReceiver(CallRingShareService(widget.services.store.api));
+
   Timer? timer;
   bool isConnecting = true;
   // Waiting time
@@ -129,6 +137,10 @@ class _CallScreenState extends State<CallScreen> {
     });
 
     super.initState();
+    if (widget.services.store.user.user?.doctor != null) {
+      _ringReceiver.addListener(_onSharedRingData);
+      _ringReceiver.start(() => widget.services.store.ongoingCallStore.ongoingCall?.id);
+    }
   }
 
   @override
@@ -140,6 +152,7 @@ class _CallScreenState extends State<CallScreen> {
     widget.services.activeSubscriptionStore.fetchActiveSubscription();
 
     widget.services.chatStore.dispose();
+    _ringReceiver.dispose();
     super.dispose();
   }
 
@@ -230,6 +243,108 @@ class _CallScreenState extends State<CallScreen> {
         ),
       ),
     );
+  }
+
+  /// 通话控制栏的戒指按钮：患者端是「分享给医生」（已绑定且有数据时显示），医生端是「查看患者数据」（患者分享过才显示，有新数据带红点）。患者未连接戒指时不显示。
+  List<Widget> _ringShareButton(BuildContext context, CallScreenStore store) {
+    if (store.user.user?.doctor != null) {
+      return [
+        ListenableBuilder(
+          listenable: _ringReceiver,
+          builder: (context, _) {
+            if (_ringReceiver.latest == null) return const SizedBox.shrink();
+            return Row(mainAxisSize: MainAxisSize.min, children: [
+              const SizedBox(width: 24.89),
+              TapDebouncer(
+                onTap: () => _openSharedRingData(store),
+                builder: (BuildContext context, onTap) => InkWell(
+                  onTap: onTap,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Stack(children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.k0cbcc5.withOpacity(0.12)),
+                      child: Icon(Icons.monitor_heart_outlined, color: AppColors.k0cbcc5, size: 20),
+                    ),
+                    if (_ringReceiver.hasUnread)
+                      Positioned(
+                        right: 1,
+                        top: 1,
+                        child: Container(
+                          width: 9,
+                          height: 9,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.ke63030,
+                            border: Border.all(color: Colors.white, width: 1.5),
+                          ),
+                        ),
+                      ),
+                  ]),
+                ),
+              ),
+            ]);
+          },
+        ),
+      ];
+    }
+    if (store.user.user?.customer == null) return const [];
+    return [
+      ListenableBuilder(
+        listenable: SmartRingService.instance,
+        builder: (context, _) {
+          final ring = SmartRingService.instance;
+          if (!ring.isConnected || ring.snapshot.isEmpty) return const SizedBox.shrink();
+          return Row(mainAxisSize: MainAxisSize.min, children: [
+            const SizedBox(width: 24.89),
+            TapDebouncer(
+              onTap: () => _shareRingData(store),
+              builder: (BuildContext context, onTap) => InkWell(
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.k0cbcc5.withOpacity(0.12)),
+                  child: Icon(Icons.donut_large, color: AppColors.k0cbcc5, size: 20),
+                ),
+              ),
+            ),
+          ]);
+        },
+      ),
+    ];
+  }
+
+  /// 先弹确认层列出要分享的读数，确认后上传到本次通话。
+  Future<void> _shareRingData(CallScreenStore store) async {
+    final callId = store.ongoingCallStore.ongoingCall?.id;
+    if (callId == null) return;
+    final confirmed = await showCallRingShareSheet(context);
+    if (confirmed != true || !mounted) return;
+    final s = S.of(context);
+    try {
+      await CallRingShareService(store.api).share(callId: callId, ring: SmartRingService.instance);
+      if (mounted) unawaited(HttpExceptionNotifyUser.showInfo(s.smartRingShareSent));
+    } on CallRingShareException catch (e) {
+      if (mounted) unawaited(HttpExceptionNotifyUser.showInfo(e.message.isNotEmpty ? e.message : s.smartRingShareFailed));
+    }
+  }
+
+  /// 医生端：打开患者分享的戒指数据面板。
+  Future<void> _openSharedRingData(CallScreenStore store) async {
+    await showCallRingSnapshotSheet(
+      context,
+      _ringReceiver,
+      patientName: store.ongoingCallStore.ongoingCall?.customer?.user?.fullName,
+    );
+  }
+
+  /// 医生端：轮询到新快照时提示一次。
+  void _onSharedRingData() {
+    if (!mounted || !_ringReceiver.hasUnread) return;
+    unawaited(HttpExceptionNotifyUser.showInfo(S.of(context).smartRingNewSharedData));
   }
 
   Positioned _callButtons(BuildContext context, CallScreenStore store) {
@@ -323,6 +438,7 @@ class _CallScreenState extends State<CallScreen> {
                           ),
                         ),),
                       ],),
+                      ..._ringShareButton(context, store),
                       /*SizedBox(width: 24.89,),
                       InkWell(
                         onTap: () async {

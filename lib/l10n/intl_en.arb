@@ -715,5 +715,13 @@
   "smartRingPairTips": "Before pairing",
   "smartRingPairTip1": "Make sure the ring is charged; charge it in its case for a few minutes if unsure.",
   "smartRingPairTip2": "Keep the ring within about 1 metre of your phone.",
-  "smartRingPairTip3": "Turn on Bluetooth and make sure the ring is not connected to another phone."
+  "smartRingPairTip3": "Turn on Bluetooth and make sure the ring is not connected to another phone.",
+  "smartRingShareToDoctor": "Share with doctor",
+  "smartRingShareToDoctorDesc": "Only the doctor in this call can see the data below",
+  "smartRingShareSent": "Shared with the doctor",
+  "smartRingShareFailed": "Sharing failed. Please try again.",
+  "smartRingPatientData": "Patient's ring data",
+  "smartRingNoSharedData": "The patient has not shared ring data yet. Ask them to tap the ring icon during the call.",
+  "smartRingSharedAt": "Shared {time}",
+  "smartRingNewSharedData": "The patient shared new ring data"
 }
