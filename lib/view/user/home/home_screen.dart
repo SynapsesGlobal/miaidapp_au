@@ -37,6 +37,7 @@ import 'package:miaid/view/map/map_screen.dart';
 import 'package:miaid/view/user/calling/call_screen_helper.dart';
 import 'package:miaid/view/user/e_shop/e_shop.dart';
 import 'package:miaid/view/user/home/qrcode_scan.dart';
+import 'package:miaid/view/user/smart_ring/family/ring_alert_home_banner.dart';
 import 'package:miaid/view/user/smart_ring/smart_ring_home_card.dart';
 import 'package:miaid/view/user/user_profile_screen/complete_name.dart';
 import 'package:miaid/view/user/user_profile_screen/user_profile_screen.dart';
@@ -466,6 +467,8 @@ class _HomeScreenState extends State<HomeScreen>
       body: WithNotificationHandlerWidget(
         handler: getIt<NotificationHandler>(),
         child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          // 家人戒指异常横幅：有未处理的提醒才显示
+          const RingAlertHomeBanner(),
           // Header section
           SizedBox(
             width: double.infinity,

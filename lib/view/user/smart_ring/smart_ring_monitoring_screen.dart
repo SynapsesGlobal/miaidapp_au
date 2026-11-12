@@ -116,8 +116,8 @@ class _SmartRingMonitoringScreenState extends State<SmartRingMonitoringScreen> {
         ),
         title: Text(s.smartRingAllDayMonitoring, style: GoogleFonts.rubik(
           color: AppColors.k010101,
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
         )),
         centerTitle: true,
         actions: [

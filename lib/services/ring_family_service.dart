@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:miaid/api_utils/api_provider.dart';
 import 'package:miaid/services/call_ring_share_service.dart';
+import 'package:miaid/services/ring_alert_service.dart';
 import 'package:miaid/services/smart_ring_models.dart';
 import 'package:miaid/services/smart_ring_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -48,9 +49,14 @@ class RingFamilyOwner {
     this.linkedAt,
     this.snapshotAt,
     this.battery,
+    this.alertStatus = 'normal',
+    this.unreadCount = 0,
+    this.alertsMuted = false,
+    this.latestAlert,
   });
 
   factory RingFamilyOwner.fromJson(Map<String, dynamic> json) {
+    final latest = json['latest_alert'];
     return RingFamilyOwner(
       linkId: (json['id'] as num?)?.toInt() ?? 0,
       name: json['name'] as String? ?? '',
@@ -60,6 +66,10 @@ class RingFamilyOwner {
       linkedAt: _parseTime(json['linked_at']),
       snapshotAt: _parseTime(json['snapshot_at']),
       battery: (json['battery'] as num?)?.toInt(),
+      alertStatus: json['status'] as String? ?? 'normal',
+      unreadCount: (json['unread_count'] as num?)?.toInt() ?? 0,
+      alertsMuted: json['alerts_muted'] == true,
+      latestAlert: latest is Map ? RingAlertItem.fromJson(latest.cast<String, dynamic>()) : null,
     );
   }
 
@@ -77,6 +87,12 @@ class RingFamilyOwner {
   /// 对方最近一次上传戒指数据的时间；没上传过为空。
   final DateTime? snapshotAt;
   final int? battery;
+
+  /// 异常提醒概况：normal / abnormal / no_data。
+  final String alertStatus;
+  final int unreadCount;
+  final bool alertsMuted;
+  final RingAlertItem? latestAlert;
 
   /// 优先显示称呼。
   String get displayName => alias != null && alias!.isNotEmpty ? alias! : name;
@@ -237,6 +253,11 @@ class RingFamilyService {
     final path = linkId == null ? '/ring/readings' : '/ring/family/$linkId/readings';
     final json = await _request('GET', '$path?type=$type&range=$range');
     return RingTrend.fromJson(_payload(json));
+  }
+
+  /// 给同一后端的其他戒指接口（提醒等）复用：返回响应里的 payload。
+  Future<Map<String, dynamic>> requestPayload(String method, String path, {Map<String, dynamic>? body}) async {
+    return _payload(await _request(method, path, body: body));
   }
 
   Map<String, dynamic> _payload(Map<String, dynamic> json) {

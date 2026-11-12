@@ -2,6 +2,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:miaid/main.dart';
+import 'package:miaid/services/ring_alert_center.dart';
+import 'package:miaid/view/user/smart_ring/family/ring_alerts_screen.dart';
 import 'package:miaid/api_utils/user_provider.dart';
 import 'package:miaid/dialogs/arrival_hospital.dart';
 import 'package:miaid/store/user/calling/ongoing_call_store.dart';
@@ -35,6 +38,11 @@ class FirebaseNotificationHandler extends NotificationHandler {
       String? eventName;
       if (message.data.containsKey('event_name')) {
         eventName = message.data['event_name'];
+      }
+      if (eventName == 'ring_alert') {
+        // 家人戒指异常：前台收到时刷新状态中心，横幅 / 红点 / 高危弹窗由它处理
+        RingAlertCenter.instance.onPush();
+        return;
       }
       if (eventName == 'emergency_follow_up') {
         var taskId = message.data['notificationId'].toString();
@@ -120,5 +128,20 @@ class FirebaseNotificationHandler extends NotificationHandler {
       var taskId = message.data['notificationId'].toString();
       ArrivalHospitalDialog.show(taskId: taskId);
     }
+    if (eventName == 'ring_alert') {
+      openRingAlertFromPush(message.data);
+    }
   }
+}
+
+/// 点击「家人戒指异常」通知：进入该长辈的提醒列表并直接打开这一条。
+void openRingAlertFromPush(Map<String, dynamic> data) {
+  final linkId = int.tryParse('${data['link_id'] ?? ''}');
+  final alertId = int.tryParse('${data['alert_id'] ?? ''}');
+  RingAlertCenter.instance.onPush();
+  final nav = navigatorKey.currentState;
+  if (nav == null) return;
+  nav.push(MaterialPageRoute<void>(
+    builder: (context) => RingAlertsScreen(linkId: linkId, initialAlertId: alertId),
+  ));
 }

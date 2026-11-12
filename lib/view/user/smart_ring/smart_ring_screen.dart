@@ -15,6 +15,7 @@ import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/calling/call_ring_tiles.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_trend_screen.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_family_widgets.dart';
+import 'package:miaid/view/user/smart_ring/family/ring_alert_settings_screen.dart';
 import 'package:miaid/view/user/smart_ring/smart_ring_format.dart';
 import 'package:miaid/view/user/smart_ring/smart_ring_monitoring_screen.dart';
 import 'package:miaid/view/user/smart_ring/smart_ring_pair_screen.dart';
@@ -201,8 +202,8 @@ class _SmartRingScreenState extends State<SmartRingScreen> {
         ),
         title: Text(s.smartRing, style: GoogleFonts.rubik(
           color: AppColors.k010101,
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
         )),
         centerTitle: true,
         actions: [
@@ -814,6 +815,13 @@ class _SmartRingScreenState extends State<SmartRingScreen> {
               subtitle: s.smartRingDeviceFeaturesDesc,
               onTap: () => Navigator.pop(context, 'features'),
             ),
+            _actionRow(
+              icon: Icons.family_restroom,
+              color: AppColors.k0CC58F,
+              title: s.ringAlertSettings,
+              subtitle: s.ringAlertSettingsMenuDesc,
+              onTap: () => Navigator.pop(context, 'alerts'),
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: Divider(height: 1, color: AppColors.kf4f4f4),
@@ -842,6 +850,11 @@ class _SmartRingScreenState extends State<SmartRingScreen> {
         break;
       case 'features':
         await _showFeatures();
+        break;
+      case 'alerts':
+        await Navigator.push(context, MaterialPageRoute<void>(
+          builder: (context) => const RingAlertSettingsScreen(),
+        ));
         break;
       case 'unbind':
         await _confirmUnbind();

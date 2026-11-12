@@ -94,8 +94,8 @@ class _SmartRingPairScreenState extends State<SmartRingPairScreen> with SingleTi
         ),
         title: Text(s.smartRing, style: GoogleFonts.rubik(
           color: AppColors.k010101,
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
         )),
         centerTitle: true,
       ),

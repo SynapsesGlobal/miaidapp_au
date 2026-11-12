@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:miaid/services/ring_alert_center.dart';
+import 'package:miaid/view/user/smart_ring/family/ring_alert_widgets.dart';
 import 'package:miaid/api_utils/user_provider.dart';
 import 'package:miaid/component/miaid_drawer.dart';
 import 'package:miaid/config/app_colors.dart';
@@ -88,7 +90,7 @@ class _MainTabsState extends State<MainTabs> {
           items: [
             _tabItem(Icons.home_outlined, Icons.home, l10n.home),
             _tabItem(Icons.storefront_outlined, Icons.storefront, l10n.marketing),
-            _tabItem(Icons.person_outline, Icons.person, l10n.me),
+            _tabItem(Icons.person_outline, Icons.person, l10n.me, badge: true),
           ],
         ),
       ),
@@ -96,16 +98,24 @@ class _MainTabsState extends State<MainTabs> {
   }
 
   /// 选中态用实心图标 + 粗体文字，未选中是线框图标
-  BottomNavigationBarItem _tabItem(IconData icon, IconData activeIcon, String label) {
+  BottomNavigationBarItem _tabItem(IconData icon, IconData activeIcon, String label, {bool badge = false}) {
+    Widget wrap(IconData data) {
+      final iconWidget = Padding(padding: const EdgeInsets.only(bottom: 2), child: Icon(data));
+      if (!badge) return iconWidget;
+      // Me 标签：家人戒指提醒未读红点
+      return ListenableBuilder(
+        listenable: RingAlertCenter.instance,
+        builder: (context, _) => Stack(clipBehavior: Clip.none, children: [
+          iconWidget,
+          if (RingAlertCenter.instance.unreadCount > 0)
+            Positioned(right: -7, top: -3, child: ringUnreadBadge(RingAlertCenter.instance.unreadCount, size: 15)),
+        ]),
+      );
+    }
+
     return BottomNavigationBarItem(
-      icon: Padding(
-        padding: const EdgeInsets.only(bottom: 2),
-        child: Icon(icon),
-      ),
-      activeIcon: Padding(
-        padding: const EdgeInsets.only(bottom: 2),
-        child: Icon(activeIcon),
-      ),
+      icon: wrap(icon),
+      activeIcon: wrap(activeIcon),
       label: label,
     );
   }

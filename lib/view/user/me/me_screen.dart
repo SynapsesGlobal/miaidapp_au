@@ -12,7 +12,9 @@ import 'package:miaid/store/home/active_subscription_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/tracking/location_tracking.dart';
 import 'package:miaid/view/user/corporate_care_packages/corporate_care_packages.dart';
+import 'package:miaid/services/ring_alert_center.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_family_screen.dart';
+import 'package:miaid/view/user/smart_ring/family/ring_alert_widgets.dart';
 import 'package:miaid/view/user/travel_care_packages/travel_care_packages.dart';
 import 'package:miaid/view/user/user_profile_screen/user_profile_screen.dart';
 
@@ -89,10 +91,14 @@ class _MeScreenState extends State<MeScreen> {
               ),
               const _ItemDivider(),
               // 家人共享只放在这里、不放戒指页：添加家人是为了看对方的数据，自己不需要有戒指
-              _MeItem(
-                iconData: Icons.family_restroom,
-                label: l10n.ringFamily,
-                onTap: () => _push(const RingFamilyScreen()),
+              ListenableBuilder(
+                listenable: RingAlertCenter.instance,
+                builder: (context, _) => _MeItem(
+                  iconData: Icons.family_restroom,
+                  label: l10n.ringFamily,
+                  badge: RingAlertCenter.instance.unreadCount,
+                  onTap: () => _push(const RingFamilyScreen()),
+                ),
               ),
               const _ItemDivider(),
               _MeItem(
@@ -179,6 +185,7 @@ class _MeItem extends StatelessWidget {
     required this.onTap,
     this.labelColor,
     this.showChevron = true,
+    this.badge = 0,
   });
 
   /// 图片资源；没有合适图片的入口用 [iconData]。
@@ -188,6 +195,9 @@ class _MeItem extends StatelessWidget {
   final VoidCallback onTap;
   final Color? labelColor;
   final bool showChevron;
+
+  /// 右侧红点数字（家人提醒未读数），0 不显示。
+  final int badge;
 
   @override
   Widget build(BuildContext context) {
@@ -200,7 +210,10 @@ class _MeItem extends StatelessWidget {
         label,
         style: GoogleFonts.rubik(color: labelColor ?? AppColors.k010101, fontSize: 14),
       ),
-      trailing: showChevron ? Icon(Icons.chevron_right, color: AppColors.k8f8e94) : null,
+      trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+        if (badge > 0) ringUnreadBadge(badge),
+        if (showChevron) Icon(Icons.chevron_right, color: AppColors.k8f8e94),
+      ]),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       onTap: onTap,
     );

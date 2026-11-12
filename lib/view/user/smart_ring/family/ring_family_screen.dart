@@ -12,7 +12,11 @@ import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_family_dashboard_screen.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_family_invite_sheet.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_family_join_screen.dart';
+import 'package:miaid/services/ring_alert_center.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_family_widgets.dart';
+import 'package:miaid/view/user/smart_ring/family/ring_alert_settings_screen.dart';
+import 'package:miaid/view/user/smart_ring/family/ring_alert_widgets.dart';
+import 'package:miaid/view/user/smart_ring/family/ring_alerts_screen.dart';
 import 'package:miaid/view/user/smart_ring/smart_ring_format.dart';
 
 /// 家人共享：上半部分是「我关注的家人」（点进去看对方最新的戒指面板），
@@ -38,6 +42,7 @@ class _RingFamilyScreenState extends State<RingFamilyScreen> {
   }
 
   Future<void> _load() async {
+    unawaited(RingAlertCenter.instance.refresh());
     try {
       final summary = await _service.fetch();
       if (!mounted) return;
@@ -111,7 +116,19 @@ class _RingFamilyScreenState extends State<RingFamilyScreen> {
     final s = S.of(context);
     return Scaffold(
       backgroundColor: AppColors.kf4f4f4,
-      appBar: familyAlertAppBar(context, s.ringFamily),
+      appBar: familyAlertAppBar(context, s.ringFamily, actions: [
+        ListenableBuilder(
+          listenable: RingAlertCenter.instance,
+          builder: (context, _) => IconButton(
+            icon: Stack(clipBehavior: Clip.none, children: [
+              Icon(Icons.notifications_none, color: AppColors.k003f51),
+              if (RingAlertCenter.instance.unreadCount > 0)
+                Positioned(right: -6, top: -4, child: ringUnreadBadge(RingAlertCenter.instance.unreadCount, size: 15)),
+            ]),
+            onPressed: () => unawaited(Navigator.push(context, MaterialPageRoute<void>(builder: (context) => const RingAlertsScreen()))),
+          ),
+        ),
+      ]),
       body: _body(context),
     );
   }
@@ -137,6 +154,7 @@ class _RingFamilyScreenState extends State<RingFamilyScreen> {
       ));
     }
 
+    final bound = SmartRingService.instance.isBound;
     return RefreshIndicator(
       color: AppColors.k0cbcc5,
       onRefresh: _load,
@@ -144,6 +162,8 @@ class _RingFamilyScreenState extends State<RingFamilyScreen> {
         padding: const EdgeInsets.all(16),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
+          _heroCard(context),
+          const SizedBox(height: 22),
           familySectionTitle(s.ringFamilyWatching),
           if (summary.owners.isEmpty)
             _emptyCard(Icons.visibility_outlined, s.ringFamilyWatchingEmpty)
@@ -157,9 +177,7 @@ class _RingFamilyScreenState extends State<RingFamilyScreen> {
                 ],
               ]),
             ),
-          const SizedBox(height: 12),
-          familyOutlinedButton(s.ringFamilyEnterCode, icon: Icons.pin_outlined, onPressed: () => unawaited(_openJoin())),
-          const SizedBox(height: 26),
+          const SizedBox(height: 22),
           familySectionTitle(s.ringFamilyViewers),
           if (summary.viewers.isEmpty)
             _emptyCard(Icons.group_outlined, s.ringFamilyViewersEmpty)
@@ -173,21 +191,108 @@ class _RingFamilyScreenState extends State<RingFamilyScreen> {
                 ],
               ]),
             ),
-          const SizedBox(height: 12),
-          familyFilledButton(s.ringFamilyInvite, icon: Icons.person_add_alt_1, onPressed: () => unawaited(_openInvite())),
-          if (SmartRingService.instance.isBound) ...[
-            const SizedBox(height: 14),
-            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 1),
-                child: Icon(Icons.cloud_upload_outlined, color: AppColors.kb1b1b1, size: 14),
-              ),
-              const SizedBox(width: 6),
-              Expanded(child: Text(s.ringFamilyUploadNotice,
-                  style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 11.5, height: 1.4))),
-            ]),
+          if (bound) ...[
+            const SizedBox(height: 22),
+            _settingsRow(context),
           ],
+          const SizedBox(height: 14),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: Icon(Icons.info_outline, color: AppColors.kb1b1b1, size: 14),
+            ),
+            const SizedBox(width: 6),
+            Expanded(child: Text(bound ? s.ringFamilyUploadNotice : s.ringFamilyHeroDesc,
+                style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 11.5, height: 1.4))),
+          ]),
+          const SizedBox(height: 12),
         ],
+      ),
+    );
+  }
+
+  /// 顶部渐变卡：一句说明 + 两个入口（输入邀请码关注家人 / 邀请家人查看我）。
+  Widget _heroCard(BuildContext context) {
+    final s = S.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          colors: [AppColors.k0cbcc5, AppColors.k003f51.withOpacity(0.9)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [BoxShadow(color: AppColors.k0cbcc5.withOpacity(0.3), blurRadius: 18, offset: const Offset(0, 8))],
+      ),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.18), borderRadius: BorderRadius.circular(14)),
+              child: const Icon(Icons.family_restroom, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(s.ringFamily, style: GoogleFonts.rubik(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 3),
+                Text(s.ringFamilyHeroDesc, style: GoogleFonts.rubik(color: Colors.white.withOpacity(0.82), fontSize: 12, height: 1.35)),
+              ],
+            )),
+          ]),
+          const SizedBox(height: 14),
+          Row(children: [
+            Expanded(child: _heroAction(Icons.pin_outlined, s.ringFamilyEnterCode, () => unawaited(_openJoin()))),
+            const SizedBox(width: 10),
+            Expanded(child: _heroAction(Icons.person_add_alt_1, s.ringFamilyInvite, () => unawaited(_openInvite()))),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _heroAction(IconData icon, String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        height: 42,
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(icon, color: AppColors.k0cbcc5, size: 18),
+          const SizedBox(width: 6),
+          Flexible(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.rubik(color: AppColors.k003f51, fontSize: 13.5, fontWeight: FontWeight.w600))),
+        ]),
+      ),
+    );
+  }
+
+  /// 戴戒指的人：家人提醒的阈值入口，做成设置行而不是按钮。
+  Widget _settingsRow(BuildContext context) {
+    final s = S.of(context);
+    return InkWell(
+      onTap: () => unawaited(Navigator.push(context, MaterialPageRoute<void>(builder: (context) => const RingAlertSettingsScreen()))),
+      borderRadius: BorderRadius.circular(18),
+      child: familyCard(
+        child: Row(children: [
+          familyIconTile(Icons.notifications_active_outlined, AppColors.k0CC58F),
+          const SizedBox(width: 12),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(s.ringAlertSettings, style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 14.5, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 2),
+              Text(s.ringAlertSettingsMenuDesc, style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 12)),
+            ],
+          )),
+          Icon(Icons.chevron_right, color: AppColors.kb1b1b1, size: 20),
+        ]),
       ),
     );
   }
@@ -219,8 +324,18 @@ class _RingFamilyScreenState extends State<RingFamilyScreen> {
           Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(owner.displayName, maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 14.5, fontWeight: FontWeight.w600)),
+              Row(children: [
+                Flexible(child: Text(owner.displayName, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 14.5, fontWeight: FontWeight.w600))),
+                if (owner.alertStatus != 'normal') ...[
+                  const SizedBox(width: 6),
+                  familyChip(ringOwnerStatusText(context, owner.alertStatus), ringOwnerStatusColor(owner.alertStatus)),
+                ],
+                if (owner.unreadCount > 0) ...[
+                  const SizedBox(width: 6),
+                  ringUnreadBadge(owner.unreadCount, size: 16),
+                ],
+              ]),
               const SizedBox(height: 2),
               Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 12)),
@@ -230,10 +345,32 @@ class _RingFamilyScreenState extends State<RingFamilyScreen> {
             const SizedBox(width: 8),
             familyChip('${owner.battery}%', AppColors.k0cbcc5),
           ],
-          TextButton(
-            onPressed: () => unawaited(_removeOwner(owner)),
-            child: Text(s.ringFamilyRemove, style: GoogleFonts.rubik(color: AppColors.ke63030, fontSize: 12.5)),
-          ),
+          const SizedBox(width: 8),
+          _removeButton(s.ringFamilyRemove, () => unawaited(_removeOwner(owner))),
+          const SizedBox(width: 10),
+        ]),
+      ),
+    );
+  }
+
+  /// 红色描边小胶囊「解除绑定」按钮（带断链图标），两个列表共用。
+  Widget _removeButton(String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        height: 28,
+        padding: const EdgeInsets.symmetric(horizontal: 11),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.ke63030.withOpacity(0.6), width: 1),
+          color: AppColors.ke63030.withOpacity(0.06),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.link_off, color: AppColors.ke63030, size: 14),
+          const SizedBox(width: 4),
+          Text(label, style: GoogleFonts.rubik(color: AppColors.ke63030, fontSize: 12, fontWeight: FontWeight.w500)),
         ]),
       ),
     );
@@ -248,10 +385,9 @@ class _RingFamilyScreenState extends State<RingFamilyScreen> {
         const SizedBox(width: 12),
         Expanded(child: Text(viewer.name, maxLines: 1, overflow: TextOverflow.ellipsis,
             style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 14.5, fontWeight: FontWeight.w600))),
-        TextButton(
-          onPressed: () => unawaited(_removeViewer(viewer)),
-          child: Text(s.ringFamilyRemove, style: GoogleFonts.rubik(color: AppColors.ke63030, fontSize: 12.5)),
-        ),
+        const SizedBox(width: 8),
+        _removeButton(s.ringFamilyRemove, () => unawaited(_removeViewer(viewer))),
+        const SizedBox(width: 10),
       ]),
     );
   }

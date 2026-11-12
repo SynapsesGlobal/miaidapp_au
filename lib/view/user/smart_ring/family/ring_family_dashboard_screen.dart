@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:miaid/api_utils/http_exception.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/services/call_ring_share_service.dart';
@@ -9,6 +10,9 @@ import 'package:miaid/services/ring_family_service.dart';
 import 'package:miaid/view/user/calling/call_ring_tiles.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_trend_screen.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_family_widgets.dart';
+import 'package:miaid/view/user/smart_ring/family/ring_alert_settings_screen.dart';
+import 'package:miaid/view/user/smart_ring/family/ring_alert_widgets.dart';
+import 'package:miaid/view/user/smart_ring/family/ring_alerts_screen.dart';
 import 'package:miaid/view/user/smart_ring/smart_ring_format.dart';
 
 /// 家人端：查看某位家人最新的戒指面板（只读）。
@@ -32,6 +36,7 @@ class _RingFamilyDashboardScreenState extends State<RingFamilyDashboardScreen> {
   bool _loaded = false;
   bool _failed = false;
   Timer? _timer;
+  bool _refreshing = false;
 
   /// 当前点选、在下方显示参考范围的指标。
   String? _selectedKey;
@@ -66,6 +71,35 @@ class _RingFamilyDashboardScreenState extends State<RingFamilyDashboardScreen> {
     }
   }
 
+  Future<void> _openAlerts({int? initialAlertId}) async {
+    await Navigator.push(context, MaterialPageRoute<void>(
+      builder: (context) => RingAlertsScreen(linkId: _owner.linkId, title: _owner.displayName, initialAlertId: initialAlertId),
+    ));
+    if (mounted) unawaited(_load());
+  }
+
+  /// 「获取最新数据」：重新拉对方上传的最新快照，并告诉用户有没有更新。
+  /// 家人端拿不到对方的戒指，只能取对方手机已经上传的数据。
+  Future<void> _refreshLatest() async {
+    final s = S.of(context);
+    final before = _record?.capturedAt ?? _record?.createdAt ?? _owner.snapshotAt;
+    setState(() => _refreshing = true);
+    try {
+      await _load();
+      if (!mounted) return;
+      final after = _record?.capturedAt ?? _record?.createdAt ?? _owner.snapshotAt;
+      if (after == null) {
+        unawaited(HttpExceptionNotifyUser.showInfo(s.ringFamilyNoDataYet));
+      } else if (before != null && !after.isAfter(before)) {
+        unawaited(HttpExceptionNotifyUser.showInfo(s.ringFamilyNoNewData(SmartRingFormat.dateTime(context, after))));
+      } else {
+        unawaited(HttpExceptionNotifyUser.showInfo(s.ringFamilyRefreshedAt(SmartRingFormat.dateTime(context, after))));
+      }
+    } finally {
+      if (mounted) setState(() => _refreshing = false);
+    }
+  }
+
   /// 走势页的指标：常规五项 + 对方戒指有数据的血压 / 血糖；正在看参考范围的那项作为默认选中。
   void _openTrend(CallRingSnapshotRecord record) {
     final metrics = <RingTrendMetric>[
@@ -86,9 +120,26 @@ class _RingFamilyDashboardScreenState extends State<RingFamilyDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Scaffold(
       backgroundColor: AppColors.kf4f4f4,
-      appBar: familyAlertAppBar(context, _owner.displayName),
+      appBar: familyAlertAppBar(context, _owner.displayName, actions: [
+        IconButton(
+          tooltip: s.ringAlertRecords,
+          icon: Stack(clipBehavior: Clip.none, children: [
+            Icon(Icons.notifications_none, color: AppColors.k003f51),
+            if (_owner.unreadCount > 0) Positioned(right: -6, top: -4, child: ringUnreadBadge(_owner.unreadCount, size: 15)),
+          ]),
+          onPressed: () => unawaited(_openAlerts()),
+        ),
+        IconButton(
+          tooltip: s.ringAlertSettings,
+          icon: Icon(Icons.tune, color: AppColors.k003f51),
+          onPressed: () => unawaited(Navigator.push(context, MaterialPageRoute<void>(
+            builder: (context) => RingAlertSettingsScreen(linkId: _owner.linkId, ownerName: _owner.displayName),
+          ))),
+        ),
+      ]),
       body: RefreshIndicator(
         color: AppColors.k0cbcc5,
         onRefresh: _load,
@@ -173,10 +224,23 @@ class _RingFamilyDashboardScreenState extends State<RingFamilyDashboardScreen> {
       );
     }
 
+    final latest = _owner.latestAlert;
     return [
       _header(context, record),
       const SizedBox(height: 12),
-      familyOutlinedButton(s.ringTrendView, icon: Icons.show_chart, onPressed: () => _openTrend(record)),
+      if (latest != null && latest.active) ...[
+        ringAlertStrip(context, latest, ownerName: null, onTap: () => unawaited(_openAlerts(initialAlertId: latest.id))),
+        const SizedBox(height: 12),
+      ],
+      Row(children: [
+        Expanded(child: familyOutlinedButton(
+          _refreshing ? s.ringFamilyRefreshing : s.ringFamilyRefresh,
+          icon: Icons.sync,
+          onPressed: _refreshing ? null : () => unawaited(_refreshLatest()),
+        )),
+        const SizedBox(width: 10),
+        Expanded(child: familyOutlinedButton(s.ringTrendView, icon: Icons.show_chart, onPressed: () => _openTrend(record))),
+      ]),
       const SizedBox(height: 12),
       if (vitals.isNotEmpty) section(s.smartRingVitals, vitals),
       if (vitals.isNotEmpty && activity.isNotEmpty) const SizedBox(height: 12),

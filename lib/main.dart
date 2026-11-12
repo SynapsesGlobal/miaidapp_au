@@ -18,7 +18,10 @@ import 'package:miaid/services/analytics_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:miaid/services/facebook_service.dart';
 import 'package:miaid/services/location_upload_service.dart';
+import 'package:miaid/services/ring_alert_center.dart';
 import 'package:miaid/services/ring_cloud_sync.dart';
+import 'package:miaid/view/user/smart_ring/family/ring_alert_widgets.dart';
+import 'package:miaid/view/user/smart_ring/family/ring_alerts_screen.dart';
 import 'package:miaid/services/smart_ring_service.dart';
 import 'package:miaid/services/square_payment_backend_service.dart';
 import 'package:miaid/services/square_payment_service.dart';
@@ -84,6 +87,18 @@ Future<void> bootstrap(String envName) async {
   unawaited(SmartRingService.instance.start());
   // 戒指数据有更新就上传最新快照（供已绑定的家人查看）
   RingCloudSync.instance.start();
+  // 家人端：轮询家人戒指异常提醒状态（横幅 / 红点 / 高危弹窗）
+  RingAlertCenter.instance.criticalHandler = (alert) async {
+    final context = navigatorKey.currentContext;
+    if (context == null) return;
+    final view = await showRingAlertCriticalSheet(context, alert);
+    if (view == true && navigatorKey.currentState != null) {
+      await navigatorKey.currentState!.push(MaterialPageRoute<void>(
+        builder: (context) => RingAlertsScreen(linkId: alert.linkId, initialAlertId: alert.id),
+      ));
+    }
+  };
+  RingAlertCenter.instance.start();
 
   setupFlutterLocalNotifications();
 
@@ -432,6 +447,7 @@ class AppLifecycleObserver extends WidgetsBindingObserver {
       // 已绑定戒指：断开则重连，连着且超过间隔则补一次同步
       unawaited(SmartRingService.instance.onAppResumed());
       RingCloudSync.instance.onAppResumed();
+      RingAlertCenter.instance.onAppResumed();
     }
   }
 }

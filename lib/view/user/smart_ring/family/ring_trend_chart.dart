@@ -27,6 +27,8 @@ class RingTrendChart extends StatefulWidget {
     this.decimals = 0,
     this.bars = false,
     this.height = 260,
+    this.bandLow,
+    this.bandHigh,
     this.onSelected,
   }) : super(key: key);
 
@@ -49,6 +51,10 @@ class RingTrendChart extends StatefulWidget {
   /// true：每个点是一天的累计值（步数），画成按天居中的柱子，纵轴从 0 起；[from]/[to] 需对齐到整天。
   final bool bars;
   final double height;
+
+  /// 参考范围带（提醒详情页用）：low–high 之间画浅绿底，超出的点标红；为空不画。
+  final double? bandLow;
+  final double? bandHigh;
 
   /// 选中的读数变化时回调；取消选中时为 null。
   final ValueChanged<RingTrendPoint?>? onSelected;
@@ -138,6 +144,8 @@ class _RingTrendChartState extends State<RingTrendChart> {
             gap: widget.gap,
             dayTicks: widget.dayTicks,
             bars: widget.bars,
+            bandLow: widget.bandLow,
+            bandHigh: widget.bandHigh,
             selected: _selected,
             locale: Localizations.localeOf(context).toLanguageTag(),
           ),
@@ -185,6 +193,8 @@ class _TrendPainter extends CustomPainter {
     required this.bars,
     required this.selected,
     required this.locale,
+    this.bandLow,
+    this.bandHigh,
   });
 
   final List<RingTrendPoint> points;
@@ -199,6 +209,8 @@ class _TrendPainter extends CustomPainter {
   final bool bars;
   final int? selected;
   final String locale;
+  final double? bandLow;
+  final double? bandHigh;
 
   static final Color _grid = const Color(0xFFECECEC);
   static final Color _axisText = AppColors.k8f8e94;
@@ -219,6 +231,8 @@ class _TrendPainter extends CustomPainter {
       lo = 0;
       hi = 1;
     }
+    if (bandLow != null) lo = math.min(lo, bandLow!);
+    if (bandHigh != null) hi = math.max(hi, bandHigh!);
     final minSpan = decimals > 0 ? 1.0 : 10.0;
     var span = math.max(hi - lo, minSpan);
     final step = _niceStep(span / 3);
@@ -239,6 +253,23 @@ class _TrendPainter extends CustomPainter {
       canvas.drawLine(Offset(plot.left, yy), Offset(plot.right, yy), gridPaint);
       final tp = _text(_tickLabel(v, tickDecimals), _axisText, 10);
       tp.paint(canvas, Offset(plot.left - 6 - tp.width, yy - tp.height / 2));
+    }
+
+    // ---- 参考范围带 ----
+    if (bandLow != null || bandHigh != null) {
+      final top = y(bandHigh ?? axisHi);
+      final bottom = y(bandLow ?? axisLo);
+      canvas.drawRect(Rect.fromLTRB(plot.left, top, plot.right, bottom), Paint()..color = AppColors.k25d000.withOpacity(0.10));
+      final dash = Paint()
+        ..color = AppColors.k25d000.withOpacity(0.55)
+        ..strokeWidth = 1;
+      for (final v in [bandLow, bandHigh]) {
+        if (v == null) continue;
+        final yy = y(v);
+        for (var dx = plot.left; dx < plot.right; dx += 8) {
+          canvas.drawLine(Offset(dx, yy), Offset(math.min(dx + 4, plot.right), yy), dash);
+        }
+      }
     }
 
     // ---- 横轴刻度 ----
