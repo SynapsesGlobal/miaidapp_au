@@ -313,6 +313,57 @@ class RingCapabilities {
       metric == RealtimeMetric.temperature ? temperature : supportsRealtime(metric);
 }
 
+/// 一条要上报到后端的历史读数（走势图用）。[type] 是后端的指标名：
+/// heart_rate / blood_oxygen / hrv / stress / temperature / blood_pressure / blood_sugar / steps（每日累计）。
+class RingReading {
+  const RingReading({
+    required this.type,
+    required this.value,
+    required this.time,
+    this.value2,
+    this.realtime = false,
+  });
+
+  final String type;
+
+  /// 读数；血压时为收缩压。
+  final double value;
+
+  /// 血压的舒张压，其它指标为空。
+  final double? value2;
+  final DateTime time;
+
+  /// 手动「立即测量」得到的（否则来自戒指定时监测的同步）。
+  final bool realtime;
+
+  /// 去重键：同一指标同一秒只算一条，与后端唯一索引一致。
+  String get key => '$type|${time.millisecondsSinceEpoch ~/ 1000}';
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'type': type,
+        'value': value,
+        if (value2 != null) 'value2': value2,
+        'time': time.toUtc().toIso8601String(),
+        if (realtime) 'realtime': true,
+      };
+
+  static RingReading? fromJson(Object? json) {
+    if (json is! Map) return null;
+    final type = json['type'];
+    final value = json['value'];
+    final time = DateTime.tryParse(json['time'] is String ? json['time'] as String : '');
+    if (type is! String || value is! num || time == null) return null;
+    final value2 = json['value2'];
+    return RingReading(
+      type: type,
+      value: value.toDouble(),
+      value2: value2 is num ? value2.toDouble() : null,
+      time: time.toLocal(),
+      realtime: json['realtime'] == true,
+    );
+  }
+}
+
 /// 把 SDK 的同步结果 / 实时数据合并进 [SmartRingSnapshot]。
 ///
 /// 字段含义见插件文档 §3.2.2.4：`hr`/`bo`/`temp`/`hrv` 按日期返回 `items[{time, 值}]`，
@@ -380,6 +431,90 @@ class SmartRingSyncParser {
       default:
         return snapshot;
     }
+  }
+
+  /// 同步结果类型 → (后端指标名, 明细里的取值字段, 换算系数)。
+  static const Map<String, List<Object>> _readingTypes = {
+    'hr': ['heart_rate', 'hr', 1.0],
+    'bo': ['blood_oxygen', 'bloodOxy', 1.0],
+    'hrv': ['hrv', 'hrv', 1.0],
+    'pressure': ['stress', 'pressure', 1.0],
+    'bloodSugar': ['blood_sugar', 'bloodSugar', 1.0],
+    'temp': ['temperature', 'temp', 0.1],
+  };
+
+  /// 步数读数的指标名。
+  static const stepsType = 'steps';
+
+  /// 把一次同步结果里的全部有效明细转成历史读数（步数为每日累计值；睡眠不在此列）。
+  static List<RingReading> readingsFromSync(SyncResult result) {
+    final readings = <RingReading>[];
+    if (result.type == 'step') {
+      // 步数按天累计：每天一条，时间取当天日期，当天的数随同步不断变大（后端按天覆盖）
+      for (final day in result.data) {
+        final daySec = _int(day['time']);
+        final steps = _int(day['totalSteps']);
+        if (daySec <= 0 || steps <= 0) continue;
+        readings.add(RingReading(type: stepsType, value: steps.toDouble(), time: _fromSec(daySec)));
+      }
+      return readings;
+    }
+    final spec = _readingTypes[result.type];
+    if (spec == null && result.type != 'bp') return readings;
+    for (final day in result.data) {
+      final dayTime = _int(day['time']);
+      final items = day['items'];
+      if (items is! List) continue;
+      for (final raw in items) {
+        if (raw is! Map) continue;
+        final sec = _int(raw['time']);
+        final time = _fromSec(sec > 0 ? sec : dayTime);
+        if (spec == null) {
+          final systolic = _int(raw['systolic']);
+          final diastolic = _int(raw['diastolic']);
+          if (systolic <= 0 || diastolic <= 0) continue;
+          readings.add(RingReading(
+            type: 'blood_pressure',
+            value: systolic.toDouble(),
+            value2: diastolic.toDouble(),
+            time: time,
+          ));
+        } else {
+          final value = _double(raw[spec[1]]) * (spec[2] as double);
+          if (value <= 0) continue;
+          readings.add(RingReading(type: spec[0] as String, value: value, time: time));
+        }
+      }
+    }
+    return readings;
+  }
+
+  /// 快照里手动「立即测量」得到的读数（实时测量结束后上报用）。
+  static List<RingReading> realtimeReadings(SmartRingSnapshot snapshot) {
+    final readings = <RingReading>[];
+    void add(String type, RingMetric? m) {
+      if (m != null && m.realtime) {
+        readings.add(RingReading(type: type, value: m.value, time: m.time, realtime: true));
+      }
+    }
+
+    add('heart_rate', snapshot.heartRate);
+    add('blood_oxygen', snapshot.bloodOxygen);
+    add('hrv', snapshot.hrv);
+    add('stress', snapshot.pressure);
+    add('temperature', snapshot.temperature);
+    add('blood_sugar', snapshot.bloodSugar);
+    final bp = snapshot.bloodPressure;
+    if (bp != null && bp.realtime) {
+      readings.add(RingReading(
+        type: 'blood_pressure',
+        value: bp.systolic.toDouble(),
+        value2: bp.diastolic.toDouble(),
+        time: bp.time,
+        realtime: true,
+      ));
+    }
+    return readings;
   }
 
   /// 同步结果里时间最新的一条有效读数；若不比 [current] 新则保留 [current]。

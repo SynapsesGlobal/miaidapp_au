@@ -4,12 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:miaid/api_utils/http_exception.dart';
-import 'package:miaid/component/miaid_card.dart';
 import 'package:miaid/component/nav_bar_icons.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
+import 'package:miaid/api_utils/api_provider.dart';
+import 'package:miaid/services/ring_family_service.dart';
 import 'package:miaid/services/smart_ring_models.dart';
 import 'package:miaid/services/smart_ring_service.dart';
+import 'package:miaid/utils/configure_dependencies.dart';
+import 'package:miaid/view/user/calling/call_ring_tiles.dart';
+import 'package:miaid/view/user/smart_ring/family/ring_trend_screen.dart';
+import 'package:miaid/view/user/smart_ring/family/ring_family_widgets.dart';
 import 'package:miaid/view/user/smart_ring/smart_ring_format.dart';
 import 'package:miaid/view/user/smart_ring/smart_ring_monitoring_screen.dart';
 import 'package:miaid/view/user/smart_ring/smart_ring_pair_screen.dart';
@@ -219,19 +224,19 @@ class _SmartRingScreenState extends State<SmartRingScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _deviceCard(context),
-                const SizedBox(height: 20),
-                if (_hasVitals(caps)) _sectionTitle(s.smartRingVitals),
-                ..._metricRows(context, snap, caps),
-                if (caps.sleep || caps.steps) ...[
-                  const SizedBox(height: 8),
-                  _sectionTitle(s.smartRingSleepActivity),
-                ],
-                if (caps.sleep) ...[
-                  _sleepCard(context, snap.sleep),
+                const SizedBox(height: 12),
+                familyOutlinedButton(s.ringTrendView, icon: Icons.show_chart, onPressed: () => unawaited(_openTrend())),
+                const SizedBox(height: 12),
+                if (_hasVitals(caps)) ...[
+                  _sectionCard(s.smartRingVitals, _vitalTiles(context, snap, caps)),
                   const SizedBox(height: 12),
                 ],
-                if (caps.steps) ...[
-                  _stepsCard(context, snap.steps),
+                if (caps.sleep || caps.steps) ...[
+                  _sectionCard(
+                    s.smartRingSleepActivity,
+                    _activityTiles(context, snap, caps),
+                    footer: caps.sleep && snap.sleep != null && snap.sleep!.hasStages ? _sleepStages(context, snap.sleep!) : null,
+                  ),
                   const SizedBox(height: 12),
                 ],
                 const SizedBox(height: 8),
@@ -274,9 +279,9 @@ class _SmartRingScreenState extends State<SmartRingScreen> {
     );
   }
 
+  /// 渐变头卡，样式与家人看板的头卡一致：戒指名、连接状态、电量、上次同步时间。
   Widget _deviceCard(BuildContext context) {
     final s = S.of(context);
-    final name = _ring.displayName;
 
     String status;
     Color dot;
@@ -288,73 +293,83 @@ class _SmartRingScreenState extends State<SmartRingScreen> {
       dot = AppColors.ke68c30;
     } else {
       status = s.smartRingDisconnected;
-      dot = AppColors.kb1b1b1;
+      dot = Colors.white.withOpacity(0.6);
     }
     final lastSync = _ring.snapshot.lastSyncAt;
     final syncText = lastSync == null ? s.smartRingNotSynced : s.smartRingLastSync(SmartRingFormat.dateTime(context, lastSync));
     final battery = _ring.battery;
 
-    return activeSubscriptionCard(Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: LinearGradient(
+          colors: [AppColors.k0cbcc5, AppColors.k003f51.withOpacity(0.88)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [BoxShadow(color: AppColors.k0cbcc5.withOpacity(0.28), blurRadius: 16, offset: const Offset(0, 6))],
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
+          Row(children: [
+            Container(
+              width: 42,
+              height: 42,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.18), shape: BoxShape.circle),
+              child: const Icon(Icons.donut_large, color: Colors.white, size: 22),
             ),
-            child: const Icon(Icons.donut_large, color: Colors.white, size: 26),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
+            const SizedBox(width: 10),
+            Expanded(child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: GoogleFonts.rubik(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ), maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 4),
+                Text(_ring.displayName, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.rubik(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
                 Row(children: [
-                  Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: dot)),
-                  const SizedBox(width: 6),
-                  Flexible(child: Text(status,
-                      style: GoogleFonts.rubik(color: Colors.white.withOpacity(0.9), fontSize: 12))),
+                  Container(width: 6, height: 6, decoration: BoxDecoration(shape: BoxShape.circle, color: dot)),
+                  const SizedBox(width: 5),
+                  Flexible(child: Text(status, maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.rubik(color: Colors.white.withOpacity(0.85), fontSize: 11.5))),
                   if (!_ring.isConnected && !_ring.isConnecting) ...[
                     const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () => unawaited(_reconnect()),
                       child: Text(s.smartRingReconnect, style: GoogleFonts.rubik(
                         color: Colors.white,
-                        fontSize: 12,
+                        fontSize: 11.5,
                         fontWeight: FontWeight.w600,
                         decoration: TextDecoration.underline,
+                        decorationColor: Colors.white,
                       )),
                     ),
                   ],
                 ]),
-                const SizedBox(height: 2),
-                Text(syncText, style: GoogleFonts.rubik(color: Colors.white.withOpacity(0.8), fontSize: 11),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
               ],
+            )),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.16), borderRadius: BorderRadius.circular(10)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(_batteryIcon(battery), color: Colors.white, size: 14),
+                const SizedBox(width: 3),
+                Text(battery == null ? '--' : '$battery%',
+                    style: GoogleFonts.rubik(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+              ]),
             ),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            children: [
-              Icon(_batteryIcon(battery), color: Colors.white, size: 22),
-              Text(battery == null ? '--' : '$battery%', style: GoogleFonts.rubik(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              )),
-            ],
-          ),
+          ]),
+          const SizedBox(height: 12),
+          Row(children: [
+            Icon(Icons.schedule, color: Colors.white.withOpacity(0.8), size: 13),
+            const SizedBox(width: 5),
+            Expanded(child: Text(syncText, maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.rubik(color: Colors.white.withOpacity(0.85), fontSize: 11.5))),
+          ]),
         ],
       ),
-    ));
+    );
   }
 
   static IconData _batteryIcon(int? level) {
@@ -368,129 +383,186 @@ class _SmartRingScreenState extends State<SmartRingScreen> {
     return Icons.battery_1_bar;
   }
 
-  /// 体征卡两列排布，只显示能力表声明支持的项目（能力表未知时全部显示）；奇数张时末行留空位。
-  List<Widget> _metricRows(BuildContext context, SmartRingSnapshot snap, RingCapabilities caps) {
-    final s = S.of(context);
-    final bp = snap.bloodPressure;
-    final tiles = <Widget>[
-      if (caps.heartRate)
-        _metricTile(context, Icons.favorite, AppColors.ke63030, s.smartRingHeartRate,
-            snap.heartRate, 'bpm', realtime: RealtimeMetric.hr, info: _MetricInfo.heartRate),
-      if (caps.bloodOxygen)
-        _metricTile(context, Icons.water_drop, AppColors.k30bee6, s.smartRingBloodOxygen,
-            snap.bloodOxygen, '%', realtime: RealtimeMetric.bloodOxy, info: _MetricInfo.bloodOxygen),
-      if (caps.temperature)
-        _metricTile(context, Icons.thermostat, AppColors.ke68c30, s.smartRingTemperature,
-            snap.temperature, '°C', decimals: 1, realtime: RealtimeMetric.temperature, info: _MetricInfo.temperature,
-            emptyHint: caps.temperatureRealtime ? null : s.smartRingTemperatureMonitorHint),
-      if (caps.hrv)
-        _metricTile(context, Icons.monitor_heart, AppColors.k5251f7, s.smartRingHrv,
-            snap.hrv, 'ms', realtime: RealtimeMetric.hrv, info: _MetricInfo.hrv),
-      if (caps.stress)
-        _metricTile(context, Icons.self_improvement, AppColors.k0CC58F, s.smartRingStress,
-            snap.pressure, '', realtime: RealtimeMetric.pressure, info: _MetricInfo.stress),
-      if (caps.bloodPressure)
-        _metricTile(context, Icons.bloodtype, AppColors.ke63030, s.smartRingBloodPressure,
-            null, 'mmHg', realtime: RealtimeMetric.bloodPressure, info: _MetricInfo.bloodPressure,
-            valueText: bp?.text, time: bp?.time),
-      if (caps.bloodSugar)
-        _metricTile(context, Icons.bubble_chart, AppColors.k0cbcc5, s.smartRingBloodSugar,
-            snap.bloodSugar, 'mmol/L', decimals: 1, realtime: RealtimeMetric.bloodSugar, info: _MetricInfo.bloodSugar),
-    ];
-    final rows = <Widget>[];
-    for (var i = 0; i < tiles.length; i += 2) {
-      rows.add(Row(children: [
-        tiles[i],
-        const SizedBox(width: 12),
-        if (i + 1 < tiles.length) tiles[i + 1] else const Expanded(child: SizedBox()),
-      ]));
-      rows.add(const SizedBox(height: 12));
-    }
-    return rows;
-  }
-
-  /// [metric] 为普通单值读数；血压等复合读数改传 [valueText] + [time]。
-  /// [emptyHint] 在暂无数据时代替「暂无数据」显示（如体温只能靠全天监测获取）。
-  Widget _metricTile(
-    BuildContext context,
-    IconData icon,
-    Color color,
-    String label,
-    RingMetric? metric,
-    String unit, {
-    int decimals = 0,
-    required RealtimeMetric realtime,
-    required _MetricInfo info,
-    String? valueText,
-    DateTime? time,
-    String? emptyHint,
-  }) {
-    final s = S.of(context);
-    final measuringThis = _ring.measuring == realtime;
-    final value = valueText ?? SmartRingFormat.metric(metric, decimals: decimals);
-    final readingTime = time ?? metric?.time;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => unawaited(_showMetricInfo(info)),
-        child: miAidCard(Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              Icon(icon, color: color, size: 18),
-              const SizedBox(width: 6),
-              Expanded(child: Text(label, style: GoogleFonts.rubik(
-                color: AppColors.k5e5e5e,
-                fontSize: 12,
-              ), maxLines: 1, overflow: TextOverflow.ellipsis)),
-              const SizedBox(width: 4),
-              if (measuringThis)
-                SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5, color: color))
-              else
-                Icon(Icons.info_outline, size: 14, color: AppColors.kb1b1b1),
-            ]),
+  /// 白色分组卡：小标题 + 两列小格，与家人看板的分组一致；点某一格打开该指标的说明弹层。
+  Widget _sectionCard(String title, List<RingShareTile> tiles, {Widget? footer}) {
+    return familyCard(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ringSectionTitle(title),
+          const SizedBox(height: 8),
+          ringTileGrid(tiles, onTap: (t) {
+            final info = _MetricInfo.values.where((k) => k.name == t.key);
+            if (info.isNotEmpty) unawaited(_showMetricInfo(info.first));
+          }),
+          if (footer != null) ...[
             const SizedBox(height: 10),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text(value, style: GoogleFonts.rubik(
-                  color: AppColors.k010101,
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                )),
-                const SizedBox(width: 4),
-                if (readingTime != null && unit.isNotEmpty)
-                  Text(unit, style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 12)),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              readingTime == null ? (emptyHint ?? s.smartRingNoData) : SmartRingFormat.dateTime(context, readingTime),
-              style: GoogleFonts.rubik(color: AppColors.kb1b1b1, fontSize: 11),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            footer,
           ],
-        ),
-      )),
+        ],
       ),
     );
   }
 
+  /// 体征小格：只列能力表声明支持的项目（能力表未知时全部列出）；没有读数的显示「--」而不是隐藏，
+  /// 这样用户知道这一项可以测。格子的 key 与 [_MetricInfo] 的名字一致。
+  List<RingShareTile> _vitalTiles(BuildContext context, SmartRingSnapshot snap, RingCapabilities caps) {
+    final s = S.of(context);
+    final tiles = <RingShareTile>[];
+
+    void add(
+      _MetricInfo info,
+      IconData icon,
+      Color color,
+      String label,
+      String unit,
+      RealtimeMetric realtime, {
+      RingMetric? metric,
+      int decimals = 0,
+      String? valueText,
+      DateTime? time,
+      String? emptyHint,
+    }) {
+      final readingTime = time ?? metric?.time;
+      tiles.add(RingShareTile(
+        key: info.name,
+        label: label,
+        value: valueText ?? SmartRingFormat.metric(metric, decimals: decimals),
+        unit: readingTime == null ? '' : unit,
+        caption: readingTime == null ? (emptyHint ?? s.smartRingNoData) : SmartRingFormat.dateTime(context, readingTime),
+        range: '',
+        icon: icon,
+        color: color,
+        busy: _ring.measuring == realtime,
+      ));
+    }
+
+    if (caps.heartRate) {
+      add(_MetricInfo.heartRate, Icons.favorite, AppColors.ke63030, s.smartRingHeartRate, 'bpm', RealtimeMetric.hr,
+          metric: snap.heartRate);
+    }
+    if (caps.bloodOxygen) {
+      add(_MetricInfo.bloodOxygen, Icons.water_drop, AppColors.k30bee6, s.smartRingBloodOxygen, '%',
+          RealtimeMetric.bloodOxy, metric: snap.bloodOxygen);
+    }
+    if (caps.temperature) {
+      add(_MetricInfo.temperature, Icons.thermostat, AppColors.ke68c30, s.smartRingTemperature, '°C',
+          RealtimeMetric.temperature, metric: snap.temperature, decimals: 1,
+          emptyHint: caps.temperatureRealtime ? null : s.smartRingTemperatureMonitorHint);
+    }
+    if (caps.hrv) {
+      add(_MetricInfo.hrv, Icons.monitor_heart, AppColors.k5251f7, s.smartRingHrv, 'ms', RealtimeMetric.hrv,
+          metric: snap.hrv);
+    }
+    if (caps.stress) {
+      add(_MetricInfo.stress, Icons.psychology, AppColors.ke68c30, s.smartRingStress, '', RealtimeMetric.pressure,
+          metric: snap.pressure);
+    }
+    if (caps.bloodPressure) {
+      final bp = snap.bloodPressure;
+      add(_MetricInfo.bloodPressure, Icons.speed, AppColors.k0cbcc5, s.smartRingBloodPressure, 'mmHg',
+          RealtimeMetric.bloodPressure, valueText: bp?.text ?? '--', time: bp?.time);
+    }
+    if (caps.bloodSugar) {
+      add(_MetricInfo.bloodSugar, Icons.bloodtype, AppColors.ke63030, s.smartRingBloodSugar, 'mmol/L',
+          RealtimeMetric.bloodSugar, metric: snap.bloodSugar, decimals: 1);
+    }
+    return tiles;
+  }
+
+  /// 睡眠 / 步数小格。
+  List<RingShareTile> _activityTiles(BuildContext context, SmartRingSnapshot snap, RingCapabilities caps) {
+    final s = S.of(context);
+    final sleep = snap.sleep;
+    final steps = snap.steps;
+    return <RingShareTile>[
+      if (caps.sleep)
+        RingShareTile(
+          key: _MetricInfo.sleep.name,
+          label: s.smartRingSleep,
+          value: sleep == null ? '--' : SmartRingFormat.hoursMinutes(sleep.totalMinutes),
+          unit: '',
+          caption: sleep == null ? s.smartRingSleepHint : _sleepDateLabel(context, sleep),
+          range: '',
+          icon: Icons.bedtime,
+          color: AppColors.k5251f7,
+        ),
+      if (caps.steps)
+        RingShareTile(
+          key: _MetricInfo.steps.name,
+          label: s.smartRingSteps,
+          value: steps == null ? '--' : SmartRingFormat.thousands(steps.steps),
+          unit: '/ ${SmartRingFormat.thousands(_stepsGoal)}',
+          caption: steps == null
+              ? s.smartRingNoData
+              : '${(steps.distanceMeters / 1000).toStringAsFixed(2)} km · ${steps.calories.toStringAsFixed(0)} kcal',
+          range: '',
+          icon: Icons.directions_walk,
+          color: AppColors.k25d000,
+        ),
+    ];
+  }
+
+  /// 睡眠分期条 + 图例，放在「睡眠与活动」分组卡底部。
+  Widget _sleepStages(BuildContext context, SleepSummary sleep) {
+    final s = S.of(context);
+    final segments = <MapEntry<int, Color>>[
+      MapEntry(sleep.deepMinutes, AppColors.k5251f7),
+      MapEntry(sleep.lightMinutes, AppColors.k30bee6),
+      MapEntry(sleep.remMinutes, AppColors.k0cbcc5),
+      MapEntry(sleep.awakeMinutes, AppColors.ke68c30),
+    ];
+    final labels = [s.smartRingDeepSleep, s.smartRingLightSleep, s.smartRingRem, s.smartRingAwake];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(5),
+          child: SizedBox(
+            height: 10,
+            child: Row(children: [
+              for (final seg in segments)
+                if (seg.key > 0) Expanded(flex: seg.key, child: Container(color: seg.value)),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 10,
+          runSpacing: 4,
+          children: [
+            for (var i = 0; i < segments.length; i++)
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: segments[i].value)),
+                const SizedBox(width: 4),
+                Text('${labels[i]} ${SmartRingFormat.hm(segments[i].key)}',
+                    style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 11)),
+              ]),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openTrend() async {
+    final snap = _ring.snapshot;
+    await Navigator.push(context, MaterialPageRoute<void>(
+      builder: (context) => RingTrendScreen(
+        service: RingFamilyService(getIt<ApiProvider>()),
+        metrics: [
+          ...RingTrendMetric.core,
+          if (snap.bloodPressure != null || (!_ring.capabilities.isUnknown && _ring.capabilities.bloodPressure))
+            RingTrendMetric.bloodPressure,
+          if (snap.bloodSugar != null || (!_ring.capabilities.isUnknown && _ring.capabilities.bloodSugar))
+            RingTrendMetric.bloodSugar,
+        ],
+      ),
+    ));
+  }
+
   static bool _hasVitals(RingCapabilities caps) =>
       caps.heartRate || caps.bloodOxygen || caps.temperature || caps.hrv || caps.stress || caps.bloodPressure || caps.bloodSugar;
-
-  Widget _sectionTitle(String title) => Padding(
-        padding: const EdgeInsets.only(left: 4, bottom: 10),
-        child: Text(title.toUpperCase(), style: GoogleFonts.rubik(
-          color: AppColors.k8f8e94,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.8,
-        )),
-      );
 
   /// 指标说明底部弹层：当前读数 + 「这是什么 / 参考范围 / 测量建议」三段。
   Future<void> _showMetricInfo(_MetricInfo kind) async {
@@ -1006,144 +1078,12 @@ class _SmartRingScreenState extends State<SmartRingScreen> {
     );
   }
 
-  Widget _sleepCard(BuildContext context, SleepSummary? sleep) {
-    final s = S.of(context);
-    final segments = sleep == null
-        ? const <MapEntry<int, Color>>[]
-        : <MapEntry<int, Color>>[
-            MapEntry(sleep.deepMinutes, AppColors.k5251f7),
-            MapEntry(sleep.lightMinutes, AppColors.k30bee6),
-            MapEntry(sleep.remMinutes, AppColors.k0cbcc5),
-            MapEntry(sleep.awakeMinutes, AppColors.ke68c30),
-          ];
-    final labels = [s.smartRingDeepSleep, s.smartRingLightSleep, s.smartRingRem, s.smartRingAwake];
-    final showStages = sleep != null && sleep.hasStages;
-    return GestureDetector(
-      onTap: () => unawaited(_showMetricInfo(_MetricInfo.sleep)),
-      child: miAidCard(Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Icon(Icons.bedtime, color: AppColors.k5251f7, size: 18),
-            const SizedBox(width: 6),
-            Text(s.smartRingSleep, style: GoogleFonts.rubik(color: AppColors.k5e5e5e, fontSize: 12)),
-            const SizedBox(width: 4),
-            Icon(Icons.info_outline, size: 14, color: AppColors.kb1b1b1),
-            const SizedBox(width: 6),
-            Expanded(child: Text(
-              sleep == null ? '' : _sleepDateLabel(context, sleep),
-              style: GoogleFonts.rubik(color: AppColors.kb1b1b1, fontSize: 11),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            )),
-            Text(
-              sleep == null ? '--' : SmartRingFormat.hoursMinutes(sleep.totalMinutes),
-              style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-          ]),
-          if (sleep == null) ...[
-            const SizedBox(height: 8),
-            Text(s.smartRingSleepHint, style: GoogleFonts.rubik(color: AppColors.kb1b1b1, fontSize: 11)),
-          ],
-          if (showStages) ...[
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: SizedBox(
-                height: 12,
-                child: Row(children: [
-                  for (final seg in segments)
-                    if (seg.key > 0) Expanded(flex: seg.key, child: Container(color: seg.value)),
-                ]),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 10,
-              runSpacing: 4,
-              children: [
-                for (var i = 0; i < segments.length; i++)
-                  Row(mainAxisSize: MainAxisSize.min, children: [
-                    Container(width: 8, height: 8,
-                        decoration: BoxDecoration(shape: BoxShape.circle, color: segments[i].value)),
-                    const SizedBox(width: 4),
-                    Text(
-                      labels[i] + ' ' + SmartRingFormat.hm(segments[i].key),
-                      style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 11),
-                    ),
-                  ]),
-              ],
-            ),
-          ],
-        ],
-      ),
-    )));
-  }
-
   /// 睡眠记录归属：醒来时间在今天 → 「昨晚」，否则显示日期。
   String _sleepDateLabel(BuildContext context, SleepSummary sleep) {
     final now = DateTime.now();
     final d = sleep.date;
     final today = d.year == now.year && d.month == now.month && d.day == now.day;
     return today ? S.of(context).smartRingLastNight : DateFormat.MMMd().format(d);
-  }
-
-  Widget _stepsCard(BuildContext context, StepsSummary? steps) {
-    final s = S.of(context);
-    final count = steps?.steps ?? 0;
-    final ratio = (count / _stepsGoal).clamp(0.0, 1.0);
-    return GestureDetector(
-      onTap: () => unawaited(_showMetricInfo(_MetricInfo.steps)),
-      child: miAidCard(Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Icon(Icons.directions_walk, color: AppColors.k0CC58F, size: 18),
-            const SizedBox(width: 6),
-            Text(s.smartRingSteps, style: GoogleFonts.rubik(color: AppColors.k5e5e5e, fontSize: 12)),
-            const SizedBox(width: 4),
-            Icon(Icons.info_outline, size: 14, color: AppColors.kb1b1b1),
-            const SizedBox(width: 6),
-            Expanded(child: Text(
-              steps == null ? '' : SmartRingFormat.dateTime(context, steps.date).split(' ').first,
-              style: GoogleFonts.rubik(color: AppColors.kb1b1b1, fontSize: 11),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            )),
-            Text(
-              steps == null ? '--' : SmartRingFormat.thousands(count),
-              style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              '/ ' + s.smartRingStepsGoal(SmartRingFormat.thousands(_stepsGoal)),
-              style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 11),
-            ),
-          ]),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: ratio,
-              minHeight: 10,
-              backgroundColor: AppColors.kf4f4f4,
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.k0CC58F),
-            ),
-          ),
-          if (steps != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              '${(steps.distanceMeters / 1000).toStringAsFixed(2)} km · ${steps.calories.toStringAsFixed(0)} kcal',
-              style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 11),
-            ),
-          ],
-        ],
-      ),
-    )));
   }
 
   Widget _actionButton(

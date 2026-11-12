@@ -18,6 +18,7 @@ import 'package:miaid/services/analytics_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:miaid/services/facebook_service.dart';
 import 'package:miaid/services/location_upload_service.dart';
+import 'package:miaid/services/ring_cloud_sync.dart';
 import 'package:miaid/services/smart_ring_service.dart';
 import 'package:miaid/services/square_payment_backend_service.dart';
 import 'package:miaid/services/square_payment_service.dart';
@@ -81,6 +82,8 @@ Future<void> bootstrap(String envName) async {
 
   // 智能戒指：恢复本地绑定/快照，已绑定则后台重连并同步；未绑定时不会初始化蓝牙 SDK
   unawaited(SmartRingService.instance.start());
+  // 戒指数据有更新就上传最新快照（供已绑定的家人查看）
+  RingCloudSync.instance.start();
 
   setupFlutterLocalNotifications();
 
@@ -428,6 +431,7 @@ class AppLifecycleObserver extends WidgetsBindingObserver {
       unawaited(PaymentBackend.reconcilePendingPayments());
       // 已绑定戒指：断开则重连，连着且超过间隔则补一次同步
       unawaited(SmartRingService.instance.onAppResumed());
+      RingCloudSync.instance.onAppResumed();
     }
   }
 }

@@ -189,8 +189,7 @@ class CallRingShareService {
   }
 
   /// 组装发给后端的快照 JSON（见 docs/smart-ring-share.md 4.1）。
-  /// 没有数据的指标直接省略；时间统一为 UTC ISO 8601。
-  @visibleForTesting
+  /// 没有数据的指标直接省略；时间统一为 UTC ISO 8601。家人共享上传最新快照（[RingFamilyService]）也用它。
   static Map<String, dynamic> buildPayload(SmartRingService ring, {String? appVersion}) {
     final snap = ring.snapshot;
     final firmware = ring.firmware;

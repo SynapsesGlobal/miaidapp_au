@@ -12,6 +12,7 @@ import 'package:miaid/store/home/active_subscription_store.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/tracking/location_tracking.dart';
 import 'package:miaid/view/user/corporate_care_packages/corporate_care_packages.dart';
+import 'package:miaid/view/user/smart_ring/family/ring_family_screen.dart';
 import 'package:miaid/view/user/travel_care_packages/travel_care_packages.dart';
 import 'package:miaid/view/user/user_profile_screen/user_profile_screen.dart';
 
@@ -85,6 +86,13 @@ class _MeScreenState extends State<MeScreen> {
                 icon: 'assets/images/ic_sidebar_terms.png',
                 label: l10n.positionTracking,
                 onTap: () => _push(LocationTracking()),
+              ),
+              const _ItemDivider(),
+              // 家人共享只放在这里、不放戒指页：添加家人是为了看对方的数据，自己不需要有戒指
+              _MeItem(
+                iconData: Icons.family_restroom,
+                label: l10n.ringFamily,
+                onTap: () => _push(const RingFamilyScreen()),
               ),
               const _ItemDivider(),
               _MeItem(
@@ -165,14 +173,17 @@ class _MeScreenState extends State<MeScreen> {
 
 class _MeItem extends StatelessWidget {
   const _MeItem({
-    required this.icon,
+    this.icon,
+    this.iconData,
     required this.label,
     required this.onTap,
     this.labelColor,
     this.showChevron = true,
   });
 
-  final String icon;
+  /// 图片资源；没有合适图片的入口用 [iconData]。
+  final String? icon;
+  final IconData? iconData;
   final String label;
   final VoidCallback onTap;
   final Color? labelColor;
@@ -182,7 +193,9 @@ class _MeItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-      leading: Image.asset(icon, width: 24, height: 24),
+      leading: icon != null
+          ? Image.asset(icon!, width: 24, height: 24)
+          : Icon(iconData, size: 24, color: AppColors.k0cbcc5),
       title: Text(
         label,
         style: GoogleFonts.rubik(color: labelColor ?? AppColors.k010101, fontSize: 14),

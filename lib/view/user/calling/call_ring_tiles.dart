@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
+import 'package:miaid/services/call_ring_share_service.dart';
+import 'package:miaid/view/user/smart_ring/smart_ring_format.dart';
 
 /// 通话内戒指数据弹层（患者端「分享给医生」、医生端「患者戒指数据」）共用的紧凑网格。
 class RingShareTile {
@@ -15,6 +17,7 @@ class RingShareTile {
     required this.icon,
     required this.color,
     this.detail,
+    this.busy = false,
   });
 
   final String key;
@@ -30,6 +33,9 @@ class RingShareTile {
   final String? detail;
   final IconData icon;
   final Color color;
+
+  /// 正在测量这一项：标签行末尾转圈（自己的戒指看板用）。
+  final bool busy;
 }
 
 /// 弹层顶部的拖拽条。
@@ -133,6 +139,10 @@ Widget _tile(RingShareTile t, bool selected, ValueChanged<RingShareTile>? onTap)
           const SizedBox(width: 4),
           Expanded(child: Text(t.label, style: GoogleFonts.rubik(color: AppColors.k5e5e5e, fontSize: 11.5),
               maxLines: 1, overflow: TextOverflow.ellipsis)),
+          if (t.busy) ...[
+            const SizedBox(width: 4),
+            SizedBox(width: 11, height: 11, child: CircularProgressIndicator(strokeWidth: 1.5, color: t.color)),
+          ],
         ]),
         const SizedBox(height: 3),
         Text.rich(TextSpan(children: [
@@ -209,4 +219,94 @@ Widget ringSheetButton(String label, {required VoidCallback? onPressed, bool fil
       fontWeight: FontWeight.w600,
     )),
   );
+}
+
+/// 把一份快照（通话分享 / 家人共享，结构相同）里的体征指标转成小格；没有数据的指标不出现。
+List<RingShareTile> ringRecordVitalTiles(BuildContext context, CallRingSnapshotRecord record) {
+  final s = S.of(context);
+  final tiles = <RingShareTile>[];
+  String time(DateTime? t) => t == null ? '' : SmartRingFormat.dateTime(context, t);
+
+  void add(String key, String label, String range, IconData icon, Color color, {int decimals = 0}) {
+    final m = record.metric(key);
+    if (m == null) return;
+    tiles.add(RingShareTile(
+      key: key,
+      label: label,
+      value: decimals == 0 ? m.value.round().toString() : m.value.toStringAsFixed(decimals),
+      unit: m.unit,
+      caption: time(m.time),
+      range: range,
+      icon: icon,
+      color: color,
+    ));
+  }
+
+  add('heart_rate', s.smartRingHeartRate, s.smartRingHeartRateRange, Icons.favorite, AppColors.ke63030);
+  add('blood_oxygen', s.smartRingBloodOxygen, s.smartRingBloodOxygenRange, Icons.water_drop, AppColors.k30bee6);
+  add('temperature', s.smartRingTemperature, s.smartRingTemperatureRange, Icons.thermostat, AppColors.ke68c30, decimals: 1);
+  add('hrv', s.smartRingHrv, s.smartRingHrvRange, Icons.monitor_heart, AppColors.k5251f7);
+  add('stress', s.smartRingStress, s.smartRingStressRange, Icons.psychology, AppColors.ke68c30);
+  final bp = record.bloodPressure;
+  if (bp != null) {
+    tiles.add(RingShareTile(
+      key: 'blood_pressure',
+      label: s.smartRingBloodPressure,
+      value: bp.text,
+      unit: 'mmHg',
+      caption: time(bp.time),
+      range: s.smartRingBloodPressureRange,
+      icon: Icons.speed,
+      color: AppColors.k0cbcc5,
+    ));
+  }
+  add('blood_sugar', s.smartRingBloodSugar, s.smartRingBloodSugarRange, Icons.bloodtype, AppColors.ke63030, decimals: 1);
+  return tiles;
+}
+
+/// 快照里的睡眠与步数。
+List<RingShareTile> ringRecordActivityTiles(BuildContext context, CallRingSnapshotRecord record) {
+  final s = S.of(context);
+  final tiles = <RingShareTile>[];
+  int toInt(Object? v) => v is num ? v.toInt() : 0;
+
+  final sleep = record.sleep;
+  if (sleep != null && toInt(sleep['total_minutes']) > 0) {
+    final deep = toInt(sleep['deep']);
+    final light = toInt(sleep['light']);
+    final rem = toInt(sleep['rem']);
+    final awake = toInt(sleep['awake']);
+    final hasStages = deep + light + rem + awake > 0;
+    tiles.add(RingShareTile(
+      key: 'sleep',
+      label: s.smartRingSleep,
+      value: SmartRingFormat.hoursMinutes(toInt(sleep['total_minutes'])),
+      unit: '',
+      caption: hasStages
+          ? '${s.smartRingDeepSleep} ${SmartRingFormat.hm(deep)} · ${s.smartRingRem} ${SmartRingFormat.hm(rem)}'
+          : (sleep['date'] as String? ?? s.smartRingLastNight),
+      range: s.smartRingSleepRange,
+      detail: hasStages
+          ? '${s.smartRingDeepSleep} ${SmartRingFormat.hm(deep)} · ${s.smartRingLightSleep} ${SmartRingFormat.hm(light)}'
+              ' · ${s.smartRingRem} ${SmartRingFormat.hm(rem)} · ${s.smartRingAwake} ${SmartRingFormat.hm(awake)}'
+          : null,
+      icon: Icons.bedtime,
+      color: AppColors.k5251f7,
+    ));
+  }
+
+  final steps = record.steps;
+  if (steps != null && toInt(steps['steps']) > 0) {
+    tiles.add(RingShareTile(
+      key: 'steps',
+      label: s.smartRingSteps,
+      value: SmartRingFormat.thousands(toInt(steps['steps'])),
+      unit: '',
+      caption: steps['date'] as String? ?? '',
+      range: s.smartRingStepsRange,
+      icon: Icons.directions_walk,
+      color: AppColors.k25d000,
+    ));
+  }
+  return tiles;
 }

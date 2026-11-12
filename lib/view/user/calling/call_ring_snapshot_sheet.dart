@@ -144,8 +144,8 @@ class _CallRingSnapshotSheetState extends State<_CallRingSnapshotSheet> {
 
   Widget _content(BuildContext context, CallRingSnapshotRecord record) {
     final s = S.of(context);
-    final vitals = _vitalTiles(context, record);
-    final activity = _activityTiles(context, record);
+    final vitals = ringRecordVitalTiles(context, record);
+    final activity = ringRecordActivityTiles(context, record);
     final all = [...vitals, ...activity];
     // 记录刷新后，之前点选的指标按 key 重新对上
     final selected = _selected == null ? null : all.firstWhere((t) => t.key == _selected!.key, orElse: () => _selected!);
@@ -177,93 +177,5 @@ class _CallRingSnapshotSheetState extends State<_CallRingSnapshotSheet> {
         ],
       ],
     );
-  }
-
-  List<RingShareTile> _vitalTiles(BuildContext context, CallRingSnapshotRecord record) {
-    final s = S.of(context);
-    final tiles = <RingShareTile>[];
-    String time(DateTime? t) => t == null ? '' : SmartRingFormat.dateTime(context, t);
-
-    void add(String key, String label, String range, IconData icon, Color color, {int decimals = 0}) {
-      final m = record.metric(key);
-      if (m == null) return;
-      tiles.add(RingShareTile(
-        key: key,
-        label: label,
-        value: decimals == 0 ? m.value.round().toString() : m.value.toStringAsFixed(decimals),
-        unit: m.unit,
-        caption: time(m.time),
-        range: range,
-        icon: icon,
-        color: color,
-      ));
-    }
-
-    add('heart_rate', s.smartRingHeartRate, s.smartRingHeartRateRange, Icons.favorite, AppColors.ke63030);
-    add('blood_oxygen', s.smartRingBloodOxygen, s.smartRingBloodOxygenRange, Icons.water_drop, AppColors.k30bee6);
-    add('temperature', s.smartRingTemperature, s.smartRingTemperatureRange, Icons.thermostat, AppColors.ke68c30, decimals: 1);
-    add('hrv', s.smartRingHrv, s.smartRingHrvRange, Icons.monitor_heart, AppColors.k5251f7);
-    add('stress', s.smartRingStress, s.smartRingStressRange, Icons.psychology, AppColors.ke68c30);
-    final bp = record.bloodPressure;
-    if (bp != null) {
-      tiles.add(RingShareTile(
-        key: 'blood_pressure',
-        label: s.smartRingBloodPressure,
-        value: bp.text,
-        unit: 'mmHg',
-        caption: time(bp.time),
-        range: s.smartRingBloodPressureRange,
-        icon: Icons.speed,
-        color: AppColors.k0cbcc5,
-      ));
-    }
-    add('blood_sugar', s.smartRingBloodSugar, s.smartRingBloodSugarRange, Icons.bloodtype, AppColors.ke63030, decimals: 1);
-    return tiles;
-  }
-
-  List<RingShareTile> _activityTiles(BuildContext context, CallRingSnapshotRecord record) {
-    final s = S.of(context);
-    final tiles = <RingShareTile>[];
-    int toInt(Object? v) => v is num ? v.toInt() : 0;
-
-    final sleep = record.sleep;
-    if (sleep != null && toInt(sleep['total_minutes']) > 0) {
-      final deep = toInt(sleep['deep']);
-      final light = toInt(sleep['light']);
-      final rem = toInt(sleep['rem']);
-      final awake = toInt(sleep['awake']);
-      final hasStages = deep + light + rem + awake > 0;
-      tiles.add(RingShareTile(
-        key: 'sleep',
-        label: s.smartRingSleep,
-        value: SmartRingFormat.hoursMinutes(toInt(sleep['total_minutes'])),
-        unit: '',
-        caption: hasStages
-            ? '${s.smartRingDeepSleep} ${SmartRingFormat.hm(deep)} · ${s.smartRingRem} ${SmartRingFormat.hm(rem)}'
-            : (sleep['date'] as String? ?? s.smartRingLastNight),
-        range: s.smartRingSleepRange,
-        detail: hasStages
-            ? '${s.smartRingDeepSleep} ${SmartRingFormat.hm(deep)} · ${s.smartRingLightSleep} ${SmartRingFormat.hm(light)}'
-                ' · ${s.smartRingRem} ${SmartRingFormat.hm(rem)} · ${s.smartRingAwake} ${SmartRingFormat.hm(awake)}'
-            : null,
-        icon: Icons.bedtime,
-        color: AppColors.k5251f7,
-      ));
-    }
-
-    final steps = record.steps;
-    if (steps != null && toInt(steps['steps']) > 0) {
-      tiles.add(RingShareTile(
-        key: 'steps',
-        label: s.smartRingSteps,
-        value: SmartRingFormat.thousands(toInt(steps['steps'])),
-        unit: '',
-        caption: steps['date'] as String? ?? '',
-        range: s.smartRingStepsRange,
-        icon: Icons.directions_walk,
-        color: AppColors.k25d000,
-      ));
-    }
-    return tiles;
   }
 }

@@ -96,6 +96,19 @@ class SmartRingService extends ChangeNotifier {
   bool _manualDisconnect = false;
   DateTime? _lastSyncStartedAt;
 
+  /// 有新的历史读数（同步明细 / 实时测量最终值）时回调，[RingCloudSync] 用它排队上报。
+  /// 用回调而不是直接依赖上报服务，保持本类不碰网络与登录状态。
+  void Function(List<RingReading> readings)? onReadings;
+
+  void _emitReadings(List<RingReading> readings) {
+    if (readings.isEmpty) return;
+    try {
+      onReadings?.call(readings);
+    } catch (e) {
+      debugPrint('SmartRing: onReadings failed: $e');
+    }
+  }
+
   // ---------------- 对页面暴露的状态 ----------------
 
   /// 已绑定（配对成功过）的戒指；null 表示未绑定。
@@ -230,6 +243,7 @@ class SmartRingService extends ChangeNotifier {
             'items=${result.data.fold<int>(0, (n, d) => n + ((d['items'] as List?)?.length ?? 0))} '
             'first=${result.data.isEmpty ? '-' : result.data.first}');
         snapshot = SmartRingSyncParser.applySyncResult(snapshot, result);
+        _emitReadings(SmartRingSyncParser.readingsFromSync(result));
         notifyListeners();
       }),
       _ring.onSyncFinish.listen((_) {
@@ -675,6 +689,8 @@ class SmartRingService extends ChangeNotifier {
       }
     } finally {
       await _persistSnapshot();
+      // 实时测量的读数秒级跳动，只在整轮结束后把各项最终值记为一条历史读数
+      _emitReadings(SmartRingSyncParser.realtimeReadings(snapshot));
     }
     if (failed.isNotEmpty) throw SmartRingMeasureException(failed);
   }
