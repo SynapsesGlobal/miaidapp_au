@@ -16,7 +16,7 @@ import 'package:miaid/view/user/smart_ring/family/ring_family_widgets.dart';
 
 /// 家人端提醒记录：某位长辈（传 [linkId]）或我关注的所有人。
 ///
-/// 顶部概览卡（待处理数 / 今日数 / 高危数），下面「全部 / 待处理 / 高危」筛选，按日期分组列表，
+/// 顶部概览卡（未读数 / 今日数），按日期分组列表，
 /// 滚到底自动加载更多；打开即把加载到的未读标为已读。[initialAlertId]：从推送点进来时直接打开这一条。
 class RingAlertsScreen extends StatefulWidget {
   const RingAlertsScreen({Key? key, this.linkId, this.title, this.initialAlertId}) : super(key: key);
@@ -29,8 +29,6 @@ class RingAlertsScreen extends StatefulWidget {
   State<RingAlertsScreen> createState() => _RingAlertsScreenState();
 }
 
-enum _Filter { all, active, critical }
-
 class _RingAlertsScreenState extends State<RingAlertsScreen> {
   static const _pageSize = 50;
 
@@ -42,7 +40,6 @@ class _RingAlertsScreenState extends State<RingAlertsScreen> {
   bool _loadingMore = false;
   bool _hasMore = true;
   bool _openedInitial = false;
-  _Filter _filter = _Filter.all;
 
   @override
   void initState() {
@@ -149,17 +146,7 @@ class _RingAlertsScreenState extends State<RingAlertsScreen> {
       return Center(child: CircularProgressIndicator(color: AppColors.k0cbcc5));
     }
 
-    final visible = alerts.where((a) {
-      switch (_filter) {
-        case _Filter.active:
-          return a.active;
-        case _Filter.critical:
-          return a.isCritical;
-        case _Filter.all:
-          return true;
-      }
-    }).toList();
-    final groups = _groupByDay(visible);
+    final groups = _groupByDay(alerts);
 
     return RefreshIndicator(
       color: AppColors.k0cbcc5,
@@ -171,9 +158,7 @@ class _RingAlertsScreenState extends State<RingAlertsScreen> {
         children: [
           _summaryCard(context, alerts),
           const SizedBox(height: 14),
-          _filterBar(context, alerts),
-          const SizedBox(height: 14),
-          if (visible.isEmpty) _emptyCard(context, alerts.isEmpty ? s.familyAlertNoAlerts : s.ringAlertNoMatch),
+          if (alerts.isEmpty) _emptyCard(context, s.familyAlertNoAlerts),
           for (final g in groups) ...[
             _dayHeader(context, g.day, g.items.length),
             for (final a in g.items) ...[_alertCard(context, a), const SizedBox(height: 10)],
@@ -198,15 +183,13 @@ class _RingAlertsScreenState extends State<RingAlertsScreen> {
     );
   }
 
-  /// 顶部概览：有待处理时红 / 橙渐变显示数量和人，否则青色「当前没有待处理的提醒」。
+  /// 顶部概览：有没看过的提醒时红色渐变显示数量和人，否则青色「没有新提醒」。
   Widget _summaryCard(BuildContext context, List<RingAlertItem> alerts) {
     final s = S.of(context);
-    final active = alerts.where((a) => a.active).toList();
-    final hasCritical = active.any((a) => a.isCritical);
+    final active = alerts.where((a) => a.seen == false).toList();
     final now = DateTime.now();
     final todayCount = alerts.where((a) => _sameDay(a.measuredAt ?? a.createdAt, now)).length;
-    final criticalCount = alerts.where((a) => a.isCritical).length;
-    final color = active.isEmpty ? AppColors.k0cbcc5 : (hasCritical ? AppColors.ke63030 : AppColors.ke68c30);
+    final color = active.isEmpty ? AppColors.k0cbcc5 : AppColors.ke63030;
     final colorEnd = active.isEmpty ? AppColors.k003f51.withOpacity(0.88) : color.withOpacity(0.72);
     final names = active.map((a) => a.ownerAlias).whereType<String>().where((n) => n.isNotEmpty).toSet().join('、');
 
@@ -244,8 +227,6 @@ class _RingAlertsScreenState extends State<RingAlertsScreen> {
           const SizedBox(height: 14),
           Row(children: [
             _statPill(s.ringAlertTodayCount(todayCount)),
-            const SizedBox(width: 8),
-            _statPill('${s.familyAlertLevelHigh} $criticalCount'),
           ]),
         ],
       ),
@@ -260,42 +241,6 @@ class _RingAlertsScreenState extends State<RingAlertsScreen> {
     );
   }
 
-  /// 分段筛选：全部 / 待处理 / 高危，带数量。
-  Widget _filterBar(BuildContext context, List<RingAlertItem> alerts) {
-    final s = S.of(context);
-    final items = <(_Filter, String, int)>[
-      (_Filter.all, s.ringAlertFilterAll, alerts.length),
-      (_Filter.active, s.ringAlertFilterActive, alerts.where((a) => a.active).length),
-      (_Filter.critical, s.ringAlertFilterCritical, alerts.where((a) => a.isCritical).length),
-    ];
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(color: AppColors.k0cbcc5.withOpacity(0.10), borderRadius: BorderRadius.circular(14)),
-      child: Row(children: [
-        for (final item in items)
-          Expanded(child: GestureDetector(
-            onTap: () => setState(() => _filter = item.$1),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              height: 36,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: _filter == item.$1 ? Colors.white : Colors.transparent,
-                borderRadius: BorderRadius.circular(11),
-                boxShadow: _filter == item.$1
-                    ? [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 6, offset: const Offset(0, 2))]
-                    : null,
-              ),
-              child: Text('${item.$2} ${item.$3}', style: GoogleFonts.rubik(
-                color: _filter == item.$1 ? AppColors.k010101 : AppColors.k8f8e94,
-                fontSize: 13,
-                fontWeight: _filter == item.$1 ? FontWeight.w600 : FontWeight.w400,
-              )),
-            ),
-          )),
-      ]),
-    );
-  }
 
   Widget _dayHeader(BuildContext context, DateTime day, int count) {
     final s = S.of(context);
@@ -321,7 +266,6 @@ class _RingAlertsScreenState extends State<RingAlertsScreen> {
 
   /// 一条提醒：左侧级别色条、图标、标题、时间与状态标签、右侧数值。
   Widget _alertCard(BuildContext context, RingAlertItem a) {
-    final s = S.of(context);
     final color = ringAlertLevelColor(a);
     final unread = a.seen == false;
     final name = a.ownerAlias;
@@ -330,9 +274,6 @@ class _RingAlertsScreenState extends State<RingAlertsScreen> {
         : ringAlertTitle(context, a);
     final time = a.measuredAt ?? a.createdAt;
     final tags = <Widget>[
-      if (a.isCritical && !a.isRecovered) familyChip(s.familyAlertLevelHigh, AppColors.ke63030),
-      if (a.isRecovered) familyChip(s.familyAlertLevelRecovered, AppColors.k25d000),
-      if (a.isHandled) familyChip(s.familyAlertHandled, AppColors.k0cbcc5),
     ];
 
     return InkWell(
@@ -347,7 +288,7 @@ class _RingAlertsScreenState extends State<RingAlertsScreen> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(18),
           child: Row(children: [
-            Container(width: 5, height: 78, color: a.active ? color : color.withOpacity(0.35)),
+            Container(width: 5, height: 78, color: a.seen == false ? color : color.withOpacity(0.35)),
             const SizedBox(width: 11),
             Stack(children: [
               familyIconTile(ringAlertMetricIcon(a.type), color, size: 42),

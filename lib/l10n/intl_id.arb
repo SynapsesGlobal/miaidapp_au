@@ -874,8 +874,8 @@
   "ringAlertFilterAll": "Semua",
   "ringAlertFilterActive": "Belum ditangani",
   "ringAlertFilterCritical": "Kritis",
-  "ringAlertActiveCount": "{count} peringatan belum ditangani",
-  "ringAlertAllClear": "Tidak ada peringatan yang menunggu",
+  "ringAlertActiveCount": "{count} peringatan baru",
+  "ringAlertAllClear": "Tidak ada peringatan baru",
   "ringAlertTodayCount": "Hari ini {count}",
   "ringAlertYesterday": "Kemarin",
   "ringAlertNoMatch": "Tidak ada peringatan yang cocok",
@@ -883,5 +883,10 @@
   "ringFamilyRefreshing": "Mengambil…",
   "ringFamilyRefreshedAt": "Diperbarui, data per {time}",
   "ringFamilyNoNewData": "Belum ada data baru, terakhir diperbarui {time}",
-  "ringFamilyHeroDesc": "Ikuti anggota keluarga untuk melihat data cincinnya dan menerima peringatan saat pembacaan abnormal."
+  "ringFamilyHeroDesc": "Ikuti anggota keluarga untuk melihat data cincinnya dan menerima peringatan saat pembacaan abnormal.",
+  "smartRingSyncServiceTitle": "Sinkronisasi data cincin",
+  "smartRingSyncServiceText": "MiAid menjaga koneksi cincin dan menyinkronkan data di latar belakang",
+  "ringAlertPopupTitle": "Peringatan keluarga",
+  "ringAlertViewDetail": "Lihat detail",
+  "ringAlertGotIt": "Mengerti"
 }

@@ -873,8 +873,8 @@
   "ringAlertFilterAll": "전체",
   "ringAlertFilterActive": "미처리",
   "ringAlertFilterCritical": "위급",
-  "ringAlertActiveCount": "미처리 알림 {count}건",
-  "ringAlertAllClear": "현재 미처리 알림이 없습니다",
+  "ringAlertActiveCount": "새 알림 {count}건",
+  "ringAlertAllClear": "새 알림이 없습니다",
   "ringAlertTodayCount": "오늘 {count}건",
   "ringAlertYesterday": "어제",
   "ringAlertNoMatch": "조건에 맞는 알림이 없습니다",
@@ -882,5 +882,10 @@
   "ringFamilyRefreshing": "가져오는 중…",
   "ringFamilyRefreshedAt": "업데이트됨, 데이터 시각 {time}",
   "ringFamilyNoNewData": "새 데이터 없음, 최근 업데이트 {time}",
-  "ringFamilyHeroDesc": "가족을 팔로우하면 링 데이터를 볼 수 있고 수치 이상 시 알림을 받습니다."
+  "ringFamilyHeroDesc": "가족을 팔로우하면 링 데이터를 볼 수 있고 수치 이상 시 알림을 받습니다.",
+  "smartRingSyncServiceTitle": "링 데이터 동기화",
+  "smartRingSyncServiceText": "MiAid가 백그라운드에서 링 연결을 유지하며 데이터를 동기화하고 있습니다",
+  "ringAlertPopupTitle": "가족 알림",
+  "ringAlertViewDetail": "자세히 보기",
+  "ringAlertGotIt": "확인"
 }

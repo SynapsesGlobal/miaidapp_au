@@ -46,36 +46,22 @@ class RingAlertSettings {
 }
 
 class RingAlertThreshold {
-  const RingAlertThreshold({this.low, this.high, this.high2, this.criticalLow, this.criticalHigh, this.consecutive = 1});
+  const RingAlertThreshold({this.low, this.high});
 
   factory RingAlertThreshold.fromJson(Map<String, dynamic> json) {
     double? d(Object? v) => v is num ? v.toDouble() : null;
     return RingAlertThreshold(
       low: d(json['low']),
       high: d(json['high']),
-      high2: d(json['high2']),
-      criticalLow: d(json['critical_low']),
-      criticalHigh: d(json['critical_high']),
-      consecutive: (json['consecutive'] as num?)?.toInt() ?? 1,
     );
   }
 
   final double? low;
   final double? high;
 
-  /// 血压舒张压上限。
-  final double? high2;
-  final double? criticalLow;
-  final double? criticalHigh;
-  final int consecutive;
-
   Map<String, dynamic> toJson() => {
         'low': low,
         'high': high,
-        if (high2 != null) 'high2': high2,
-        'critical_low': criticalLow,
-        'critical_high': criticalHigh,
-        'consecutive': consecutive,
       };
 }
 
@@ -85,9 +71,6 @@ class RingAlertItem {
     required this.id,
     required this.ownerUserId,
     required this.type,
-    required this.level,
-    required this.status,
-    required this.active,
     this.linkId,
     this.ownerAlias,
     this.direction,
@@ -98,9 +81,6 @@ class RingAlertItem {
     this.measuredAt,
     this.createdAt,
     this.pushedAt,
-    this.recoveredAt,
-    this.handledAt,
-    this.handledBy,
     this.seen,
   });
 
@@ -112,9 +92,6 @@ class RingAlertItem {
       ownerAlias: json['owner_alias'] as String?,
       type: json['type'] as String? ?? '',
       direction: json['direction'] as String?,
-      level: json['level'] as String? ?? 'warn',
-      status: json['status'] as String? ?? 'open',
-      active: json['active'] == true,
       value: (json['value'] as num?)?.toDouble(),
       value2: (json['value2'] as num?)?.toDouble(),
       valueText: json['value_text'] as String? ?? '',
@@ -122,15 +99,10 @@ class RingAlertItem {
       measuredAt: _time(json['measured_at']),
       createdAt: _time(json['created_at']),
       pushedAt: _time(json['pushed_at']),
-      recoveredAt: _time(json['recovered_at']),
-      handledAt: _time(json['handled_at']),
-      handledBy: json['handled_by'] as String?,
       seen: json['seen'] is bool ? json['seen'] as bool : null,
     );
   }
 
-  static const levelCritical = 'critical';
-  static const levelWarn = 'warn';
 
   final int id;
   final int ownerUserId;
@@ -138,11 +110,7 @@ class RingAlertItem {
   final String? ownerAlias;
   final String type;
   final String? direction;
-  final String level;
-  final String status;
 
-  /// 未恢复、未关闭、没人处理：需要家人关注。
-  final bool active;
   final double? value;
   final double? value2;
   final String valueText;
@@ -150,17 +118,11 @@ class RingAlertItem {
   final DateTime? measuredAt;
   final DateTime? createdAt;
   final DateTime? pushedAt;
-  final DateTime? recoveredAt;
-  final DateTime? handledAt;
-  final String? handledBy;
   final bool? seen;
 
-  bool get isCritical => level == levelCritical;
-  bool get isRecovered => status == 'recovered';
-  bool get isHandled => handledAt != null;
   bool get isHigh => direction == 'high';
 
-  RingAlertItem copyWith({bool? seen, DateTime? handledAt, String? handledBy, bool? active}) {
+  RingAlertItem copyWith({bool? seen}) {
     return RingAlertItem(
       id: id,
       ownerUserId: ownerUserId,
@@ -168,9 +130,6 @@ class RingAlertItem {
       ownerAlias: ownerAlias,
       type: type,
       direction: direction,
-      level: level,
-      status: status,
-      active: active ?? this.active,
       value: value,
       value2: value2,
       valueText: valueText,
@@ -178,9 +137,6 @@ class RingAlertItem {
       measuredAt: measuredAt,
       createdAt: createdAt,
       pushedAt: pushedAt,
-      recoveredAt: recoveredAt,
-      handledAt: handledAt ?? this.handledAt,
-      handledBy: handledBy ?? this.handledBy,
       seen: seen ?? this.seen,
     );
   }
@@ -229,17 +185,15 @@ class RingAlertOwnerStatus {
 }
 
 class RingAlertStatus {
-  const RingAlertStatus({required this.unreadCount, required this.owners, this.criticalUnseen});
+  const RingAlertStatus({required this.unreadCount, required this.owners});
 
   factory RingAlertStatus.fromJson(Map<String, dynamic> json) {
     final owners = json['owners'];
-    final critical = json['critical_unseen'];
     return RingAlertStatus(
       unreadCount: (json['unread_count'] as num?)?.toInt() ?? 0,
       owners: owners is List
           ? owners.whereType<Map<dynamic, dynamic>>().map((e) => RingAlertOwnerStatus.fromJson(e.cast<String, dynamic>())).toList()
           : const [],
-      criticalUnseen: critical is Map ? RingAlertItem.fromJson(critical.cast<String, dynamic>()) : null,
     );
   }
 
@@ -248,18 +202,14 @@ class RingAlertStatus {
   final int unreadCount;
   final List<RingAlertOwnerStatus> owners;
 
-  /// 未读的高危提醒（给弹窗），没有为空。
-  final RingAlertItem? criticalUnseen;
-
-  /// 首页横幅：所有长辈中当前最需要关注的一条（高危优先、再按时间），以及其余还有几条。
-  List<RingAlertItem> get activeAlerts {
+  /// 首页横幅 / 弹框：所有长辈中还没看过的最新提醒（按时间倒序）。看过即不再显示，不需要手动处理。
+  List<RingAlertItem> get unseenAlerts {
     final list = <RingAlertItem>[];
     for (final o in owners) {
       final a = o.latestAlert;
-      if (a != null && a.active) list.add(a);
+      if (a != null && a.seen == false) list.add(a);
     }
-    int rank(RingAlertItem a) => a.isCritical ? 0 : 1;
-    list.sort((a, b) => rank(a) != rank(b) ? rank(a) - rank(b) : (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)));
+    list.sort((a, b) => (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)));
     return list;
   }
 }
@@ -308,10 +258,6 @@ class RingAlertService {
       if (ids != null && ids.isNotEmpty) 'ids': ids,
       if (linkId != null) 'link_id': linkId,
     });
-  }
-
-  Future<RingAlertItem> markHandled(int alertId) async {
-    return RingAlertItem.fromJson(await family.requestPayload('POST', '/ring/alerts/$alertId/handled'));
   }
 
   Future<void> updatePreferences(int linkId, {bool? muted, String? locale}) async {

@@ -228,7 +228,7 @@ class _RingFamilyDashboardScreenState extends State<RingFamilyDashboardScreen> {
     return [
       _header(context, record),
       const SizedBox(height: 12),
-      if (latest != null && latest.active) ...[
+      if (latest != null && latest.seen == false) ...[
         ringAlertStrip(context, latest, ownerName: null, onTap: () => unawaited(_openAlerts(initialAlertId: latest.id))),
         const SizedBox(height: 12),
       ],

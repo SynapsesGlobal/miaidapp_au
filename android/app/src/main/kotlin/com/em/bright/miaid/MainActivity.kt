@@ -2,12 +2,42 @@ package com.em.bright.miaid
 
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.android.FlutterFragmentActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodChannel
 
 import android.os.Build
 import android.view.ViewTreeObserver
 import android.view.WindowManager
 
 class MainActivity: FlutterFragmentActivity() {
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+        // 智能戒指：后台同步保活的前台服务（Dart 侧 RingKeepAlive 调用）
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "miaid/ring_sync_service").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "start" -> {
+                    try {
+                        RingSyncService.start(
+                            this,
+                            call.argument<String>("title") ?: "MiAid",
+                            call.argument<String>("text") ?: "",
+                            call.argument<String>("channelName") ?: "MiAid",
+                        )
+                        result.success(true)
+                    } catch (e: Exception) {
+                        // 例如 Android 14+ 未授予蓝牙权限时不允许启动 connectedDevice 类型前台服务
+                        result.error("START_FAILED", e.message, null)
+                    }
+                }
+                "stop" -> {
+                    RingSyncService.stop(this)
+                    result.success(true)
+                }
+                "isRunning" -> result.success(RingSyncService.running)
+                else -> result.notImplemented()
+            }
+        }
+    }
 }
 
 /*import android.Manifest

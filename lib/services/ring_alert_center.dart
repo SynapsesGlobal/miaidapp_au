@@ -12,42 +12,45 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// 家人端提醒状态中心：App 在前台时每 60 秒拉一次 `/ring/alerts/status`，回到前台 / 收到推送时立即拉。
 ///
 /// 推送只是「叫人来看」，异常状态以这里拉到的为准：首页横幅、Me 页红点、家人列表状态、
-/// 高危弹窗都监听它。高危弹窗同一条只弹一次（已弹过的 id 记在本机）。
-/// 只对已登录的客户账号工作；没有关注任何人时接口返回空列表，开销很小。
+/// 新提醒弹框都监听它。弹框同一条只弹一次（已弹过的 id 记在本机）。
+/// 只对已登录的客户账号工作。轮询是兜底，推送才是主通道，所以频率压得很低：
+/// 关注了长辈每 5 分钟一次，没关注任何人每 30 分钟一次；回到前台、收到推送、进家人共享页时立即拉一次；
+/// 退到后台停止。这样 1 万个前台用户大约每秒 30 个请求，而不是按 60 秒轮询的 170 个。
 class RingAlertCenter extends ChangeNotifier {
   RingAlertCenter._();
 
   static final RingAlertCenter instance = RingAlertCenter._();
 
-  static const pollInterval = Duration(seconds: 60);
-  static const _shownKey = 'smart-ring-alert-critical-shown';
+  /// 关注了长辈时的轮询间隔。
+  static const pollInterval = Duration(minutes: 5);
+
+  /// 没关注任何人时的轮询间隔（只是为了发现刚绑定的情况，进家人共享页也会立即刷新）。
+  static const idleInterval = Duration(minutes: 30);
+  static const _shownKey = 'smart-ring-alert-popup-shown';
 
   RingAlertService? _service;
   Timer? _timer;
   bool _started = false;
   bool _fetching = false;
+  bool _inBackground = false;
 
   RingAlertStatus status = RingAlertStatus.empty;
   DateTime? lastFetchedAt;
 
-  /// 已经弹过窗的高危提醒 id。
+  /// 已经弹过窗的提醒 id（所有级别，同一条只弹一次）。
   Set<int> _shownCritical = {};
   bool _shownLoaded = false;
 
   /// 本次会话已把 App 语言同步到后端的绑定。
   final Set<int> _localeSynced = {};
 
-  /// 由 main 注入：弹出高危提醒弹层。
-  Future<void> Function(RingAlertItem alert)? criticalHandler;
+  /// 由 main 注入：弹出「新提醒」弹框（传入所有还没看过、且没弹过的提醒，最严重的排前面）。
+  Future<void> Function(List<RingAlertItem> alerts)? alertHandler;
+  bool _popupShowing = false;
 
   RingAlertService get service => _service ??= RingAlertService(RingFamilyService(getIt<ApiProvider>()));
 
   int get unreadCount => status.unreadCount;
-
-  /// 当前最需要关注的提醒（首页横幅用）；没有为空。
-  RingAlertItem? get bannerAlert => status.activeAlerts.isEmpty ? null : status.activeAlerts.first;
-
-  int get bannerExtraCount => status.activeAlerts.isEmpty ? 0 : status.activeAlerts.length - 1;
 
   RingAlertOwnerStatus? ownerStatus(int linkId) {
     for (final o in status.owners) {
@@ -59,7 +62,6 @@ class RingAlertCenter extends ChangeNotifier {
   void start() {
     if (_started) return;
     _started = true;
-    _timer = Timer.periodic(pollInterval, (_) => unawaited(refresh()));
     unawaited(refresh());
   }
 
@@ -69,7 +71,27 @@ class RingAlertCenter extends ChangeNotifier {
     _started = false;
   }
 
-  void onAppResumed() => unawaited(refresh());
+  /// 回到前台：立即拉一次并恢复轮询。
+  void onAppResumed() {
+    _inBackground = false;
+    unawaited(refresh());
+  }
+
+  /// 退到后台：停止轮询，省流量也不打扰后端。
+  void onAppPaused() {
+    _inBackground = true;
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  /// 按当前状态安排下一次轮询：有关注的长辈 5 分钟，没有 30 分钟；后台不排。
+  void _scheduleNext() {
+    _timer?.cancel();
+    _timer = null;
+    if (!_started || _inBackground) return;
+    final interval = status.owners.isEmpty ? idleInterval : pollInterval;
+    _timer = Timer(interval, () => unawaited(refresh()));
+  }
 
   /// 收到 ring_alert 推送时调用。
   void onPush() => unawaited(refresh());
@@ -80,7 +102,11 @@ class RingAlertCenter extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
-    if (_fetching || !_eligible) return;
+    if (_fetching) return;
+    if (!_eligible) {
+      _scheduleNext();
+      return;
+    }
     _fetching = true;
     try {
       final next = await service.fetchStatus();
@@ -88,11 +114,12 @@ class RingAlertCenter extends ChangeNotifier {
       lastFetchedAt = DateTime.now();
       notifyListeners();
       unawaited(_syncLocale(next));
-      await _maybeShowCritical(next);
+      await _maybeShowPopup(next);
     } on RingFamilyException catch (e) {
       debugPrint('RingAlert: status failed: $e');
     } finally {
       _fetching = false;
+      _scheduleNext();
     }
   }
 
@@ -106,18 +133,21 @@ class RingAlertCenter extends ChangeNotifier {
     unawaited(refresh());
   }
 
-  Future<void> _maybeShowCritical(RingAlertStatus next) async {
-    final critical = next.criticalUnseen;
-    final handler = criticalHandler;
-    if (critical == null || handler == null) return;
+  Future<void> _maybeShowPopup(RingAlertStatus next) async {
+    final handler = alertHandler;
+    if (handler == null || _popupShowing) return;
     await _loadShown();
-    if (_shownCritical.contains(critical.id)) return;
-    _shownCritical.add(critical.id);
+    final fresh = next.unseenAlerts.where((a) => !_shownCritical.contains(a.id)).toList();
+    if (fresh.isEmpty) return;
+    _shownCritical.addAll(fresh.map((a) => a.id));
     unawaited(_saveShown());
+    _popupShowing = true;
     try {
-      await handler(critical);
+      await handler(fresh);
     } catch (e) {
-      debugPrint('RingAlert: critical dialog failed: $e');
+      debugPrint('RingAlert: popup failed: $e');
+    } finally {
+      _popupShowing = false;
     }
   }
 

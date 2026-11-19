@@ -13,7 +13,7 @@ import 'package:miaid/view/user/smart_ring/family/ring_alert_widgets.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_family_widgets.dart';
 import 'package:miaid/view/user/smart_ring/smart_ring_format.dart';
 
-/// 「家人提醒设置」：总开关 + 各指标阈值。每次改动立即保存。
+/// 「家人提醒设置」：总开关 + 心率 / 血氧的上下限。每次改动立即保存。
 ///
 /// 戴戒指的人自己打开时不传 [linkId]；家人从长辈面板打开时传 [linkId] 和 [ownerName]，
 /// 改的是同一份设置（双方都能改，后改的覆盖先改的，页面上显示最后由谁修改）。
@@ -220,11 +220,7 @@ class _RingAlertSettingsScreenState extends State<RingAlertSettingsScreen> {
     final fields = <_Field>[
       if (initial.low != null) _Field('low', s.familyAlertLow, initial.low!),
       if (initial.high != null) _Field('high', s.familyAlertHigh, initial.high!),
-      if (initial.high2 != null) _Field('high2', s.ringAlertDiastolicHigh, initial.high2!, max: 140),
-      if (initial.criticalLow != null) _Field('critical_low', s.ringAlertCriticalLow, initial.criticalLow!),
-      if (initial.criticalHigh != null) _Field('critical_high', s.ringAlertCriticalHigh, initial.criticalHigh!),
     ];
-    var consecutive = initial.consecutive;
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -264,17 +260,17 @@ class _RingAlertSettingsScreenState extends State<RingAlertSettingsScreen> {
                     SizedBox(width: 92, child: Text(f.label, style: GoogleFonts.rubik(color: AppColors.k5e5e5e, fontSize: 12.5))),
                     Expanded(child: SliderTheme(
                       data: SliderTheme.of(context).copyWith(
-                        activeTrackColor: f.key.startsWith('critical') ? AppColors.ke63030 : color,
+                        activeTrackColor: color,
                         inactiveTrackColor: color.withOpacity(0.15),
-                        thumbColor: f.key.startsWith('critical') ? AppColors.ke63030 : color,
+                        thumbColor: color,
                         overlayColor: color.withOpacity(0.15),
                         trackHeight: 3,
                       ),
                       child: Slider(
-                        value: f.value.clamp(spec.min, f.max ?? spec.max),
+                        value: f.value.clamp(spec.min, spec.max),
                         min: spec.min,
-                        max: f.max ?? spec.max,
-                        divisions: spec.divisions(f.max ?? spec.max),
+                        max: spec.max,
+                        divisions: spec.divisions(spec.max),
                         onChanged: (v) => setSheet(() => f.value = v),
                       ),
                     )),
@@ -282,27 +278,11 @@ class _RingAlertSettingsScreenState extends State<RingAlertSettingsScreen> {
                         style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 13, fontWeight: FontWeight.w600))),
                   ]),
                 ),
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(color: AppColors.kf4f4f4, borderRadius: BorderRadius.circular(14)),
-                child: Row(children: [
-                  Expanded(child: Text(s.familyAlertConsecutive(consecutive),
-                      style: GoogleFonts.rubik(color: AppColors.k5e5e5e, fontSize: 13))),
-                  _stepButton(Icons.remove, consecutive > 1 ? () => setSheet(() => consecutive--) : null),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: Text('$consecutive', style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 16, fontWeight: FontWeight.w600)),
-                  ),
-                  _stepButton(Icons.add, consecutive < 5 ? () => setSheet(() => consecutive++) : null),
-                ]),
-              ),
             ])),
             const SizedBox(height: 18),
             familyFilledButton(s.confirm, onPressed: () {
               Navigator.pop(context, <String, dynamic>{
                 for (final f in fields) f.key: spec.decimals == 0 ? f.value.roundToDouble() : double.parse(f.value.toStringAsFixed(spec.decimals)),
-                'consecutive': consecutive,
               });
             }),
             const SizedBox(height: 10),
@@ -313,23 +293,10 @@ class _RingAlertSettingsScreenState extends State<RingAlertSettingsScreen> {
     );
     if (result == null || !mounted) return;
     if (result['_reset'] == true) {
-      await _save({'thresholds': {type: {'low': null, 'high': null, 'high2': null, 'critical_low': null, 'critical_high': null, 'consecutive': null}}});
+      await _save({'thresholds': {type: {'low': null, 'high': null}}});
     } else {
       await _save({'thresholds': {type: result}});
     }
-  }
-
-  Widget _stepButton(IconData icon, VoidCallback? onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
-        child: Icon(icon, size: 16, color: onTap == null ? AppColors.kb1b1b1 : AppColors.k0cbcc5),
-      ),
-    );
   }
 
   Widget _greyButton(String label, VoidCallback onPressed) {
@@ -346,12 +313,11 @@ class _RingAlertSettingsScreenState extends State<RingAlertSettingsScreen> {
 }
 
 class _Field {
-  _Field(this.key, this.label, this.value, {this.max});
+  _Field(this.key, this.label, this.value);
 
   final String key;
   final String label;
   double value;
-  final double? max;
 }
 
 /// 各指标滑杆范围与格式。

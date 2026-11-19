@@ -849,8 +849,8 @@
   "ringAlertFilterAll": "All",
   "ringAlertFilterActive": "Open",
   "ringAlertFilterCritical": "Critical",
-  "ringAlertActiveCount": "{count} open alerts",
-  "ringAlertAllClear": "No open alerts right now",
+  "ringAlertActiveCount": "{count} new alerts",
+  "ringAlertAllClear": "No new alerts",
   "ringAlertTodayCount": "Today {count}",
   "ringAlertYesterday": "Yesterday",
   "ringAlertNoMatch": "No alerts match this filter",
@@ -858,5 +858,10 @@
   "ringFamilyRefreshing": "Fetching…",
   "ringFamilyRefreshedAt": "Updated, data as of {time}",
   "ringFamilyNoNewData": "No new data, last updated {time}",
-  "ringFamilyHeroDesc": "Follow a family member to see their ring data and get alerted when a reading is abnormal."
+  "ringFamilyHeroDesc": "Follow a family member to see their ring data and get alerted when a reading is abnormal.",
+  "smartRingSyncServiceTitle": "Ring data sync",
+  "smartRingSyncServiceText": "MiAid is keeping your ring connected and syncing data in the background",
+  "ringAlertPopupTitle": "Family alert",
+  "ringAlertViewDetail": "View details",
+  "ringAlertGotIt": "Got it"
 }

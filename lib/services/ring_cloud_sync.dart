@@ -52,6 +52,17 @@ class RingCloudSync {
     _scheduleReadings();
   }
 
+  /// 立刻把待上传的快照和读数都推到后端（iOS 后台刷新用，时间窗很短，不走 5 秒合并）。
+  Future<void> flush() async {
+    _timer?.cancel();
+    _timer = null;
+    _readingsTimer?.cancel();
+    _readingsTimer = null;
+    await _loadQueue();
+    await _upload();
+    await _uploadReadings();
+  }
+
   // ---------------- 历史读数 ----------------
 
   static const _queueKey = 'smart-ring-readings-queue';

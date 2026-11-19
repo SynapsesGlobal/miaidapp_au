@@ -848,8 +848,8 @@
   "ringAlertFilterAll": "Όλες",
   "ringAlertFilterActive": "Εκκρεμείς",
   "ringAlertFilterCritical": "Κρίσιμες",
-  "ringAlertActiveCount": "{count} εκκρεμείς ειδοποιήσεις",
-  "ringAlertAllClear": "Καμία εκκρεμής ειδοποίηση αυτή τη στιγμή",
+  "ringAlertActiveCount": "{count} νέες ειδοποιήσεις",
+  "ringAlertAllClear": "Καμία νέα ειδοποίηση",
   "ringAlertTodayCount": "Σήμερα {count}",
   "ringAlertYesterday": "Χθες",
   "ringAlertNoMatch": "Καμία ειδοποίηση για αυτό το φίλτρο",
@@ -857,5 +857,10 @@
   "ringFamilyRefreshing": "Λήψη…",
   "ringFamilyRefreshedAt": "Ενημερώθηκε, δεδομένα έως {time}",
   "ringFamilyNoNewData": "Χωρίς νέα δεδομένα, τελευταία ενημέρωση {time}",
-  "ringFamilyHeroDesc": "Ακολουθήστε ένα μέλος της οικογένειας για να βλέπετε τα δεδομένα του δαχτυλιδιού του και να ειδοποιείστε σε μη φυσιολογικές μετρήσεις."
+  "ringFamilyHeroDesc": "Ακολουθήστε ένα μέλος της οικογένειας για να βλέπετε τα δεδομένα του δαχτυλιδιού του και να ειδοποιείστε σε μη φυσιολογικές μετρήσεις.",
+  "smartRingSyncServiceTitle": "Συγχρονισμός δαχτυλιδιού",
+  "smartRingSyncServiceText": "Το MiAid διατηρεί τη σύνδεση με το δαχτυλίδι και συγχρονίζει δεδομένα στο παρασκήνιο",
+  "ringAlertPopupTitle": "Ειδοποίηση οικογένειας",
+  "ringAlertViewDetail": "Προβολή λεπτομερειών",
+  "ringAlertGotIt": "Το κατάλαβα"
 }

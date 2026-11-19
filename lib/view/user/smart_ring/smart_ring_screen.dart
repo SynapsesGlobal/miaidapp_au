@@ -15,7 +15,6 @@ import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/calling/call_ring_tiles.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_trend_screen.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_family_widgets.dart';
-import 'package:miaid/view/user/smart_ring/family/ring_alert_settings_screen.dart';
 import 'package:miaid/view/user/smart_ring/smart_ring_format.dart';
 import 'package:miaid/view/user/smart_ring/smart_ring_monitoring_screen.dart';
 import 'package:miaid/view/user/smart_ring/smart_ring_pair_screen.dart';
@@ -808,20 +807,6 @@ class _SmartRingScreenState extends State<SmartRingScreen> {
               subtitle: s.smartRingRenameDesc,
               onTap: () => Navigator.pop(context, 'rename'),
             ),
-            _actionRow(
-              icon: Icons.memory,
-              color: AppColors.k5251f7,
-              title: s.smartRingDeviceFeatures,
-              subtitle: s.smartRingDeviceFeaturesDesc,
-              onTap: () => Navigator.pop(context, 'features'),
-            ),
-            _actionRow(
-              icon: Icons.family_restroom,
-              color: AppColors.k0CC58F,
-              title: s.ringAlertSettings,
-              subtitle: s.ringAlertSettingsMenuDesc,
-              onTap: () => Navigator.pop(context, 'alerts'),
-            ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: Divider(height: 1, color: AppColors.kf4f4f4),
@@ -847,14 +832,6 @@ class _SmartRingScreenState extends State<SmartRingScreen> {
         break;
       case 'rename':
         await _rename();
-        break;
-      case 'features':
-        await _showFeatures();
-        break;
-      case 'alerts':
-        await Navigator.push(context, MaterialPageRoute<void>(
-          builder: (context) => const RingAlertSettingsScreen(),
-        ));
         break;
       case 'unbind':
         await _confirmUnbind();
@@ -904,192 +881,6 @@ class _SmartRingScreenState extends State<SmartRingScreen> {
     );
   }
 
-  /// 「戒指功能」底部弹层：设备头部（型号 / 固件 / 电量）+ 支持与不支持的功能标签。
-  /// 看板只显示支持的项目，用户在这里能看到为什么某些指标没有出现。
-  Future<void> _showFeatures() async {
-    final s = S.of(context);
-    final caps = _ring.capabilities;
-    final features = <_Feature>[
-      _Feature(s.smartRingHeartRate, Icons.favorite, caps.heartRate),
-      _Feature(s.smartRingBloodOxygen, Icons.water_drop, caps.bloodOxygen),
-      _Feature(s.smartRingTemperature, Icons.thermostat, caps.temperature),
-      _Feature(s.smartRingHrv, Icons.monitor_heart, caps.hrv),
-      _Feature(s.smartRingStress, Icons.self_improvement, caps.stress),
-      _Feature(s.smartRingBloodPressure, Icons.bloodtype, caps.bloodPressure),
-      _Feature(s.smartRingBloodSugar, Icons.bubble_chart, caps.bloodSugar),
-      _Feature(s.smartRingSleep, Icons.bedtime, caps.sleep),
-      _Feature(s.smartRingSteps, Icons.directions_walk, caps.steps),
-    ];
-    final supported = features.where((f) => f.supported).toList();
-    final unsupported = features.where((f) => !f.supported).toList();
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + MediaQuery.of(context).padding.bottom),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.kb1b1b1.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              _featureHeader(context),
-              const SizedBox(height: 20),
-              Divider(height: 1, color: AppColors.kf4f4f4),
-              const SizedBox(height: 18),
-              if (caps.isUnknown)
-                Text(s.smartRingNotConnectedHint, style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 13))
-              else ...[
-                _featureSection(s.smartRingSupportedFeatures, supported, active: true),
-                if (unsupported.isNotEmpty) ...[
-                  const SizedBox(height: 18),
-                  _featureSection(s.smartRingUnsupportedFeatures, unsupported, active: false),
-                ],
-              ],
-              const SizedBox(height: 20),
-              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Icon(Icons.info_outline, size: 14, color: AppColors.kb1b1b1),
-                const SizedBox(width: 6),
-                Expanded(child: Text(s.smartRingFeaturesNote,
-                    style: GoogleFonts.rubik(color: AppColors.kb1b1b1, fontSize: 11, height: 1.4))),
-              ]),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _featureHeader(BuildContext context) {
-    final s = S.of(context);
-    final device = _ring.boundDevice;
-    final firmware = _ring.firmware;
-    final battery = _ring.battery;
-    final name = _ring.displayName;
-    final bleName = device?.name ?? '';
-    final details = <String>[
-      if (_ring.nickname != null && bleName.isNotEmpty && bleName != name) bleName,
-      if (firmware != null && firmware.deviceClazz.isNotEmpty) firmware.deviceClazz,
-      if (firmware != null && firmware.deviceNo.isNotEmpty) '${s.smartRingFirmware} ${firmware.deviceNo}',
-    ];
-    if (details.isEmpty) {
-      final id = device == null ? '' : (device.mac.isNotEmpty ? device.mac : (device.uuid ?? ''));
-      if (id.isNotEmpty) details.add(id);
-    }
-    return Row(children: [
-      Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            colors: [AppColors.k0cbcc5, AppColors.k0CC58F],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [BoxShadow(color: AppColors.k0cbcc5.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
-        ),
-        child: const Icon(Icons.donut_large, color: Colors.white, size: 28),
-      ),
-      const SizedBox(width: 14),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(name, style: GoogleFonts.rubik(
-              color: AppColors.k010101,
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
-            ), maxLines: 1, overflow: TextOverflow.ellipsis),
-            if (details.isNotEmpty) ...[
-              const SizedBox(height: 3),
-              Text(details.join(' · '), style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 12),
-                  maxLines: 1, overflow: TextOverflow.ellipsis),
-            ],
-          ],
-        ),
-      ),
-      const SizedBox(width: 10),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(color: AppColors.kf4f4f4, borderRadius: BorderRadius.circular(14)),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(_batteryIcon(battery), size: 16,
-              color: battery != null && battery <= 15 ? AppColors.ke63030 : AppColors.k25d000),
-          const SizedBox(width: 4),
-          Text(battery == null ? '--' : '$battery%', style: GoogleFonts.rubik(
-            color: AppColors.k010101,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          )),
-        ]),
-      ),
-    ]);
-  }
-
-  Widget _featureSection(String title, List<_Feature> items, {required bool active}) {
-    final accent = active ? AppColors.k0cbcc5 : AppColors.kb1b1b1;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(children: [
-          Container(width: 3, height: 14, decoration: BoxDecoration(color: accent, borderRadius: BorderRadius.circular(2))),
-          const SizedBox(width: 8),
-          Text(title, style: GoogleFonts.rubik(
-            color: active ? AppColors.k010101 : AppColors.k8f8e94,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          )),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
-            decoration: BoxDecoration(color: accent.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
-            child: Text('${items.length}', style: GoogleFonts.rubik(color: accent, fontSize: 11, fontWeight: FontWeight.w600)),
-          ),
-        ]),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final f in items)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: active ? AppColors.k0cbcc5.withOpacity(0.1) : AppColors.kf4f4f4,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(f.icon, size: 15, color: active ? AppColors.k0cbcc5 : AppColors.kb1b1b1),
-                  const SizedBox(width: 6),
-                  Text(f.label, style: GoogleFonts.rubik(
-                    color: active ? AppColors.k010101 : AppColors.k8f8e94,
-                    fontSize: 13,
-                    fontWeight: active ? FontWeight.w500 : FontWeight.w400,
-                    decoration: active ? null : TextDecoration.lineThrough,
-                  )),
-                ]),
-              ),
-          ],
-        ),
-      ],
-    );
-  }
 
   /// 睡眠记录归属：醒来时间在今天 → 「昨晚」，否则显示日期。
   String _sleepDateLabel(BuildContext context, SleepSummary sleep) {
@@ -1136,14 +927,6 @@ class _SmartRingScreenState extends State<SmartRingScreen> {
       ),
     );
   }
-}
-
-class _Feature {
-  const _Feature(this.label, this.icon, this.supported);
-
-  final String label;
-  final IconData icon;
-  final bool supported;
 }
 
 enum _MetricInfo { heartRate, bloodOxygen, temperature, hrv, stress, bloodPressure, bloodSugar, sleep, steps }

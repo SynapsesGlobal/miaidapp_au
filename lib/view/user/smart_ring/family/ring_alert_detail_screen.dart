@@ -17,7 +17,7 @@ import 'package:miaid/view/user/smart_ring/smart_ring_format.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// 家人端提醒详情：级别色头卡（数值、参考范围、时间）+ 该指标最近 24 小时走势（叠加阈值带）
-/// + 长辈信息 + 拨打电话 / 标记已处理。返回时把更新后的提醒传回列表。
+/// + 长辈信息 + 拨打电话。返回时把更新后的提醒（已读状态）传回列表。
 class RingAlertDetailScreen extends StatefulWidget {
   const RingAlertDetailScreen({Key? key, required this.alert}) : super(key: key);
 
@@ -29,13 +29,11 @@ class RingAlertDetailScreen extends StatefulWidget {
 
 class _RingAlertDetailScreenState extends State<RingAlertDetailScreen> {
   late final RingFamilyService _family = RingFamilyService(getIt<ApiProvider>());
-  late final RingAlertService _service = RingAlertService(_family);
 
   late RingAlertItem _alert = widget.alert;
   RingTrend? _trend;
   bool _trendFailed = false;
   RingFamilyOwner? _owner;
-  bool _handling = false;
 
   @override
   void initState() {
@@ -86,21 +84,6 @@ class _RingAlertDetailScreenState extends State<RingAlertDetailScreen> {
     }
   }
 
-  Future<void> _markHandled() async {
-    if (_handling) return;
-    setState(() => _handling = true);
-    try {
-      final updated = await _service.markHandled(_alert.id);
-      if (!mounted) return;
-      setState(() => _alert = updated.copyWith(seen: true));
-      unawaited(RingAlertCenter.instance.refresh());
-    } on RingFamilyException {
-      if (mounted) unawaited(HttpExceptionNotifyUser.showInfo(S.of(context).ringFamilyActionFailed));
-    } finally {
-      if (mounted) setState(() => _handling = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
@@ -129,19 +112,6 @@ class _RingAlertDetailScreenState extends State<RingAlertDetailScreen> {
               const SizedBox(height: 20),
               if (phone != null && phone.isNotEmpty)
                 familyFilledButton(s.familyAlertPhone, icon: Icons.call, onPressed: () => unawaited(_call())),
-              const SizedBox(height: 10),
-              if (!a.isHandled)
-                familyOutlinedButton(s.familyAlertMarkHandled, icon: Icons.check_circle_outline,
-                    onPressed: _handling ? null : () => unawaited(_markHandled()))
-              else
-                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(Icons.check_circle, color: AppColors.k25d000, size: 18),
-                  const SizedBox(width: 6),
-                  Text(
-                    a.handledBy != null && a.handledBy!.isNotEmpty ? s.ringAlertHandledBy(a.handledBy!) : s.familyAlertHandled,
-                    style: GoogleFonts.rubik(color: AppColors.k25d000, fontSize: 13.5, fontWeight: FontWeight.w500),
-                  ),
-                ]),
               const SizedBox(height: 16),
               Text(s.smartRingDisclaimer, textAlign: TextAlign.center,
                   style: GoogleFonts.rubik(color: AppColors.kb1b1b1, fontSize: 11)),
@@ -193,9 +163,6 @@ class _RingAlertDetailScreenState extends State<RingAlertDetailScreen> {
             Text(s.familyAlertMeasuredAt(SmartRingFormat.dateTime(context, time)),
                 style: GoogleFonts.rubik(color: Colors.white.withOpacity(0.8), fontSize: 12)),
           ],
-          if (a.isRecovered && a.recoveredAt != null)
-            Text('${s.familyAlertLevelRecovered} · ${SmartRingFormat.dateTime(context, a.recoveredAt!)}',
-                style: GoogleFonts.rubik(color: Colors.white.withOpacity(0.8), fontSize: 12)),
         ],
       ),
     );

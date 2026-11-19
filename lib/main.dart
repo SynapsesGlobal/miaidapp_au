@@ -20,8 +20,9 @@ import 'package:miaid/services/facebook_service.dart';
 import 'package:miaid/services/location_upload_service.dart';
 import 'package:miaid/services/ring_alert_center.dart';
 import 'package:miaid/services/ring_cloud_sync.dart';
-import 'package:miaid/view/user/smart_ring/family/ring_alert_widgets.dart';
-import 'package:miaid/view/user/smart_ring/family/ring_alerts_screen.dart';
+import 'package:miaid/services/ring_background_sync.dart';
+import 'package:miaid/services/ring_keep_alive.dart';
+import 'package:miaid/view/user/smart_ring/family/ring_alert_popup.dart';
 import 'package:miaid/services/smart_ring_service.dart';
 import 'package:miaid/services/square_payment_backend_service.dart';
 import 'package:miaid/services/square_payment_service.dart';
@@ -87,16 +88,15 @@ Future<void> bootstrap(String envName) async {
   unawaited(SmartRingService.instance.start());
   // 戒指数据有更新就上传最新快照（供已绑定的家人查看）
   RingCloudSync.instance.start();
+  // Android：绑定戒指后挂前台服务保活，退后台也能继续同步上传
+  RingKeepAlive.instance.start();
+  // iOS：绑定戒指后申请系统后台刷新，唤醒时补一次同步上传
+  RingBackgroundSync.instance.start();
   // 家人端：轮询家人戒指异常提醒状态（横幅 / 红点 / 高危弹窗）
-  RingAlertCenter.instance.criticalHandler = (alert) async {
+  RingAlertCenter.instance.alertHandler = (alerts) async {
     final context = navigatorKey.currentContext;
     if (context == null) return;
-    final view = await showRingAlertCriticalSheet(context, alert);
-    if (view == true && navigatorKey.currentState != null) {
-      await navigatorKey.currentState!.push(MaterialPageRoute<void>(
-        builder: (context) => RingAlertsScreen(linkId: alert.linkId, initialAlertId: alert.id),
-      ));
-    }
+    await showRingAlertPopup(context, alerts);
   };
   RingAlertCenter.instance.start();
 
@@ -447,7 +447,12 @@ class AppLifecycleObserver extends WidgetsBindingObserver {
       // 已绑定戒指：断开则重连，连着且超过间隔则补一次同步
       unawaited(SmartRingService.instance.onAppResumed());
       RingCloudSync.instance.onAppResumed();
+      RingKeepAlive.instance.onAppResumed();
       RingAlertCenter.instance.onAppResumed();
+    }
+    if (state == AppLifecycleState.paused) {
+      // 退到后台：家人提醒停止轮询
+      RingAlertCenter.instance.onAppPaused();
     }
   }
 }

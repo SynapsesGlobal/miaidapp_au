@@ -15,6 +15,7 @@ import Flutter
 import UIKit
 import Flutter
 import CoreLocation
+import BackgroundTasks
 
 @UIApplicationMain
 @objc class AppDelegate: FlutterAppDelegate, CLLocationManagerDelegate {
@@ -22,6 +23,12 @@ import CoreLocation
     var locationManager: CLLocationManager?
     var flutterChannel: FlutterMethodChannel?
     var timer: Timer?
+
+    // ---- 智能戒指：iOS 后台刷新（BGAppRefreshTask）----
+    // 戒指已绑定时按 15 分钟间隔申请后台刷新，触发后让 Dart 侧补一次同步上传（见 RingBackgroundSync）
+    static let ringTaskId = "com.em.bright.miaid.ring-sync"
+    private let ringEnabledKey = "ring_background_sync_enabled"
+    var ringChannel: FlutterMethodChannel?
 
     override func application(
         _ application: UIApplication,
@@ -34,7 +41,90 @@ import CoreLocation
             flutterChannel?.setMethodCallHandler(handleMethodCall)
         }
 
+        if let controller = window?.rootViewController as? FlutterViewController {
+            ringChannel = FlutterMethodChannel(name: "miaid/ring_background", binaryMessenger: controller.binaryMessenger)
+            ringChannel?.setMethodCallHandler { [weak self] call, result in
+                guard let self = self else { return }
+                switch call.method {
+                case "setEnabled":
+                    let enabled = (call.arguments as? Bool) ?? false
+                    UserDefaults.standard.set(enabled, forKey: self.ringEnabledKey)
+                    if enabled { self.scheduleRingSync() } else { self.cancelRingSync() }
+                    result(nil)
+                case "scheduleNow":
+                    self.scheduleRingSync()
+                    result(nil)
+                default:
+                    result(FlutterMethodNotImplemented)
+                }
+            }
+        }
+        if #available(iOS 13.0, *) {
+            BGTaskScheduler.shared.register(forTaskWithIdentifier: AppDelegate.ringTaskId, using: nil) { [weak self] task in
+                guard let self = self, let task = task as? BGAppRefreshTask else { task.setTaskCompleted(success: false); return }
+                self.handleRingSync(task: task)
+            }
+        }
+
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    }
+
+    // ---- 智能戒指后台刷新 ----
+
+    override func applicationDidEnterBackground(_ application: UIApplication) {
+        super.applicationDidEnterBackground(application)
+        if UserDefaults.standard.bool(forKey: ringEnabledKey) { scheduleRingSync() }
+    }
+
+    func scheduleRingSync() {
+        guard #available(iOS 13.0, *) else { return }
+        let request = BGAppRefreshTaskRequest(identifier: AppDelegate.ringTaskId)
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
+        do {
+            try BGTaskScheduler.shared.submit(request)
+        } catch {
+            print("RingSync: schedule failed: \(error)")
+        }
+    }
+
+    func cancelRingSync() {
+        guard #available(iOS 13.0, *) else { return }
+        BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: AppDelegate.ringTaskId)
+    }
+
+    @available(iOS 13.0, *)
+    func handleRingSync(task: BGAppRefreshTask) {
+        // 先排下一次，保证链不断
+        scheduleRingSync()
+        var finished = false
+        let finish: (Bool) -> Void = { ok in
+            if finished { return }
+            finished = true
+            task.setTaskCompleted(success: ok)
+        }
+        task.expirationHandler = { [weak self] in
+            self?.ringChannel?.invokeMethod("cancel", arguments: nil)
+            finish(false)
+        }
+        // 后台冷启动时 Dart 侧可能还没注册 handler，最多重试 10 次（约 10 秒）
+        invokeRingSync(attempt: 0, completion: finish)
+    }
+
+    private func invokeRingSync(attempt: Int, completion: @escaping (Bool) -> Void) {
+        guard let channel = ringChannel else { completion(false); return }
+        channel.invokeMethod("sync", arguments: nil) { [weak self] reply in
+            if reply is FlutterError || (reply as AnyObject) === FlutterMethodNotImplemented {
+                if attempt < 10 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        self?.invokeRingSync(attempt: attempt + 1, completion: completion)
+                    }
+                } else {
+                    completion(false)
+                }
+                return
+            }
+            completion((reply as? Bool) ?? false)
+        }
     }
 
     func handleMethodCall(_ call: FlutterMethodCall, result: @escaping FlutterResult) {

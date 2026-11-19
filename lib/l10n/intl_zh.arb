@@ -850,8 +850,8 @@
   "ringAlertFilterAll": "全部",
   "ringAlertFilterActive": "待处理",
   "ringAlertFilterCritical": "高危",
-  "ringAlertActiveCount": "{count} 条待处理",
-  "ringAlertAllClear": "当前没有待处理的提醒",
+  "ringAlertActiveCount": "{count} 条新提醒",
+  "ringAlertAllClear": "没有新提醒",
   "ringAlertTodayCount": "今日 {count} 条",
   "ringAlertYesterday": "昨天",
   "ringAlertNoMatch": "没有符合条件的提醒",
@@ -859,5 +859,10 @@
   "ringFamilyRefreshing": "正在获取…",
   "ringFamilyRefreshedAt": "已更新，数据时间 {time}",
   "ringFamilyNoNewData": "暂无新数据，最近更新 {time}",
-  "ringFamilyHeroDesc": "关注家人即可查看 TA 的戒指数据，指标异常时会收到提醒。"
+  "ringFamilyHeroDesc": "关注家人即可查看 TA 的戒指数据，指标异常时会收到提醒。",
+  "smartRingSyncServiceTitle": "戒指数据同步",
+  "smartRingSyncServiceText": "MiAid 正在后台保持与戒指的连接并同步数据",
+  "ringAlertPopupTitle": "家人提醒",
+  "ringAlertViewDetail": "查看详情",
+  "ringAlertGotIt": "知道了"
 }

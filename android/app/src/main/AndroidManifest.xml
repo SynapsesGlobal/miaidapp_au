@@ -146,6 +146,11 @@
             android:foregroundServiceType="location"
             android:exported="false"
             tools:replace="android:exported" />
+        <!-- 智能戒指后台同步保活：连接设备类型的前台服务，只挂通知不做事（见 RingSyncService） -->
+        <service
+            android:name=".RingSyncService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
     </application>
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -162,6 +167,8 @@
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" tools:node="remove" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!-- 智能戒指后台同步前台服务（targetSdk 34+ 需按类型声明） -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
 </manifest>
