@@ -126,10 +126,7 @@ class _RingFamilyDashboardScreenState extends State<RingFamilyDashboardScreen> {
       appBar: familyAlertAppBar(context, _owner.displayName, actions: [
         IconButton(
           tooltip: s.ringAlertRecords,
-          icon: Stack(clipBehavior: Clip.none, children: [
-            Icon(Icons.notifications_none, color: AppColors.k003f51),
-            if (_owner.unreadCount > 0) Positioned(right: -6, top: -4, child: ringUnreadBadge(_owner.unreadCount, size: 15)),
-          ]),
+          icon: Icon(Icons.notifications_none, color: AppColors.k003f51),
           onPressed: () => unawaited(_openAlerts()),
         ),
         IconButton(

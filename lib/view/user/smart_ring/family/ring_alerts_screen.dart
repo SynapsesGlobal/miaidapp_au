@@ -10,14 +10,13 @@ import 'package:miaid/services/ring_alert_center.dart';
 import 'package:miaid/services/ring_alert_service.dart';
 import 'package:miaid/services/ring_family_service.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
-import 'package:miaid/view/user/smart_ring/family/ring_alert_detail_screen.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_alert_widgets.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_family_widgets.dart';
 
 /// 家人端提醒记录：某位长辈（传 [linkId]）或我关注的所有人。
 ///
-/// 顶部概览卡（未读数 / 今日数），按日期分组列表，
-/// 滚到底自动加载更多；打开即把加载到的未读标为已读。[initialAlertId]：从推送点进来时直接打开这一条。
+/// 按日期分组的列表，每天一张白卡、每条提醒一行，
+/// 滚到底自动加载更多；打开即把加载到的未读标为已读。没有详情页，每条就是一行。[initialAlertId] 仅保留给推送跳转，不做定位。
 class RingAlertsScreen extends StatefulWidget {
   const RingAlertsScreen({Key? key, this.linkId, this.title, this.initialAlertId}) : super(key: key);
 
@@ -39,7 +38,6 @@ class _RingAlertsScreenState extends State<RingAlertsScreen> {
   bool _failed = false;
   bool _loadingMore = false;
   bool _hasMore = true;
-  bool _openedInitial = false;
 
   @override
   void initState() {
@@ -69,7 +67,6 @@ class _RingAlertsScreenState extends State<RingAlertsScreen> {
         _hasMore = alerts.length >= _pageSize;
       });
       unawaited(_markSeen(alerts));
-      _openInitial(alerts);
     } on RingFamilyException {
       if (mounted) setState(() => _failed = _alerts == null);
     }
@@ -104,28 +101,6 @@ class _RingAlertsScreenState extends State<RingAlertsScreen> {
     });
   }
 
-  void _openInitial(List<RingAlertItem> alerts) {
-    final id = widget.initialAlertId;
-    if (_openedInitial || id == null) return;
-    _openedInitial = true;
-    for (final a in alerts) {
-      if (a.id == id) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(_openDetail(a)));
-        return;
-      }
-    }
-  }
-
-  Future<void> _openDetail(RingAlertItem a) async {
-    final updated = await Navigator.push<RingAlertItem>(context, MaterialPageRoute<RingAlertItem>(
-      builder: (context) => RingAlertDetailScreen(alert: a),
-    ));
-    if (!mounted) return;
-    if (updated != null) {
-      setState(() => _alerts = _alerts?.map((x) => x.id == updated.id ? updated : x).toList());
-    }
-  }
-
   // ---------------- 页面 ----------------
 
   @override
@@ -156,13 +131,19 @@ class _RingAlertsScreenState extends State<RingAlertsScreen> {
         padding: const EdgeInsets.all(16),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          _summaryCard(context, alerts),
-          const SizedBox(height: 14),
           if (alerts.isEmpty) _emptyCard(context, s.familyAlertNoAlerts),
           for (final g in groups) ...[
-            _dayHeader(context, g.day, g.items.length),
-            for (final a in g.items) ...[_alertCard(context, a), const SizedBox(height: 10)],
-            const SizedBox(height: 6),
+            _dayHeader(context, g.day),
+            familyCard(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+              child: Column(children: [
+                for (var i = 0; i < g.items.length; i++) ...[
+                  if (i > 0) Divider(height: 1, indent: 52, color: AppColors.kf4f4f4),
+                  _row(context, g.items[i]),
+                ],
+              ]),
+            ),
+            const SizedBox(height: 16),
           ],
           if (_hasMore && alerts.isNotEmpty)
             Center(child: _loadingMore
@@ -183,66 +164,7 @@ class _RingAlertsScreenState extends State<RingAlertsScreen> {
     );
   }
 
-  /// 顶部概览：有没看过的提醒时红色渐变显示数量和人，否则青色「没有新提醒」。
-  Widget _summaryCard(BuildContext context, List<RingAlertItem> alerts) {
-    final s = S.of(context);
-    final active = alerts.where((a) => a.seen == false).toList();
-    final now = DateTime.now();
-    final todayCount = alerts.where((a) => _sameDay(a.measuredAt ?? a.createdAt, now)).length;
-    final color = active.isEmpty ? AppColors.k0cbcc5 : AppColors.ke63030;
-    final colorEnd = active.isEmpty ? AppColors.k003f51.withOpacity(0.88) : color.withOpacity(0.72);
-    final names = active.map((a) => a.ownerAlias).whereType<String>().where((n) => n.isNotEmpty).toSet().join('、');
-
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(colors: [color, colorEnd], begin: Alignment.topLeft, end: Alignment.bottomRight),
-        boxShadow: [BoxShadow(color: color.withOpacity(0.3), blurRadius: 18, offset: const Offset(0, 8))],
-      ),
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(14)),
-              child: Icon(active.isEmpty ? Icons.verified_outlined : Icons.notifications_active, color: Colors.white, size: 24),
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(active.isEmpty ? s.ringAlertAllClear : s.ringAlertActiveCount(active.length),
-                    style: GoogleFonts.rubik(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
-                if (names.isNotEmpty && widget.linkId == null) ...[
-                  const SizedBox(height: 2),
-                  Text(names, maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.rubik(color: Colors.white.withOpacity(0.85), fontSize: 12.5)),
-                ],
-              ],
-            )),
-          ]),
-          const SizedBox(height: 14),
-          Row(children: [
-            _statPill(s.ringAlertTodayCount(todayCount)),
-          ]),
-        ],
-      ),
-    );
-  }
-
-  Widget _statPill(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(color: Colors.white.withOpacity(0.18), borderRadius: BorderRadius.circular(12)),
-      child: Text(text, style: GoogleFonts.rubik(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600)),
-    );
-  }
-
-
-  Widget _dayHeader(BuildContext context, DateTime day, int count) {
+  Widget _dayHeader(BuildContext context, DateTime day) {
     final s = S.of(context);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -255,83 +177,60 @@ class _RingAlertsScreenState extends State<RingAlertsScreen> {
       label = DateFormat.MMMd().format(day);
     }
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 2, 4, 8),
-      child: Row(children: [
-        Text(label, style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 13.5, fontWeight: FontWeight.w600)),
-        const SizedBox(width: 6),
-        Text('$count', style: GoogleFonts.rubik(color: AppColors.kb1b1b1, fontSize: 12)),
-      ]),
+      padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+      child: Text(label, style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 12.5, fontWeight: FontWeight.w600)),
     );
   }
 
-  /// 一条提醒：左侧级别色条、图标、标题、时间与状态标签、右侧数值。
-  Widget _alertCard(BuildContext context, RingAlertItem a) {
-    final color = ringAlertLevelColor(a);
+  /// 一行：指标图标、「妈妈 · 心率偏低」+ 时间、右侧读数；未读加粗并带小红点。
+  Widget _row(BuildContext context, RingAlertItem a) {
+    final accent = ringAlertMetricColor(a.type);
     final unread = a.seen == false;
     final name = a.ownerAlias;
     final title = widget.linkId == null && name != null && name.isNotEmpty
         ? '$name · ${ringAlertTitle(context, a)}'
         : ringAlertTitle(context, a);
     final time = a.measuredAt ?? a.createdAt;
-    final tags = <Widget>[
-    ];
-
-    return InkWell(
-      onTap: () => unawaited(_openDetail(a)),
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: Row(children: [
-            Container(width: 5, height: 78, color: a.seen == false ? color : color.withOpacity(0.35)),
-            const SizedBox(width: 11),
-            Stack(children: [
-              familyIconTile(ringAlertMetricIcon(a.type), color, size: 42),
-              if (unread)
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: Container(
-                    width: 9,
-                    height: 9,
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.ke63030, border: Border.all(color: Colors.white, width: 1.5)),
-                  ),
+    return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(children: [
+          Stack(clipBehavior: Clip.none, children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(color: accent.withOpacity(0.10), borderRadius: BorderRadius.circular(12)),
+              child: Icon(ringAlertMetricIcon(a.type), color: accent, size: 19),
+            ),
+            if (unread)
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Container(
+                  width: 9,
+                  height: 9,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.ke63030, border: Border.all(color: Colors.white, width: 1.5)),
                 ),
-            ]),
-            const SizedBox(width: 12),
-            Expanded(child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 14.5, fontWeight: unread ? FontWeight.w700 : FontWeight.w600)),
-                  const SizedBox(height: 5),
-                  Row(children: [
-                    if (time != null)
-                      Text(DateFormat.Hm().format(time), style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 12)),
-                    for (final t in tags) ...[const SizedBox(width: 6), t],
-                  ]),
-                ],
               ),
-            )),
-            const SizedBox(width: 8),
-            if (a.valueText.isNotEmpty)
-              Text.rich(TextSpan(children: [
-                TextSpan(text: a.valueText, style: GoogleFonts.rubik(color: color, fontSize: 22, fontWeight: FontWeight.w700)),
-                TextSpan(text: ' ${a.unit}', style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 11)),
-              ])),
-            const SizedBox(width: 6),
-            Icon(Icons.chevron_right, color: AppColors.kb1b1b1, size: 20),
-            const SizedBox(width: 6),
           ]),
-        ),
-      ),
+          const SizedBox(width: 12),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 14.5, fontWeight: unread ? FontWeight.w600 : FontWeight.w500)),
+              if (time != null) ...[
+                const SizedBox(height: 2),
+                Text(DateFormat.Hm().format(time), style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 12)),
+              ],
+            ],
+          )),
+          const SizedBox(width: 10),
+          if (a.valueText.isNotEmpty)
+            Text.rich(TextSpan(children: [
+              TextSpan(text: a.valueText, style: GoogleFonts.rubik(color: accent, fontSize: 20, fontWeight: FontWeight.w700)),
+              TextSpan(text: ' ${a.unit}', style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 11)),
+            ])),
+        ]),
     );
   }
 
@@ -352,8 +251,6 @@ class _RingAlertsScreenState extends State<RingAlertsScreen> {
   }
 
   // ---------------- 工具 ----------------
-
-  static bool _sameDay(DateTime? a, DateTime b) => a != null && a.year == b.year && a.month == b.month && a.day == b.day;
 
   static List<_DayGroup> _groupByDay(List<RingAlertItem> alerts) {
     final groups = <_DayGroup>[];

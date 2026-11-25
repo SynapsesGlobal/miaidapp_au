@@ -501,7 +501,7 @@ SPEC CHECKSUMS:
   AgoraIrisRTC_iOS: d6468160cad25d36c2b6cb5e9bd5b17ba4e58677
   AgoraRtcEngine_Special_iOS: 48063561d21b07524358ee0a17abc6be762c58f7
   app_links: f3e17e4ee5e357b39d8b95290a9b2c299fca71c6
-  AppAuth: d4f13a8fe0baf391b2108511793e4b479691fb73
+  AppAuth: 58e37c546bb9bf2073c1392ccba8cef35ff283cb
   camera_avfoundation: dd002b0330f4981e1bbcb46ae9b62829237459a4
   cometchat: 2bb03e085531cb0f4f5b27d8b055a9452566ced2
   CometChatPro: a3a5938276ed41f21cfdb4d34e6df889af88f8a9
@@ -540,9 +540,9 @@ SPEC CHECKSUMS:
   google_sign_in_ios: 07375bfbf2620bc93a602c0e27160d6afc6ead38
   GoogleAppMeasurement: 6e49ffac7d3f2c3ded9cc663f912a13b67bbd0de
   GoogleDataTransport: aae35b7ea0c09004c3797d53c8c41f66f219d6a7
-  GoogleSignIn: d4281ab6cf21542b1cfaff85c191f230b399d2db
+  GoogleSignIn: 4ac041cf807e78942e3c0863775a98ee8c8e0f7c
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
-  GTMAppAuth: f69bd07d68cd3b766125f7e072c45d7340dea0de
+  GTMAppAuth: 4a3fbbb34098b327feaa51cfbf98b0b12f6892e7
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
   image_gallery_saver: 259eab68fb271cfd57d599904f7acdc7832e7ef2
   image_picker_ios: c560581cceedb403a6ff17f2f816d7fea1421fc1

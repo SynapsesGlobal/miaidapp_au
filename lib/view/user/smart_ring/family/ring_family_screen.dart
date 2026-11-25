@@ -117,16 +117,9 @@ class _RingFamilyScreenState extends State<RingFamilyScreen> {
     return Scaffold(
       backgroundColor: AppColors.kf4f4f4,
       appBar: familyAlertAppBar(context, s.ringFamily, actions: [
-        ListenableBuilder(
-          listenable: RingAlertCenter.instance,
-          builder: (context, _) => IconButton(
-            icon: Stack(clipBehavior: Clip.none, children: [
-              Icon(Icons.notifications_none, color: AppColors.k003f51),
-              if (RingAlertCenter.instance.unreadCount > 0)
-                Positioned(right: -6, top: -4, child: ringUnreadBadge(RingAlertCenter.instance.unreadCount, size: 15)),
-            ]),
-            onPressed: () => unawaited(Navigator.push(context, MaterialPageRoute<void>(builder: (context) => const RingAlertsScreen()))),
-          ),
+        IconButton(
+          icon: Icon(Icons.notifications_none, color: AppColors.k003f51),
+          onPressed: () => unawaited(Navigator.push(context, MaterialPageRoute<void>(builder: (context) => const RingAlertsScreen()))),
         ),
       ]),
       body: _body(context),
@@ -330,10 +323,6 @@ class _RingFamilyScreenState extends State<RingFamilyScreen> {
                 if (owner.alertStatus != 'normal') ...[
                   const SizedBox(width: 6),
                   familyChip(ringOwnerStatusText(context, owner.alertStatus), ringOwnerStatusColor(owner.alertStatus)),
-                ],
-                if (owner.unreadCount > 0) ...[
-                  const SizedBox(width: 6),
-                  ringUnreadBadge(owner.unreadCount, size: 16),
                 ],
               ]),
               const SizedBox(height: 2),
