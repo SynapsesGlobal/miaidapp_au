@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:miaid/api_utils/http_exception.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/services/smart_ring_models.dart';
@@ -11,6 +14,8 @@ import 'package:rwfit_ble/rwfit_ble.dart';
 
 /// 患者端：通话中「分享戒指数据给医生」的确认弹层，和医生端面板同一套紧凑网格，
 /// 列出即将分享的全部读数；点某一格可看参考范围；确认返回 true。
+/// 标题右侧「立即测量」和戒指看板的立即测量相同：依次实时测一遍各项体征，保证医生拿到的是当下读数；
+/// 测量期间按钮显示正在测的项目，网格随快照刷新，分享按钮禁用。
 Future<bool?> showCallRingShareSheet(BuildContext context) {
   return showModalBottomSheet<bool>(
     context: context,
@@ -29,12 +34,69 @@ class _CallRingShareSheet extends StatefulWidget {
 
 class _CallRingShareSheetState extends State<_CallRingShareSheet> {
   RingShareTile? _selected;
+  bool _refreshing = false;
+
+  /// 与看板「立即测量」相同：依次实时测量（未连接会先重连），部分项目失败时列出未测出的项目。
+  Future<void> _refresh() async {
+    final ring = SmartRingService.instance;
+    if (_refreshing || ring.busy) return;
+    final s = S.of(context);
+    setState(() => _refreshing = true);
+    try {
+      await ring.measureNow();
+      if (mounted) unawaited(HttpExceptionNotifyUser.showInfo(s.smartRingMeasureDone));
+    } on SmartRingMeasureException catch (e) {
+      if (!mounted) return;
+      final names = e.failed.map((m) => SmartRingFormat.metricLabel(context, m)).join(', ');
+      unawaited(HttpExceptionNotifyUser.showInfo(s.smartRingMeasureItemFailed(names)));
+    } catch (_) {
+      if (mounted) {
+        unawaited(HttpExceptionNotifyUser.showInfo(ring.isConnected ? s.smartRingMeasureFailed : s.smartRingConnectFailed));
+      }
+    } finally {
+      if (mounted) setState(() => _refreshing = false);
+    }
+  }
+
+  /// 标题右侧的小药丸按钮：空闲时「立即测量」，测量中显示转圈和正在测的项目。
+  Widget _refreshButton(BuildContext context, bool syncing) {
+    final s = S.of(context);
+    final measuring = SmartRingService.instance.measuring;
+    final label = !syncing
+        ? s.smartRingMeasureNow
+        : measuring != null
+            ? s.smartRingMeasuring(SmartRingFormat.metricLabel(context, measuring))
+            : s.ringFamilyRefreshing;
+    return InkWell(
+      onTap: syncing ? null : () => unawaited(_refresh()),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(color: AppColors.k0cbcc5.withOpacity(0.10), borderRadius: BorderRadius.circular(14)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (syncing)
+            SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.6, color: AppColors.k0cbcc5))
+          else
+            Icon(Icons.monitor_heart_outlined, size: 14, color: AppColors.k0cbcc5),
+          const SizedBox(width: 5),
+          Text(label,
+              style: GoogleFonts.rubik(color: AppColors.k0cbcc5, fontSize: 11.5, fontWeight: FontWeight.w500)),
+        ]),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    // 监听服务：同步完成后快照变化，网格随之刷新
+    return AnimatedBuilder(animation: SmartRingService.instance, builder: (context, _) => _sheet(context));
+  }
+
+  Widget _sheet(BuildContext context) {
     final s = S.of(context);
     final ring = SmartRingService.instance;
     final snap = ring.snapshot;
+    final syncing = _refreshing || ring.busy;
     final vitals = _vitalTiles(context, snap);
     final activity = _activityTiles(context, snap);
     final hasData = vitals.isNotEmpty || activity.isNotEmpty;
@@ -62,6 +124,7 @@ class _CallRingShareSheetState extends State<_CallRingShareSheet> {
             icon: Icons.medical_services_outlined,
             title: s.smartRingShareToDoctor,
             subtitle: subtitle,
+            trailing: _refreshButton(context, syncing),
           ),
           const SizedBox(height: 6),
           Text(s.smartRingShareToDoctorDesc, style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 11.5)),
@@ -99,7 +162,8 @@ class _CallRingShareSheetState extends State<_CallRingShareSheet> {
           Text(s.smartRingDisclaimer, textAlign: TextAlign.center,
               style: GoogleFonts.rubik(color: AppColors.kb1b1b1, fontSize: 10.5)),
           const SizedBox(height: 10),
-          ringSheetButton(s.smartRingShareToDoctor, onPressed: hasData ? () => Navigator.pop(context, true) : null),
+          ringSheetButton(s.smartRingShareToDoctor,
+              onPressed: hasData && !syncing ? () => Navigator.pop(context, true) : null),
           const SizedBox(height: 8),
           ringSheetButton(s.cancel, onPressed: () => Navigator.pop(context, false), filled: false),
         ],
