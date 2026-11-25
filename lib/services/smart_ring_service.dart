@@ -4,7 +4,9 @@ import 'dart:io';
 
 import 'package:device_info/device_info.dart';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:miaid/services/smart_ring_models.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:rwfit_ble/rwfit_ble.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -44,6 +46,13 @@ class SmartRingService extends ChangeNotifier {
   static const _capabilitiesKey = 'smart_ring_capabilities';
   static const _snapshotKey = 'smart_ring_snapshot';
   static const _nicknameKey = 'smart_ring_nickname';
+  static const _alertConfigKey = 'smart_ring_alert_config';
+  static const _callAlertKey = 'smart_ring_call_alert';
+
+  /// 厂商固件列表接口（见 SDK 文档 3.2.3.1）。
+  static const _otaListUrl = 'https://ruiwo168.com/api/device/getOtaListByModel';
+  static const _otaTimeout = Duration(minutes: 10);
+  static const _calibrationTimeout = Duration(seconds: 90);
 
   static const _connectTimeout = Duration(seconds: 25);
   static const _syncTimeout = Duration(minutes: 3);
@@ -109,10 +118,29 @@ class SmartRingService extends ChangeNotifier {
     }
   }
 
+  /// 戒指主动上报的事件（跌倒 / 求助），[RingCloudSync] 用它上报后端通知家人。
+  void Function(RingEvent event)? onEvent;
+
   // ---------------- 对页面暴露的状态 ----------------
 
   /// 已绑定（配对成功过）的戒指；null 表示未绑定。
   BleDevice? boundDevice;
+
+  /// 最近一次戒指事件（跌倒 / 求助），看板提示用。
+  RingEvent? lastEvent;
+
+  /// 睡眠实时状态（需设备支持 [RingCapabilities.sleepRealtime]）：正在睡眠时为入睡时间。
+  DateTime? sleepingSince;
+
+  /// 本机保存、就绪后写回戒指的设置。
+  RingAlertConfig? alertConfig;
+  bool callAlertEnabled = true;
+
+  /// 固件升级进度 0–1；null 表示没有在升级。
+  double? otaProgress;
+  bool calibrating = false;
+  Completer<OtaResult>? _otaCompleter;
+  Completer<HeartRateCalibrationResult>? _calibrationCompleter;
 
   /// 用户给戒指起的昵称，只存在本机；null / 空表示用蓝牙名。
   String? nickname;
@@ -145,7 +173,7 @@ class SmartRingService extends ChangeNotifier {
   bool get isBound => boundDevice != null;
   bool get isConnected => ready && connectionState == ConnectState.connected;
   bool get isConnecting => connectionState == ConnectState.connecting;
-  bool get busy => syncing || measuring != null;
+  bool get busy => syncing || measuring != null || otaProgress != null || calibrating;
 
   // ---------------- 启动 / 初始化 ----------------
 
@@ -194,6 +222,8 @@ class SmartRingService extends ChangeNotifier {
         final device = _decodeMap(prefs.getString(_deviceKey));
         if (device != null) boundDevice = BleDevice.fromMap(device);
         nickname = prefs.getString(_nicknameKey);
+        alertConfig = RingAlertConfig.fromJson(_decodeMap(prefs.getString(_alertConfigKey)));
+        callAlertEnabled = prefs.getBool(_callAlertKey) ?? true;
         final caps = _decodeMap(prefs.getString(_capabilitiesKey));
         if (caps != null) capabilities = RingCapabilities(Map.unmodifiable(caps));
         final snap = _decodeMap(prefs.getString(_snapshotKey));
@@ -267,6 +297,58 @@ class SmartRingService extends ChangeNotifier {
         _log('measureComplete success=${result.isSuccess} errorCode=${result.errorCode}');
         final completer = _measureCompleter;
         if (completer != null && !completer.isCompleted) completer.complete(result);
+      }),
+      // 跌倒（keyType 2）/ 求助（keyType 3，插件未归类，按原值判）：记下来并交给上报回调
+      _ring.onTouchEvent.listen((e) {
+        _log('touch action=${e.action.name} keyType=${e.keyType} touchType=${e.touchType}');
+        String? type;
+        if (e.action == TouchAction.fallDetected || e.keyType == 2) {
+          type = RingEvent.fall;
+        } else if (e.keyType == 3) {
+          type = RingEvent.sos;
+        }
+        if (type == null) return;
+        final event = RingEvent(type: type, time: DateTime.now());
+        lastEvent = event;
+        notifyListeners();
+        try {
+          onEvent?.call(event);
+        } catch (err) {
+          debugPrint('SmartRing: onEvent failed: $err');
+        }
+      }),
+      _ring.onHealthAlert.listen((a) => _log('healthAlert type=${a.type.name} value=${a.value}')),
+      // 睡眠实时协议：17 入睡、34 醒来（与历史睡眠的 sleepType 不是一套编码）
+      _ring.onSensorRawData.listen((packet) {
+        if (packet.type != SensorRawDataType.sleep) return;
+        var changed = false;
+        for (final sample in packet.sleep) {
+          if (sample.mode == 17) {
+            sleepingSince = sample.timestampSec > 0
+                ? DateTime.fromMillisecondsSinceEpoch(sample.timestampSec * 1000)
+                : DateTime.now();
+            changed = true;
+          } else if (sample.mode == 34) {
+            sleepingSince = null;
+            changed = true;
+          }
+        }
+        if (changed) notifyListeners();
+      }),
+      _ring.onOtaProgress.listen((p) {
+        otaProgress = p.clamp(0.0, 1.0);
+        notifyListeners();
+      }),
+      _ring.onOtaFinish.listen((r) {
+        _log('otaFinish success=${r.success} code=${r.code}');
+        final completer = _otaCompleter;
+        if (completer != null && !completer.isCompleted) completer.complete(r);
+      }),
+      _ring.onHeartRateCalibration.listen((r) {
+        _log('hrCalibration mode=${r.testMode} result=${r.result}');
+        if (!r.isCompleted) return;
+        final completer = _calibrationCompleter;
+        if (completer != null && !completer.isCompleted) completer.complete(r);
       }),
     ]);
   }
@@ -530,6 +612,7 @@ class SmartRingService extends ChangeNotifier {
     } catch (_) {}
     unawaited(_refreshBattery());
     unawaited(_refreshFirmware());
+    unawaited(_applyDeviceDefaults());
     // 就绪后自动拉一次历史数据，进入看板即有内容
     unawaited(syncHealthData().catchError((Object e) {
       debugPrint('SmartRing: auto sync failed: $e');
@@ -775,7 +858,270 @@ class SmartRingService extends ChangeNotifier {
     }
   }
 
+  // ---------------- 设备设置 ----------------
+
+  /// 确保已连接再下发指令（未连接先重连）。
+  Future<T> _withRing<T>(Future<T> Function() action) async {
+    await ensureInitialized();
+    if (!isConnected) await reconnect();
+    return action();
+  }
+
+  /// 就绪后把本机保存的报警阈值、来电转发写回戒指
+  /// （戒指自己也存，换手机 / 恢复出厂后靠这里补齐）。每项失败只记日志。
+  Future<void> _applyDeviceDefaults() async {
+    final cfg = alertConfig;
+    if (cfg != null) await _writeAlertConfig(cfg);
+    if (Platform.isIOS) await _writeCallForwarding(callAlertEnabled);
+  }
+
+  // 闹钟（协议只能整批下发）
+  Future<List<Alarm>> getAlarms() => _withRing(_ring.getAlarm);
+  Future<void> saveAlarms(List<Alarm> alarms) => _withRing(() => _ring.setAlarm(alarms));
+
+  // 久坐 / 喝水提醒（戒指端震动）
+  Future<ReminderConfig> getSedentaryReminder() => _withRing(_ring.getSedentaryReminder);
+  Future<void> setSedentaryReminder(ReminderConfig c) => _withRing(() => _ring.setSedentaryReminder(c));
+  Future<ReminderConfig> getDrinkReminder() => _withRing(_ring.getDrinkReminder);
+  Future<void> setDrinkReminder(ReminderConfig c) => _withRing(() => _ring.setDrinkReminder(c));
+
+  // 跌倒检测开关（开启后戒指检测到跌倒经 onTouchEvent 上报）
+  Future<bool> getFallDetect() => _withRing(_ring.getFallDetect);
+  Future<void> setFallDetect(bool enabled) => _withRing(() => _ring.setFallDetect(enabled));
+
+  // 佩戴与显示
+  Future<bool> getWearRightHand() => _withRing(_ring.getRingWearDir);
+  Future<void> setWearRightHand(bool right) => _withRing(() => _ring.setRingWearHand(right));
+  Future<VibrationConfig> getVibration() => _withRing(_ring.getVibrationCount);
+  Future<void> setVibration(VibrationConfig c) => _withRing(() => _ring.setVibrationCount(c));
+  Future<LedLevel> getLed() => _withRing(_ring.getRingLedLevel);
+  Future<void> setLed(LedLevel c) => _withRing(() => _ring.setRingLedLevel(c));
+  Future<int> getBrightScreenSeconds() => _withRing(_ring.getBrightScreenTime);
+  Future<void> setBrightScreenSeconds(int seconds) => _withRing(() => _ring.setBrightScreenTime(seconds));
+  Future<ScheduleToggle> getRaiseBrightScreen() => _withRing(_ring.getRaiseBrightScreen);
+  Future<void> setRaiseBrightScreen(ScheduleToggle c) => _withRing(() => _ring.setRaiseBrightScreen(c));
+
+  Future<void> findDevice() => _withRing(_ring.findDevice);
+
+  /// 心率校正：启动后等戒指回「完成」；返回 SDK 的结果码（0 以外表示已完成）。
+  Future<int> calibrateHeartRate() async {
+    if (busy) throw StateError('busy');
+    final completer = Completer<HeartRateCalibrationResult>();
+    _calibrationCompleter = completer;
+    calibrating = true;
+    notifyListeners();
+    try {
+      await _withRing(_ring.startHeartRateCalibration);
+      final result = await completer.future.timeout(_calibrationTimeout);
+      return result.result;
+    } finally {
+      if (identical(_calibrationCompleter, completer)) _calibrationCompleter = null;
+      calibrating = false;
+      notifyListeners();
+    }
+  }
+
+  /// 把家人提醒的阈值写进戒指（戒指端心率 / 血氧报警，超标时戒指震动提醒本人）。
+  /// 没变化不重复写；未连接时先记着，就绪后由 [_applyDeviceDefaults] 补写。
+  Future<void> applyAlertConfig(RingAlertConfig cfg, {bool force = false}) async {
+    final changed = cfg != alertConfig;
+    alertConfig = cfg;
+    if (changed) {
+      notifyListeners();
+      await _persistJson(_alertConfigKey, cfg.toJson());
+    }
+    if ((changed || force) && isConnected) await _writeAlertConfig(cfg);
+  }
+
+  Future<void> _writeAlertConfig(RingAlertConfig cfg) async {
+    try {
+      if (capabilities.heartRateAlert && (cfg.hrLow != null || cfg.hrHigh != null)) {
+        await _ring.setHeartRateAlert(HeartRateAlertConfig(
+          isOpen: cfg.enabled,
+          highThreshold: (cfg.hrHigh ?? 254).clamp(0, 254),
+          lowThreshold: cfg.hrLow?.clamp(0, 254),
+        ));
+      }
+      if (capabilities.bloodOxygenAlert && cfg.spo2Low != null) {
+        await _ring.setBloodOxygenAlert(BloodOxygenAlertConfig(isOpen: cfg.enabled, lowThreshold: cfg.spo2Low!.clamp(0, 254)));
+      }
+      _log('alert config written hr=${cfg.hrLow}-${cfg.hrHigh} spo2=${cfg.spo2Low} enabled=${cfg.enabled}');
+    } catch (e) {
+      debugPrint('SmartRing: write alert config failed: $e');
+    }
+  }
+
+  /// 来电提醒开关：Android 来电时 App 主动推消息到戒指震动；iOS 打开系统通知转发（来电 + 其他 App 通知）。
+  Future<void> setCallAlertEnabled(bool value) async {
+    callAlertEnabled = value;
+    notifyListeners();
+    await _persistBool(_callAlertKey, value);
+    if (Platform.isIOS && isConnected) await _writeCallForwarding(value);
+  }
+
+  Future<void> _writeCallForwarding(bool value) async {
+    try {
+      await _ring.setNotificationSwitch({'isCall': value, 'isOther': value});
+    } catch (e) {
+      debugPrint('SmartRing: setNotificationSwitch failed: $e');
+    }
+  }
+
+  /// 来电震动：10 次、最强档。消息推送只会亮屏不震，所以用自定义震动指令补一下。
+  static const _callVibrationCount = 10;
+
+  /// MiAid 来电（视频问诊 / 家人来电）时让戒指提示，按戒指能力逐级退：
+  /// 1. Android：SDK 的来电提醒指令（戒指按自己的来电方式震动 + 显示来电人）；
+  /// 2. 支持自定义震动的戒指：震动 10 次；
+  /// 3. 都没有：iOS 发「查找设备」让戒指亮灯 / 震动（表现取决于设备），Android 再推一条消息亮屏显示文字。
+  Future<void> notifyIncomingCall({required String title, required String body}) async {
+    if (!callAlertEnabled || !isConnected) return;
+    var alerted = false;
+    if (Platform.isAndroid) {
+      try {
+        await _ring.controlCallRemind(name: body.isNotEmpty ? body : title);
+        _log('controlCallRemind ok');
+        alerted = true;
+      } catch (e) {
+        debugPrint('SmartRing: controlCallRemind failed: $e');
+      }
+    }
+    if (await vibrate(count: _callVibrationCount, strength: 3) == null) alerted = true;
+    if (!alerted && capabilities.findDevice) {
+      try {
+        await _ring.findDevice();
+        _log('incoming call: findDevice fallback');
+        alerted = true;
+      } catch (e) {
+        debugPrint('SmartRing: findDevice failed: $e');
+      }
+    }
+    if (!alerted && Platform.isAndroid && capabilities.pushMessage) {
+      try {
+        await _ring.pushMessage({
+          'appId': 'com.em.bright.miaid',
+          'title': title,
+          'content': body,
+          'msgType': 1,
+          'timeMill': DateTime.now().millisecondsSinceEpoch,
+        });
+      } catch (e) {
+        debugPrint('SmartRing: pushMessage failed: $e');
+      }
+    }
+  }
+
+  /// 让戒指震动 [count] 次（1–15），强度 [strength] 0–3。
+  /// 返回 null 表示指令已被戒指接受；否则返回原因（`unsupported` / `disconnected` / 错误信息），给设置页的震动测试显示。
+  Future<String?> vibrate({required int count, int strength = 3}) async {
+    if (!isConnected) return 'disconnected';
+    if (!capabilities.vibrationControl) {
+      _log('controlVibration skipped: isSupportVibrationControl=false caps=${capabilities.raw.keys.where((k) => capabilities.raw[k] == true).join(',')}');
+      return 'unsupported';
+    }
+    try {
+      await _ring.controlVibration(mode: count.clamp(1, 15), strength: strength.clamp(0, 3));
+      _log('controlVibration ok count=$count strength=$strength');
+      return null;
+    } catch (e) {
+      debugPrint('SmartRing: controlVibration failed: $e');
+      return '$e';
+    }
+  }
+
+  // ---------------- 固件升级 ----------------
+
+  /// 向厂商接口查有没有比当前更新的固件；型号必须完全一致，版本号无法比较时不升级（SDK 文档要求）。
+  Future<RingFirmwareUpdate?> checkFirmwareUpdate() async {
+    var fw = firmware;
+    if (fw == null) {
+      await _refreshFirmware();
+      fw = firmware;
+    }
+    if (fw == null || fw.deviceClazz.isEmpty) throw StateError('no firmware info');
+    final uri = Uri.parse('$_otaListUrl?model=${Uri.encodeQueryComponent(fw.deviceClazz)}');
+    final response = await http.get(uri).timeout(const Duration(seconds: 20));
+    if (response.statusCode != 200) throw StateError('ota list http ${response.statusCode}');
+    final json = jsonDecode(response.body);
+    final data = json is Map ? json['data'] : null;
+    if (data is! List) return null;
+    RingFirmwareUpdate? best;
+    for (final item in data) {
+      if (item is! Map) continue;
+      final model = '${item['deviceModel'] ?? ''}';
+      final version = '${item['toVersion'] ?? ''}';
+      final url = '${item['downloadUrl'] ?? ''}';
+      if (model != fw.deviceClazz || version.isEmpty || url.isEmpty) continue;
+      if (_compareVersion(version, fw.deviceNo) <= 0) continue;
+      if (best == null || _compareVersion(version, best.version) > 0) {
+        best = RingFirmwareUpdate(model: model, version: version, sizeBytes: (item['size'] as num?)?.toInt() ?? 0, url: url);
+      }
+    }
+    _log('ota check model=${fw.deviceClazz} current=${fw.deviceNo} candidates=${data.length} best=${best?.version}');
+    return best;
+  }
+
+  /// 下载固件并发起 OTA，等戒指回完成。进度见 [otaProgress]。
+  Future<bool> installFirmware(RingFirmwareUpdate update) async {
+    if (busy) throw StateError('busy');
+    if (!isConnected) await reconnect();
+    final fw = firmware;
+    if (fw == null || fw.deviceClazz != update.model) throw StateError('model mismatch');
+    otaProgress = 0;
+    notifyListeners();
+    final completer = Completer<OtaResult>();
+    _otaCompleter = completer;
+    try {
+      final response = await http.get(Uri.parse(update.url)).timeout(const Duration(minutes: 3));
+      if (response.statusCode != 200 || response.bodyBytes.isEmpty) throw StateError('download http ${response.statusCode}');
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/ring_ota_${update.version}.bin');
+      await file.writeAsBytes(response.bodyBytes, flush: true);
+      _log('ota start file=${file.path} bytes=${response.bodyBytes.length}');
+      await _ring.ringOta(file.path);
+      final result = await completer.future.timeout(_otaTimeout);
+      return result.success;
+    } finally {
+      if (identical(_otaCompleter, completer)) _otaCompleter = null;
+      otaProgress = null;
+      notifyListeners();
+      unawaited(_refreshFirmware());
+    }
+  }
+
+  /// 版本号比较：按「.」拆成数字逐段比；有一段不是数字就退化成字符串比较。
+  static int _compareVersion(String a, String b) {
+    final pa = a.trim().replaceAll(RegExp(r'^[vV]'), '').split(RegExp(r'[._-]'));
+    final pb = b.trim().replaceAll(RegExp(r'^[vV]'), '').split(RegExp(r'[._-]'));
+    final n = pa.length > pb.length ? pa.length : pb.length;
+    for (var i = 0; i < n; i++) {
+      final x = i < pa.length ? int.tryParse(pa[i]) : 0;
+      final y = i < pb.length ? int.tryParse(pb[i]) : 0;
+      if (x == null || y == null) return a.compareTo(b);
+      if (x != y) return x.compareTo(y);
+    }
+    return 0;
+  }
+
   // ---------------- 持久化 ----------------
+
+  Future<void> _persistJson(String key, Map<String, dynamic> value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(key, jsonEncode(value));
+    } catch (e) {
+      debugPrint('SmartRing: persist $key failed: $e');
+    }
+  }
+
+  Future<void> _persistBool(String key, bool value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(key, value);
+    } catch (e) {
+      debugPrint('SmartRing: persist $key failed: $e');
+    }
+  }
 
   Future<void> _persistDevice() async {
     final device = boundDevice;

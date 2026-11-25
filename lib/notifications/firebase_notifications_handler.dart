@@ -1,10 +1,13 @@
+import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:miaid/main.dart';
 import 'package:miaid/services/ring_alert_center.dart';
+import 'package:miaid/services/smart_ring_service.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_alerts_screen.dart';
+import 'package:miaid/api_utils/http_exception.dart';
 import 'package:miaid/api_utils/user_provider.dart';
 import 'package:miaid/dialogs/arrival_hospital.dart';
 import 'package:miaid/store/user/calling/ongoing_call_store.dart';
@@ -40,6 +43,13 @@ class FirebaseNotificationHandler extends NotificationHandler {
         eventName = message.data['event_name'];
       }
       if (eventName == 'ring_alert') {
+        if ('${message.data['self'] ?? ''}' == '1') {
+          // 自己的戒指读数超阈值：前台用提示条显示（后台由系统通知显示）
+          final title = message.notification?.title ?? '';
+          final body = message.notification?.body ?? '';
+          unawaited(HttpExceptionNotifyUser.showInfo([title, body].where((t) => t.isNotEmpty).join('\n')));
+          return;
+        }
         // 家人戒指异常：前台收到时刷新状态中心，横幅 / 红点 / 高危弹窗由它处理
         RingAlertCenter.instance.onPush();
         return;
@@ -55,6 +65,12 @@ class FirebaseNotificationHandler extends NotificationHandler {
         final customerFullName = message.data['customer_full_name'];
         final doctorFullName = message.data['doctor_full_name'];
         final customerUserId = int.parse(message.data['customer_user_id']);
+
+        // 戴着戒指的用户：让戒指震动显示来电（Android 推消息到戒指；iOS 由系统通知转发）
+        unawaited(SmartRingService.instance.notifyIncomingCall(
+          title: 'MiAid',
+          body: [doctorFullName, operatorFullName].where((n) => n != null && '$n'.isNotEmpty).join(' / '),
+        ));
 
         if (store.hasOngoingCall || store.hasPendingCall) {
           print('Ongoingcall, ignoring incoming call event $callId');
@@ -136,10 +152,15 @@ class FirebaseNotificationHandler extends NotificationHandler {
 
 /// 点击「家人戒指异常」通知：进入该长辈的提醒列表并直接打开这一条。
 void openRingAlertFromPush(Map<String, dynamic> data) {
+  final nav = navigatorKey.currentState;
+  if ('${data['self'] ?? ''}' == '1') {
+    // 自己的提醒：打开自己的提醒记录
+    nav?.push(MaterialPageRoute<void>(builder: (context) => const RingAlertsScreen(mine: true)));
+    return;
+  }
   final linkId = int.tryParse('${data['link_id'] ?? ''}');
   final alertId = int.tryParse('${data['alert_id'] ?? ''}');
   RingAlertCenter.instance.onPush();
-  final nav = navigatorKey.currentState;
   if (nav == null) return;
   nav.push(MaterialPageRoute<void>(
     builder: (context) => RingAlertsScreen(linkId: linkId, initialAlertId: alertId),

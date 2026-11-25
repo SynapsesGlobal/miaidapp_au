@@ -274,6 +274,32 @@ class RwfitBle {
     return callAsync('setVibrationInterval', {'intervalMs': intervalMs});
   }
 
+  /// 自定义震动控制（协议 2.3.3，功能表 `isSupportVibrationControl`；本地补的指令，上游插件没有）。
+  /// [mode] 震动次数 1–15，或 0xFF 持续 / 节奏循环；[strength] 0–3，0 立即停止；
+  /// 循环时 [groupCount] 每组 1–15 次、[frequency] 1–10 次/秒、[pause] 组间停顿 1–255（100 ms），不用循环传 0。
+  Future<void> controlVibration({
+    required int mode,
+    required int strength,
+    int groupCount = 0,
+    int frequency = 0,
+    int pause = 0,
+  }) =>
+      callAsync('controlVibration', {
+        'mode': mode,
+        'strength': strength,
+        'groupCount': groupCount,
+        'frequency': frequency,
+        'pause': pause,
+      });
+
+  /// 停止自定义震动。
+  Future<void> stopVibration() => controlVibration(mode: 1, strength: 0);
+
+  /// [Android 专用] 来电提醒：把来电人 / 号码推到戒指，戒指按自己的来电方式提示（震动 + 显示）；iOS no-op。
+  /// 本地补的指令，上游插件没有；对应 SDK 的 controlCallRemindJL。
+  Future<void> controlCallRemind({required String name, String number = '', int remindType = 0}) =>
+      callAsync('controlCallRemind', {'name': name, 'number': number, 'remindType': remindType});
+
   /// 启动心率校正；过程与最终结果从 [onHeartRateCalibration] 接收。
   Future<void> startHeartRateCalibration() =>
       callAsync('startHeartRateCalibration');

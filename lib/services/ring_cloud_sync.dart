@@ -42,14 +42,19 @@ class RingCloudSync {
     _started = true;
     _ring.addListener(_onRingChanged);
     _ring.onReadings = _onReadings;
+    _ring.onEvent = _onEvent;
     _onRingChanged();
-    unawaited(_loadQueue().then((_) => _scheduleReadings()));
+    unawaited(_loadQueue().then((_) {
+      _scheduleReadings();
+      unawaited(_uploadEvents());
+    }));
   }
 
   /// 回到前台时调用：之前失败过的在这里补传。
   void onAppResumed() {
     _onRingChanged();
     _scheduleReadings();
+    unawaited(_uploadEvents());
   }
 
   /// 立刻把待上传的快照和读数都推到后端（iOS 后台刷新用，时间窗很短，不走 5 秒合并）。
@@ -59,8 +64,53 @@ class RingCloudSync {
     _readingsTimer?.cancel();
     _readingsTimer = null;
     await _loadQueue();
+    await _uploadEvents();
     await _upload();
     await _uploadReadings();
+  }
+
+  // ---------------- 戒指事件（跌倒 / 求助） ----------------
+
+  static const _eventsKey = 'smart-ring-events-queue';
+  final List<RingEvent> _events = [];
+  bool _uploadingEvents = false;
+
+  /// 事件要尽快通知家人：入队持久化后立刻上报，失败等下次事件 / 回前台 / 后台刷新再试。
+  void _onEvent(RingEvent event) {
+    _events.add(event);
+    while (_events.length > 50) {
+      _events.removeAt(0);
+    }
+    unawaited(_saveEvents());
+    unawaited(_uploadEvents());
+  }
+
+  Future<void> _uploadEvents() async {
+    final api = _api();
+    if (api == null || !_canUpload(api) || _uploadingEvents || _events.isEmpty) return;
+    _uploadingEvents = true;
+    try {
+      while (_events.isNotEmpty) {
+        final event = _events.first;
+        await RingFamilyService(api).reportEvent(event);
+        _events.remove(event);
+        debugPrint('SmartRing: event ${event.type} reported');
+      }
+    } catch (e) {
+      debugPrint('SmartRing: event report failed: $e');
+    } finally {
+      _uploadingEvents = false;
+      unawaited(_saveEvents());
+    }
+  }
+
+  Future<void> _saveEvents() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_eventsKey, jsonEncode(_events.map((e) => e.toJson()).toList()));
+    } catch (e) {
+      debugPrint('SmartRing: save events queue failed: $e');
+    }
   }
 
   // ---------------- 历史读数 ----------------
@@ -171,6 +221,14 @@ class RingCloudSync {
             // 启动后、加载完成前已经入队的同键读数保留新的
             if (r != null) _queue.putIfAbsent(r.key, () => r);
           }
+        }
+      }
+      final rawEvents = prefs.getString(_eventsKey);
+      if (rawEvents != null && rawEvents.isNotEmpty) {
+        final decoded = jsonDecode(rawEvents);
+        if (decoded is List) {
+          final saved = decoded.map(RingEvent.fromJson).whereType<RingEvent>().toList();
+          _events.insertAll(0, saved);
         }
       }
       final rawMark = prefs.getString(_watermarkKey);

@@ -311,6 +311,89 @@ class RingCapabilities {
   /// 能否对该项做全天定时监测（「全天监测」设置页用）。
   bool supportsTimed(RealtimeMetric metric) =>
       metric == RealtimeMetric.temperature ? temperature : supportsRealtime(metric);
+
+  // ---- 设备设置相关能力位（功能表未知时同样按支持处理，由戒指返回失败再提示）----
+  bool get fallDetect => isUnknown || _has('isSupportFallDetect');
+  bool get sedentary => isUnknown || _has('isSupportSedentary');
+  bool get drink => isUnknown || _has('isDrink');
+  bool get alarm => isUnknown || _has('isAlarm');
+  bool get heartRateAlert => isUnknown || _has('isSupportHrReminder');
+  bool get bloodOxygenAlert => isUnknown || _has('isSupportBoReminder');
+  bool get findDevice => isUnknown || _has('isFindDevice');
+  bool get wearDirection => isUnknown || _has('isWearDirection');
+  bool get vibrationLevel => isUnknown || _has('isSupportMotoVibrationLevel');
+  bool get ledLight => isUnknown || _has('isLedLight');
+  bool get brightScreenTime => isUnknown || _has('isBrightScreenTime');
+  bool get raiseBrightScreen => isUnknown || _has('isRaiseBrightScreen');
+  bool get pushMessage => isUnknown || _has('isPushMessage');
+
+  /// App 直接控制戒指震动（来电提醒用）。
+  bool get vibrationControl => isUnknown || _has('isSupportVibrationControl');
+
+  /// 睡眠实时状态只有明确支持的设备才有。
+  bool get sleepRealtime => _has('isSupportSensorRawSleep');
+
+  /// 当天分段步数的间隔（分钟），未配置按 60。
+  int get activityDataInterval {
+    final v = raw['activityDataInterval'];
+    return v is num && v > 0 ? v.toInt() : 60;
+  }
+}
+
+/// 戒指主动上报的事件（跌倒 / 求助），要立即通知家人。
+class RingEvent {
+  const RingEvent({required this.type, required this.time});
+
+  static const fall = 'fall';
+  static const sos = 'sos';
+
+  final String type;
+  final DateTime time;
+
+  Map<String, dynamic> toJson() => {'type': type, 'time': time.toIso8601String()};
+
+  static RingEvent? fromJson(Object? json) {
+    if (json is! Map) return null;
+    final type = json['type'];
+    final time = DateTime.tryParse('${json['time']}');
+    if (type is! String || time == null) return null;
+    return RingEvent(type: type, time: time);
+  }
+}
+
+/// 写进戒指的心率 / 血氧报警阈值（来自家人提醒设置；超标时戒指震动提醒本人）。
+class RingAlertConfig {
+  const RingAlertConfig({required this.enabled, this.hrLow, this.hrHigh, this.spo2Low});
+
+  final bool enabled;
+  final int? hrLow;
+  final int? hrHigh;
+  final int? spo2Low;
+
+  Map<String, dynamic> toJson() => {'enabled': enabled, 'hr_low': hrLow, 'hr_high': hrHigh, 'spo2_low': spo2Low};
+
+  static RingAlertConfig? fromJson(Map<String, dynamic>? json) {
+    if (json == null) return null;
+    int? i(Object? v) => v is num ? v.toInt() : null;
+    return RingAlertConfig(enabled: json['enabled'] != false, hrLow: i(json['hr_low']), hrHigh: i(json['hr_high']), spo2Low: i(json['spo2_low']));
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is RingAlertConfig && other.enabled == enabled && other.hrLow == hrLow && other.hrHigh == hrHigh && other.spo2Low == spo2Low;
+
+  @override
+  int get hashCode => Object.hash(enabled, hrLow, hrHigh, spo2Low);
+}
+
+/// 厂商接口返回的可升级固件。
+class RingFirmwareUpdate {
+  const RingFirmwareUpdate({required this.model, required this.version, required this.sizeBytes, required this.url});
+
+  final String model;
+  final String version;
+  final int sizeBytes;
+  final String url;
 }
 
 /// 一条要上报到后端的历史读数（走势图用）。[type] 是后端的指标名：
@@ -446,18 +529,38 @@ class SmartRingSyncParser {
   /// 步数读数的指标名。
   static const stepsType = 'steps';
 
+  /// 分段步数的指标名：每个时段一条（含 0 步），后端用来判断「长时间未活动」。
+  static const activityType = 'activity';
+
   /// 把一次同步结果里的全部有效明细转成历史读数（步数为每日累计值；睡眠不在此列）。
   static List<RingReading> readingsFromSync(SyncResult result) {
     final readings = <RingReading>[];
     if (result.type == 'step') {
-      // 步数按天累计：每天一条，时间取当天日期，当天的数随同步不断变大（后端按天覆盖）
+      final now = DateTime.now();
+      final activity = <RingReading>[];
       for (final day in result.data) {
         final daySec = _int(day['time']);
+        if (daySec <= 0) continue;
+        // 步数按天累计：每天一条，时间取当天日期，当天的数随同步不断变大（后端按天覆盖）
         final steps = _int(day['totalSteps']);
-        if (daySec <= 0 || steps <= 0) continue;
-        readings.add(RingReading(type: stepsType, value: steps.toDouble(), time: _fromSec(daySec)));
+        if (steps > 0) readings.add(RingReading(type: stepsType, value: steps.toDouble(), time: _fromSec(daySec)));
+        // 分段步数：还没结束的当前时段不报（数还会涨，而后端对同一时刻只认第一条），等下次同步
+        final interval = _int(day['activityDataInterval']);
+        final minutes = interval > 0 ? interval : 60;
+        final items = day['items'];
+        if (items is! List) continue;
+        for (final raw in items) {
+          if (raw is! Map) continue;
+          final sec = _int(raw['time']);
+          if (sec <= 0) continue;
+          final start = _fromSec(sec);
+          if (start.add(Duration(minutes: minutes)).isAfter(now)) continue;
+          activity.add(RingReading(type: activityType, value: _int(raw['steps']).toDouble(), time: start));
+        }
       }
-      return readings;
+      // 上报队列按时间水位去重，这里先按时间排好
+      activity.sort((a, b) => a.time.compareTo(b.time));
+      return readings..addAll(activity);
     }
     final spec = _readingTypes[result.type];
     if (spec == null && result.type != 'bp') return readings;

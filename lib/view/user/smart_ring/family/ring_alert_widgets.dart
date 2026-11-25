@@ -10,6 +10,11 @@ import 'package:miaid/view/user/smart_ring/smart_ring_format.dart';
 
 /// 异常提醒相关页面共用的小组件：级别颜色 / 文案、指标图标、提醒行、高危弹层。
 
+/// 事件类提醒（没有读数）：跌倒、求助、长时间未活动、戒指电量低、数据中断。
+const ringAlertEventTypes = ['fall', 'sos', 'inactivity', 'low_battery', 'no_data'];
+
+bool ringAlertIsEvent(String type) => ringAlertEventTypes.contains(type);
+
 /// 提醒颜色：统一红色（没有级别和恢复状态）。
 Color ringAlertLevelColor(RingAlertItem a) => AppColors.ke63030;
 
@@ -30,6 +35,16 @@ IconData ringAlertMetricIcon(String type) {
       return Icons.speed;
     case 'blood_sugar':
       return Icons.bloodtype;
+    case 'fall':
+      return Icons.personal_injury;
+    case 'sos':
+      return Icons.sos;
+    case 'inactivity':
+      return Icons.airline_seat_recline_normal;
+    case 'low_battery':
+      return Icons.battery_alert;
+    case 'no_data':
+      return Icons.sync_problem;
     default:
       return Icons.monitor_heart;
   }
@@ -39,10 +54,14 @@ Color ringAlertMetricColor(String type) {
   switch (type) {
     case 'heart_rate':
     case 'blood_sugar':
+    case 'fall':
+    case 'sos':
       return AppColors.ke63030;
     case 'blood_oxygen':
       return AppColors.k30bee6;
     case 'temperature':
+    case 'inactivity':
+    case 'low_battery':
       return AppColors.ke68c30;
     case 'blood_pressure':
       return AppColors.k0cbcc5;
@@ -64,14 +83,36 @@ String ringAlertMetricLabel(BuildContext context, String type) {
       return s.smartRingBloodPressure;
     case 'blood_sugar':
       return s.smartRingBloodSugar;
+    case 'fall':
+      return s.ringAlertFallTitle;
+    case 'sos':
+      return s.ringAlertSosTitle;
+    case 'inactivity':
+      return s.ringAlertInactivity;
+    case 'low_battery':
+      return s.ringAlertLowBatteryTitle;
+    case 'no_data':
+      return s.ringAlertNoDataTitle;
     default:
       return type;
   }
 }
 
-/// 「血氧偏低」「心率偏高」。
+/// 「血氧偏低」「心率偏高」；事件类直接是「检测到跌倒」「长时间未活动」等。
 String ringAlertTitle(BuildContext context, RingAlertItem a) {
   final s = S.of(context);
+  switch (a.type) {
+    case 'fall':
+      return s.ringAlertFallTitle;
+    case 'sos':
+      return s.ringAlertSosTitle;
+    case 'inactivity':
+      return s.ringAlertInactivityTitle;
+    case 'low_battery':
+      return s.ringAlertLowBatteryTitle;
+    case 'no_data':
+      return s.ringAlertNoDataTitle;
+  }
   final metric = ringAlertMetricLabel(context, a.type);
   return a.isHigh ? s.familyAlertTooHigh(metric) : s.familyAlertTooLow(metric);
 }

@@ -343,6 +343,8 @@ public class RwfitBlePlugin implements FlutterPlugin, MethodCallHandler,
                 case "setAlarmVibrationDuration": setAlarmVibrationDuration(call, result); break;
                 case "getVibrationInterval": getVibrationInterval(result); break;
                 case "setVibrationInterval": setVibrationInterval(call, result); break;
+                case "controlVibration": controlVibration(call, result); break;
+                case "controlCallRemind": controlCallRemind(call, result); break;
                 case "startHeartRateCalibration": startHeartRateCalibration(result); break;
                 case "getFallDetect": getFallDetect(result); break;
                 case "setFallDetect": setFallDetect(call, result); break;
@@ -1365,6 +1367,7 @@ public class RwfitBlePlugin implements FlutterPlugin, MethodCallHandler,
         menu.put("isSupportSensorRawIR", bean.isSupportSensorRawIR());
         menu.put("isSupportSensorRawSleep", bean.isSupportSensorRawSleep());
         menu.put("isSupportFallDetect", bean.isSupportFallDetect());
+        menu.put("isSupportVibrationControl", bean.isSupportVibrationControl());
         menu.put("isSupportRecording", bean.isSupportRecording());
         menu.put("isSupportSedentary", bean.isSupportSedentary());
         menu.put("isSupportCustomNumberDisplay", bean.isSupportCustomNumberDisplay());
@@ -1793,6 +1796,22 @@ public class RwfitBlePlugin implements FlutterPlugin, MethodCallHandler,
         DHBleSdk.INSTANCE.getVibrationInterval();
     }
 
+    /**
+     * 自定义震动控制（协议 2.3.3，功能表 isSupportVibrationControl）：mode 震动次数 1-15 / 0xFF 持续或节奏循环，
+     * strength 0-3（0 立即停止），循环时 groupCount / frequency / pause 见 SDK 头文件。本地补的指令，上游插件没有。
+     */
+    private void controlVibration(MethodCall call, final Reply result) {
+        int mode = i(call, "mode");
+        int strength = i(call, "strength");
+        int groupCount = call.argument("groupCount") == null ? 0 : i(call, "groupCount");
+        int frequency = call.argument("frequency") == null ? 0 : i(call, "frequency");
+        int pause = call.argument("pause") == null ? 0 : i(call, "pause");
+        DHBleSdk.INSTANCE.controlVibration(mode, strength, groupCount, frequency, pause, new CustomStatusCallback() {
+            @Override public void onSuccess() { result.success(success()); }
+            @Override public void onFail(int errorCode) { result.error(errorCode, "controlVibration failed"); }
+        });
+    }
+
     private void setVibrationInterval(MethodCall call, final Reply result) {
         int intervalMs = i(call, "intervalMs");
         DHBleSdk.INSTANCE.subscribeData(new VibrationIntervalCallback() {
@@ -2007,6 +2026,30 @@ public class RwfitBlePlugin implements FlutterPlugin, MethodCallHandler,
             }
         });
         DHBleSdk.INSTANCE.setPushMsgJL(bean);
+    }
+
+    /**
+     * 来电提醒（Android 专用）：把来电人 / 号码推到戒指，戒指按自己的来电方式提示（震动 + 显示）。
+     * 本地补的指令，上游插件没有；对应 SDK 的 controlCallRemindJL。
+     */
+    private void controlCallRemind(MethodCall call, final Reply result) {
+        CallRemindBean bean = new CallRemindBean();
+        bean.setPhoneName(s(call, "name"));
+        bean.setPhoneNum(s(call, "number"));
+        bean.setRemindType(call.argument("remindType") == null ? 0 : i(call, "remindType"));
+        bean.setTimeMill(System.currentTimeMillis());
+        DHBleSdk.INSTANCE.subscribeData(new CallRemindCallback() {
+            @Override public void onResult(Integer data) {}
+            @Override public void onFail(int e) {
+                result.error(e, "controlCallRemind failed");
+                DHBleSdk.INSTANCE.dispose(this);
+            }
+            @Override public void onSuccess() {
+                result.success(success());
+                DHBleSdk.INSTANCE.dispose(this);
+            }
+        });
+        DHBleSdk.INSTANCE.controlCallRemindJL(bean);
     }
 
     /** 用 CommonStatusCallback 统一回执的 set 类。 */

@@ -248,6 +248,14 @@ class RingFamilyService {
     });
   }
 
+  /// 上报戒指事件（跌倒 / 求助），后端立即生成提醒并推送家人。
+  Future<void> reportEvent(RingEvent event) async {
+    await _request('POST', '/ring/events', body: {
+      'type': event.type,
+      'time': event.time.toUtc().toIso8601String(),
+    });
+  }
+
   /// 某项指标最近的走势。[linkId] 为空查自己的，否则查该绑定对应的家人。
   Future<RingTrend> fetchTrend({required String type, required String range, int? linkId}) async {
     final path = linkId == null ? '/ring/readings' : '/ring/family/$linkId/readings';

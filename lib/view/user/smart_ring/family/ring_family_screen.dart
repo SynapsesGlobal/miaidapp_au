@@ -14,7 +14,6 @@ import 'package:miaid/view/user/smart_ring/family/ring_family_invite_sheet.dart'
 import 'package:miaid/view/user/smart_ring/family/ring_family_join_screen.dart';
 import 'package:miaid/services/ring_alert_center.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_family_widgets.dart';
-import 'package:miaid/view/user/smart_ring/family/ring_alert_settings_screen.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_alert_widgets.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_alerts_screen.dart';
 import 'package:miaid/view/user/smart_ring/smart_ring_format.dart';
@@ -184,10 +183,6 @@ class _RingFamilyScreenState extends State<RingFamilyScreen> {
                 ],
               ]),
             ),
-          if (bound) ...[
-            const SizedBox(height: 22),
-            _settingsRow(context),
-          ],
           const SizedBox(height: 14),
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Padding(
@@ -261,30 +256,6 @@ class _RingFamilyScreenState extends State<RingFamilyScreen> {
           const SizedBox(width: 6),
           Flexible(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
               style: GoogleFonts.rubik(color: AppColors.k003f51, fontSize: 13.5, fontWeight: FontWeight.w600))),
-        ]),
-      ),
-    );
-  }
-
-  /// 戴戒指的人：家人提醒的阈值入口，做成设置行而不是按钮。
-  Widget _settingsRow(BuildContext context) {
-    final s = S.of(context);
-    return InkWell(
-      onTap: () => unawaited(Navigator.push(context, MaterialPageRoute<void>(builder: (context) => const RingAlertSettingsScreen()))),
-      borderRadius: BorderRadius.circular(18),
-      child: familyCard(
-        child: Row(children: [
-          familyIconTile(Icons.notifications_active_outlined, AppColors.k0CC58F),
-          const SizedBox(width: 12),
-          Expanded(child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(s.ringAlertSettings, style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 14.5, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 2),
-              Text(s.ringAlertSettingsMenuDesc, style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 12)),
-            ],
-          )),
-          Icon(Icons.chevron_right, color: AppColors.kb1b1b1, size: 20),
         ]),
       ),
     );

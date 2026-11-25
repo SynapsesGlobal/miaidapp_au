@@ -7,13 +7,15 @@ import 'package:miaid/api_utils/http_exception.dart';
 import 'package:miaid/config/app_colors.dart';
 import 'package:miaid/generated/l10n.dart';
 import 'package:miaid/services/ring_alert_service.dart';
+import 'package:miaid/services/ring_device_sync.dart';
 import 'package:miaid/services/ring_family_service.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_alert_widgets.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_family_widgets.dart';
 import 'package:miaid/view/user/smart_ring/smart_ring_format.dart';
 
-/// 「家人提醒设置」：总开关 + 心率 / 血氧的上下限。每次改动立即保存。
+/// 「家人提醒设置」：总开关 + 心率 / 血氧的上下限 + 长时间未活动的小时数。每次改动立即保存；
+/// 本人保存后顺便把阈值写进戒指（戒指端震动报警）。
 ///
 /// 戴戒指的人自己打开时不传 [linkId]；家人从长辈面板打开时传 [linkId] 和 [ownerName]，
 /// 改的是同一份设置（双方都能改，后改的覆盖先改的，页面上显示最后由谁修改）。
@@ -59,6 +61,8 @@ class _RingAlertSettingsScreenState extends State<RingAlertSettingsScreen> {
     try {
       final settings = await _service.updateSettings(changes, linkId: widget.linkId);
       if (mounted) setState(() => _settings = settings);
+      // 本人改的：同一份阈值写进戒指；家人改的在长辈下次连接 / 回前台时同步
+      if (widget.linkId == null) unawaited(RingDeviceSync.instance.sync(settings: settings));
     } on RingFamilyException {
       if (mounted) unawaited(HttpExceptionNotifyUser.showInfo(S.of(context).ringAlertSaveFailed));
     } finally {
@@ -186,6 +190,7 @@ class _RingAlertSettingsScreenState extends State<RingAlertSettingsScreen> {
 
   Widget _thresholdRow(BuildContext context, String type, RingAlertThreshold t) {
     final s = S.of(context);
+    if (type == RingAlertSettings.inactivityType) return _inactivityRow(context, t);
     final spec = _ThresholdSpec.of(type);
     final parts = <String>[
       if (t.low != null) '${s.familyAlertLow} ${spec.fmt(t.low!)}',
@@ -211,6 +216,85 @@ class _RingAlertSettingsScreenState extends State<RingAlertSettingsScreen> {
         ]),
       ),
     );
+  }
+
+  /// 长时间未活动：白天连续 N 小时步数为 0 就提醒；可选关闭 / 2 / 3 / 4 / 6 / 8 小时。
+  Widget _inactivityRow(BuildContext context, RingAlertThreshold t) {
+    final s = S.of(context);
+    final hours = (t.hours ?? 0).round();
+    return InkWell(
+      onTap: () => unawaited(_editInactivity(context, hours)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(children: [
+          familyIconTile(ringAlertMetricIcon('inactivity'), ringAlertMetricColor('inactivity'), size: 38),
+          const SizedBox(width: 12),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(s.ringAlertInactivity, style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 14.5, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 3),
+              Text(hours > 0 ? s.ringAlertInactivityHours(hours) : s.ringAlertInactivityOff,
+                  style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 12)),
+            ],
+          )),
+          Icon(Icons.chevron_right, color: AppColors.kb1b1b1, size: 20),
+        ]),
+      ),
+    );
+  }
+
+  Future<void> _editInactivity(BuildContext context, int current) async {
+    final s = S.of(context);
+    const options = [0, 2, 3, 4, 6, 8];
+    final color = ringAlertMetricColor('inactivity');
+    final result = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        padding: EdgeInsets.fromLTRB(20, 12, 20, 16 + MediaQuery.of(context).padding.bottom),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Center(child: Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(color: AppColors.kb1b1b1.withOpacity(0.5), borderRadius: BorderRadius.circular(2)),
+          )),
+          const SizedBox(height: 18),
+          Row(children: [
+            familyIconTile(ringAlertMetricIcon('inactivity'), color, size: 44),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(s.ringAlertInactivity, style: GoogleFonts.rubik(color: AppColors.k010101, fontSize: 17, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 2),
+              Text(s.ringAlertInactivityDesc, style: GoogleFonts.rubik(color: AppColors.k8f8e94, fontSize: 12.5, height: 1.3)),
+            ])),
+          ]),
+          const SizedBox(height: 18),
+          Wrap(spacing: 10, runSpacing: 10, children: [
+            for (final h in options)
+              ChoiceChip(
+                label: Text(h == 0 ? s.smartRingOff : s.ringAlertInactivityHours(h)),
+                selected: h == current,
+                selectedColor: color.withOpacity(0.15),
+                backgroundColor: AppColors.kf4f4f4,
+                labelStyle: GoogleFonts.rubik(
+                  color: h == current ? color : AppColors.k5e5e5e,
+                  fontSize: 13,
+                  fontWeight: h == current ? FontWeight.w600 : FontWeight.w400,
+                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                side: BorderSide.none,
+                onSelected: (_) => Navigator.pop(context, h),
+              ),
+          ]),
+          const SizedBox(height: 14),
+          _greyButton(s.cancel, () => Navigator.pop(context)),
+        ]),
+      ),
+    );
+    if (result == null || !mounted || result == current) return;
+    await _save({'thresholds': {RingAlertSettings.inactivityType: {'hours': result}}});
   }
 
   Future<void> _editThreshold(BuildContext context, String type, RingAlertThreshold initial) async {

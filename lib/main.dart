@@ -20,6 +20,7 @@ import 'package:miaid/services/facebook_service.dart';
 import 'package:miaid/services/location_upload_service.dart';
 import 'package:miaid/services/ring_alert_center.dart';
 import 'package:miaid/services/ring_cloud_sync.dart';
+import 'package:miaid/services/ring_device_sync.dart';
 import 'package:miaid/services/ring_background_sync.dart';
 import 'package:miaid/services/ring_keep_alive.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_alert_popup.dart';
@@ -92,6 +93,8 @@ Future<void> bootstrap(String envName) async {
   RingKeepAlive.instance.start();
   // iOS：绑定戒指后申请系统后台刷新，唤醒时补一次同步上传
   RingBackgroundSync.instance.start();
+  // 把家人提醒阈值写进戒指（戒指端心率 / 血氧报警）
+  RingDeviceSync.instance.start();
   // 家人端：轮询家人戒指异常提醒状态（横幅 / 红点 / 高危弹窗）
   RingAlertCenter.instance.alertHandler = (alerts) async {
     final context = navigatorKey.currentContext;
@@ -448,6 +451,7 @@ class AppLifecycleObserver extends WidgetsBindingObserver {
       unawaited(SmartRingService.instance.onAppResumed());
       RingCloudSync.instance.onAppResumed();
       RingKeepAlive.instance.onAppResumed();
+      RingDeviceSync.instance.onAppResumed();
       RingAlertCenter.instance.onAppResumed();
     }
     if (state == AppLifecycleState.paused) {

@@ -8,6 +8,14 @@ RWFIT 智能戒指 BLE Flutter 插件，来源 <https://github.com/RWFitSDK/RW_f
 - 去掉了 `example/`、`.github/`、上游 `analysis_options.yaml` / `CLAUDE.md`。
 - 文档：`doc/integration_guide_zh.md` / `doc/integration_guide_en.md`（上游原文）。
 
+## 本地补丁（升级后要重新打上）
+
+- `controlVibration`（自定义震动控制，协议 2.3.3）：Dart `RwfitBle.controlVibration/stopVibration`，Android `controlVibration`
+  分支调 `DHBleSdk.controlVibration(...)`，iOS 调 `DHBleCommand controlVibration:...`，功能表多返回 `isSupportVibrationControl`。
+  App 用它在来电时让戒指震动（`SmartRingService.notifyIncomingCall`）。
+- `controlCallRemind`（Android 来电提醒，对应 SDK `controlCallRemindJL`；iOS no-op）：Dart `RwfitBle.controlCallRemind`，
+  Android `controlCallRemind` 分支。不支持自定义震动的戒指靠它在来电时震动。
+
 ## 为什么不用 git 依赖
 
 本项目 Flutter 3.19.6 / Dart 3.3.4，上游插件无法直接引用，需要两处补丁（详见仓库

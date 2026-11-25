@@ -175,11 +175,12 @@ class RingAlertCenter extends ChangeNotifier {
     final tag = locale.scriptCode != null && locale.scriptCode!.isNotEmpty
         ? '${locale.languageCode}_${locale.scriptCode}'
         : locale.languageCode;
+    final tzOffset = DateTime.now().timeZoneOffset.inMinutes;
     for (final o in next.owners) {
       if (_localeSynced.contains(o.linkId)) continue;
       _localeSynced.add(o.linkId);
       try {
-        await service.updatePreferences(o.linkId, locale: tag);
+        await service.updatePreferences(o.linkId, locale: tag, tzOffsetMinutes: tzOffset);
       } on RingFamilyException catch (e) {
         _localeSynced.remove(o.linkId);
         debugPrint('RingAlert: sync locale failed: $e');

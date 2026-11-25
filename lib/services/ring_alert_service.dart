@@ -41,27 +41,33 @@ class RingAlertSettings {
   final String? updatedBy;
   final bool updatedBySelf;
 
-  /// 参与判定的指标：只有心率、血氧（与后端一致）。
-  static const types = ['heart_rate', 'blood_oxygen'];
+  /// 阈值项：心率、血氧的上下限 + 长时间未活动的小时数（与后端一致）。
+  static const types = ['heart_rate', 'blood_oxygen', 'inactivity'];
+  static const inactivityType = 'inactivity';
 }
 
 class RingAlertThreshold {
-  const RingAlertThreshold({this.low, this.high});
+  const RingAlertThreshold({this.low, this.high, this.hours});
 
   factory RingAlertThreshold.fromJson(Map<String, dynamic> json) {
     double? d(Object? v) => v is num ? v.toDouble() : null;
     return RingAlertThreshold(
       low: d(json['low']),
       high: d(json['high']),
+      hours: d(json['hours']),
     );
   }
 
   final double? low;
   final double? high;
 
+  /// 只有 inactivity 有：连续多少小时无活动就提醒；null / 0 表示关闭。
+  final double? hours;
+
   Map<String, dynamic> toJson() => {
         'low': low,
         'high': high,
+        'hours': hours,
       };
 }
 
@@ -260,10 +266,12 @@ class RingAlertService {
     });
   }
 
-  Future<void> updatePreferences(int linkId, {bool? muted, String? locale}) async {
+  /// [tzOffsetMinutes]：手机当前的 UTC 偏移（分钟），推送正文里的时间按它显示。
+  Future<void> updatePreferences(int linkId, {bool? muted, String? locale, int? tzOffsetMinutes}) async {
     await family.requestPayload('PUT', '/ring/family/$linkId/alerts', body: {
       if (muted != null) 'muted': muted,
       if (locale != null) 'locale': locale,
+      if (tzOffsetMinutes != null) 'tz_offset': tzOffsetMinutes,
     });
   }
 

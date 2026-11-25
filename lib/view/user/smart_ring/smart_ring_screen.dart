@@ -13,9 +13,12 @@ import 'package:miaid/services/smart_ring_models.dart';
 import 'package:miaid/services/smart_ring_service.dart';
 import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/calling/call_ring_tiles.dart';
+import 'package:miaid/view/user/smart_ring/family/ring_alert_settings_screen.dart';
+import 'package:miaid/view/user/smart_ring/family/ring_alerts_screen.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_trend_screen.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_family_widgets.dart';
 import 'package:miaid/view/user/smart_ring/smart_ring_format.dart';
+import 'package:miaid/view/user/smart_ring/smart_ring_device_screen.dart';
 import 'package:miaid/view/user/smart_ring/smart_ring_monitoring_screen.dart';
 import 'package:miaid/view/user/smart_ring/smart_ring_pair_screen.dart';
 import 'package:rwfit_ble/rwfit_ble.dart';
@@ -366,6 +369,18 @@ class _SmartRingScreenState extends State<SmartRingScreen> {
             const SizedBox(width: 5),
             Expanded(child: Text(syncText, maxLines: 1, overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.rubik(color: Colors.white.withOpacity(0.85), fontSize: 11.5))),
+            // 睡眠实时状态（需设备支持）：戒指报告入睡后显示
+            if (_ring.sleepingSince != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(color: Colors.white.withOpacity(0.16), borderRadius: BorderRadius.circular(10)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.bedtime, color: Colors.white, size: 12),
+                  const SizedBox(width: 4),
+                  Text(s.smartRingSleepingSince(SmartRingFormat.clock(_ring.sleepingSince!)),
+                      style: GoogleFonts.rubik(color: Colors.white, fontSize: 11)),
+                ]),
+              ),
           ]),
         ],
       ),
@@ -769,7 +784,7 @@ class _SmartRingScreenState extends State<SmartRingScreen> {
     await _ring.setNickname(result);
   }
 
-  /// 右上角「更多」底部弹层：全天监测、戒指功能、解绑。
+  /// 右上角「更多」底部弹层：全天监测、戒指设置、家人提醒设置、改昵称、解绑。
   Future<void> _showActions() async {
     final s = S.of(context);
     final action = await showModalBottomSheet<String>(
@@ -801,6 +816,27 @@ class _SmartRingScreenState extends State<SmartRingScreen> {
               onTap: () => Navigator.pop(context, 'monitoring'),
             ),
             _actionRow(
+              icon: Icons.tune,
+              color: AppColors.k5251f7,
+              title: s.smartRingDeviceSettings,
+              subtitle: s.smartRingDeviceSettingsDesc,
+              onTap: () => Navigator.pop(context, 'device'),
+            ),
+            _actionRow(
+              icon: Icons.notifications_active_outlined,
+              color: AppColors.k0CC58F,
+              title: s.ringAlertSettings,
+              subtitle: s.ringAlertSettingsMenuDesc,
+              onTap: () => Navigator.pop(context, 'alerts'),
+            ),
+            _actionRow(
+              icon: Icons.history,
+              color: AppColors.k30bee6,
+              title: s.ringAlertMyRecords,
+              subtitle: s.ringAlertMyRecordsDesc,
+              onTap: () => Navigator.pop(context, 'records'),
+            ),
+            _actionRow(
               icon: Icons.edit,
               color: AppColors.ke68c30,
               title: s.smartRingRename,
@@ -828,6 +864,21 @@ class _SmartRingScreenState extends State<SmartRingScreen> {
       case 'monitoring':
         await Navigator.push(context, MaterialPageRoute<void>(
           builder: (context) => const SmartRingMonitoringScreen(),
+        ));
+        break;
+      case 'device':
+        await Navigator.push(context, MaterialPageRoute<void>(
+          builder: (context) => const SmartRingDeviceScreen(),
+        ));
+        break;
+      case 'alerts':
+        await Navigator.push(context, MaterialPageRoute<void>(
+          builder: (context) => const RingAlertSettingsScreen(),
+        ));
+        break;
+      case 'records':
+        await Navigator.push(context, MaterialPageRoute<void>(
+          builder: (context) => const RingAlertsScreen(mine: true),
         ));
         break;
       case 'rename':

@@ -501,6 +501,21 @@
             }];
         }];
     }
+    else if ([m isEqualToString:@"controlCallRemind"]) {
+        // iOS SDK 没有 App 发起的来电提醒；系统来电由 ANCS 转发。本地补的 no-op，与 Android 对齐。
+        [self ok:result extra:nil];
+    }
+    else if ([m isEqualToString:@"controlVibration"]) {
+        // 自定义震动控制（协议 2.3.3，功能表 isSupportVibrationControl）；本地补的指令，上游插件没有
+        [DHBleCommand controlVibration:[args[@"mode"] unsignedCharValue]
+                              strength:[args[@"strength"] unsignedCharValue]
+                            groupCount:[args[@"groupCount"] unsignedCharValue]
+                             frequency:[args[@"frequency"] unsignedCharValue]
+                                 pause:[args[@"pause"] unsignedCharValue]
+                                 block:^(int code, id data) {
+            [self simple:code result:result action:@"controlVibration"];
+        }];
+    }
     else if ([m isEqualToString:@"setVibrationInterval"]) {
         [DHBleCommand setVibrationInterval:[args[@"intervalMs"] unsignedShortValue] block:^(int code, id data) {
             [self simple:code result:result action:@"setVibrationInterval"];
@@ -1784,6 +1799,7 @@
         @"isSupportSensorRawIR": @([model isSupportSensorRawIR]),
         @"isSupportSensorRawSleep": @([model isSupportSensorRawSleep]),
         @"isSupportFallDetect": @([model isSupportFallDetect]),
+        @"isSupportVibrationControl": @([model isSupportVibrationControl]),
         @"isSupportRecording": @([model isSupportRecording]),
         @"isSupportSedentary": @([model isSupportSedentary]),
         @"isSupportCustomNumberDisplay": @([model isSupportCustomNumberDisplay]),

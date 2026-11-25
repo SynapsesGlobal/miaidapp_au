@@ -13,14 +13,15 @@ import 'package:miaid/utils/configure_dependencies.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_alert_widgets.dart';
 import 'package:miaid/view/user/smart_ring/family/ring_family_widgets.dart';
 
-/// 家人端提醒记录：某位长辈（传 [linkId]）或我关注的所有人。
+/// 提醒记录：家人端看某位长辈（传 [linkId]）或我关注的所有人；戴戒指的人自己看自己的（[mine]，只看不标已读）。
 ///
 /// 按日期分组的列表，每天一张白卡、每条提醒一行，
 /// 滚到底自动加载更多；打开即把加载到的未读标为已读。没有详情页，每条就是一行。[initialAlertId] 仅保留给推送跳转，不做定位。
 class RingAlertsScreen extends StatefulWidget {
-  const RingAlertsScreen({Key? key, this.linkId, this.title, this.initialAlertId}) : super(key: key);
+  const RingAlertsScreen({Key? key, this.linkId, this.title, this.initialAlertId, this.mine = false}) : super(key: key);
 
   final int? linkId;
+  final bool mine;
   final String? title;
   final int? initialAlertId;
 
@@ -59,14 +60,16 @@ class _RingAlertsScreenState extends State<RingAlertsScreen> {
 
   Future<void> _load() async {
     try {
-      final alerts = await _service.fetchAlerts(linkId: widget.linkId, limit: _pageSize);
+      final alerts = widget.mine
+          ? await _service.fetchMine(limit: _pageSize)
+          : await _service.fetchAlerts(linkId: widget.linkId, limit: _pageSize);
       if (!mounted) return;
       setState(() {
         _alerts = alerts;
         _failed = false;
         _hasMore = alerts.length >= _pageSize;
       });
-      unawaited(_markSeen(alerts));
+      if (!widget.mine) unawaited(_markSeen(alerts));
     } on RingFamilyException {
       if (mounted) setState(() => _failed = _alerts == null);
     }
@@ -77,13 +80,15 @@ class _RingAlertsScreenState extends State<RingAlertsScreen> {
     if (_loadingMore || !_hasMore || current == null || current.isEmpty) return;
     setState(() => _loadingMore = true);
     try {
-      final more = await _service.fetchAlerts(linkId: widget.linkId, beforeId: current.last.id, limit: _pageSize);
+      final more = widget.mine
+          ? await _service.fetchMine(beforeId: current.last.id, limit: _pageSize)
+          : await _service.fetchAlerts(linkId: widget.linkId, beforeId: current.last.id, limit: _pageSize);
       if (!mounted) return;
       setState(() {
         _alerts = [...current, ...more];
         _hasMore = more.length >= _pageSize;
       });
-      unawaited(_markSeen(more));
+      if (!widget.mine) unawaited(_markSeen(more));
     } on RingFamilyException {
       // 保留已有内容
     } finally {
@@ -108,7 +113,7 @@ class _RingAlertsScreenState extends State<RingAlertsScreen> {
     final s = S.of(context);
     return Scaffold(
       backgroundColor: AppColors.kf4f4f4,
-      appBar: familyAlertAppBar(context, widget.title ?? s.ringAlertRecords),
+      appBar: familyAlertAppBar(context, widget.title ?? (widget.mine ? s.ringAlertMyRecords : s.ringAlertRecords)),
       body: _body(context),
     );
   }
